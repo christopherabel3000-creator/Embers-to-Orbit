@@ -3,11 +3,19 @@ import assert from 'node:assert/strict';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, dateLabel, shelterCapacity } from '../js/engine/state.js';
 import { getAdvice, forecastFood } from '../js/engine/advisors.js';
+import { describePending } from '../js/engine/events.js';
 
 const act = (state, action) => {
   const r = applyAction(state, action);
   assert.equal(r.error, undefined, r.error);
   return r.state;
+};
+
+// Answers any raid or decision with a simple default.
+const settle = (state) => {
+  if (state.pendingEvent && state.pendingEvent.type === 'raid') return act(state, { type: 'resolveRaid', plan: 'hide' });
+  if (state.pendingEvent) return act(state, { type: 'resolveEvent', choice: describePending(state).options[0].id });
+  return state;
 };
 
 test('a new game starts in spring with twelve survivors', () => {
@@ -50,7 +58,7 @@ test('the same seed and actions give the same result', () => {
   const run = () => {
     let s = newGame({ seed: 42 });
     for (let i = 0; i < 8; i++) {
-      if (s.pendingEvent) s = act(s, { type: 'resolveRaid', plan: 'hide' });
+      s = settle(s);
       s = act(s, { type: 'endTurn' });
     }
     return JSON.stringify(s);
@@ -71,6 +79,7 @@ test('a pending raid blocks ending the season until resolved', () => {
 test('saves survive a JSON round trip', () => {
   let s = newGame({ seed: 9, campName: 'Test Camp' });
   s = act(s, { type: 'endTurn' });
+  s = settle(s);
   const loaded = JSON.parse(JSON.stringify(s));
   const a = act(s, { type: 'endTurn' });
   const b = act(loaded, { type: 'endTurn' });

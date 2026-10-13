@@ -8,6 +8,7 @@ import {
 } from './state.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
+import { resolveStoryEvent } from './events.js';
 
 export { newGame } from './state.js';
 
@@ -83,6 +84,16 @@ const handlers = {
     return { message: result.lines.join(' ') };
   },
 
+  resolveEvent(state, { choice }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const result = resolveStoryEvent(state, choice);
+    if (result.error) return result;
+    state.report.decisions = [...(state.report.decisions || []), ...result.lines];
+    for (const text of result.lines) state.log.push({ turn: state.turn, date: state.report.title, text });
+    return { message: result.lines.join(' ') };
+  },
+
   setWorkSite(state, { task, placeId }) {
     const stop = blocked(state);
     if (stop) return stop;
@@ -116,7 +127,11 @@ const handlers = {
   endTurn(state) {
     const stop = blocked(state);
     if (stop) return stop;
-    if (state.pendingEvent) return { error: 'Deal with the raiders before ending the season.' };
+    if (state.pendingEvent) {
+      return { error: state.pendingEvent.type === 'raid'
+        ? 'Deal with the raiders before ending the season.'
+        : 'A decision is waiting. Make it before ending the season.' };
+    }
     resolveSeason(state);
     return { message: `Season ended. It is now ${state.report.title}.` };
   },

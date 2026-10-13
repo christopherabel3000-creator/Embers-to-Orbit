@@ -111,7 +111,7 @@ export function applyStandingOrders(state) {
   }
 
   // Healer: keep someone tending the hurt while anyone is hurt.
-  const anyoneHurt = people.some((p) => p.health < 75);
+  const anyoneHurt = people.some((p) => p.health < 75 || p.sick);
   if (!anyoneHurt) {
     const freed = people.filter((p) => returnFrom(p, 'healer', 'heal'));
     if (freed.length) say('healer', `no one needs tending, so ${listNames(freed)} went back to ${TASKS[freed[0].task].name.toLowerCase()}.`);

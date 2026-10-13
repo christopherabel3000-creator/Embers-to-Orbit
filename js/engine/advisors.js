@@ -5,7 +5,7 @@ import { BUILDINGS, SEASONS, PLACES } from './data.js';
 import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
   spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName,
-  unexploredNeighbors, knownPlaces, abundanceWord,
+  unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt,
 } from './state.js';
 import {
   expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
@@ -118,6 +118,19 @@ export function getAdvice(state) {
     if (fresh.length) {
       add('steward', 'note', `Every path from ${placeName(state, siteFor(state, 'scout'))} is explored. Scouts could explore beyond ${fresh.map((id) => placeName(state, id)).join(' or ')} instead.`);
     }
+  }
+
+  // Healer: fever.
+  const sick = people.filter((p) => p.sick);
+  if (sick.length) {
+    const tending = count('heal');
+    add('healer', tending ? 'warning' : 'urgent', `${sick.map((p) => p.name).join(', ')} ${sick.length === 1 ? 'has' : 'have'} the fever. The sick work at half strength and can spread it.${tending ? '' : ' No one is tending them; assign someone to tend the hurt.'}`);
+  }
+
+  // Hunters working where wolves roam.
+  const huntSite = siteFor(state, 'hunt');
+  if (count('hunt') > 0 && wolvesAt(state, huntSite)) {
+    add('warChief', 'warning', `Wolves roam ${placeName(state, huntSite)}, where our hunters work. Hunting there is dangerous and poor. Move the hunters on the Map screen.`);
   }
 
   // Healer: injuries and shelter.

@@ -5,13 +5,14 @@ import { newGame, applyAction } from '../engine/game.js';
 import {
   living, dateLabel, shelterCapacity, healthWord, moraleWord, seasonIndex,
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
-  isKnown,
+  isKnown, wolvesAt,
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor } from '../engine/rules.js';
+import { describePending } from '../engine/events.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -109,7 +110,9 @@ function render() {
   let html;
   if (screen === 'title') html = titleScreen();
   else if (screen === 'newGame') html = newGameScreen();
-  else if (state.pendingEvent && !state.gameOver) html = raidScreen();
+  else if (state.pendingEvent && !state.gameOver) {
+    html = state.pendingEvent.type === 'raid' ? raidScreen() : storyScreen();
+  }
   else html = ({
     report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen,
     advisors: advisorsScreen, chronicle: chronicleScreen, menu: menuScreen,
@@ -166,6 +169,9 @@ function reportScreen() {
   if (r.finished) html += `<p class="muted">What happened during ${esc(r.finished)}.</p>`;
   if (r.urgent.length) {
     html += `<h2>Urgent</h2><ul>${r.urgent.map((t) => `<li class="urgent">${esc(t)}</li>`).join('')}</ul>`;
+  }
+  if (r.decisions && r.decisions.length) {
+    html += `<h2>Your decision</h2><ul>${r.decisions.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   }
   if (r.events.length) {
     html += `<h2>${r.finished ? 'What happened' : 'Your story begins'}</h2><ul>${r.events.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
@@ -239,7 +245,7 @@ function peopleScreen() {
     const skills = SKILLS.map((k) => `${k} ${p.skills[k]}`).join(', ');
     html += `<li class="card">
       <h3>${esc(p.name)}${role ? `, ${esc(role)}` : ''}</h3>
-      <p>${healthWord(p.health)}, ${moraleWord(p.morale)}. Skills: ${skills}.</p>
+      <p>${healthWord(p.health)}${p.sick ? ', sick with fever' : ''}, ${moraleWord(p.morale)}. Skills: ${skills}.</p>
       <p class="muted">${esc(p.note)}</p>
       ${p.orderReturn ? `<p>${esc(ORDER_NOTES[p.orderReturn.reason] || 'Moved by a standing order.')}</p>` : ''}
       <p><label for="task-${p.id}">Task for ${esc(p.name)}</label>
@@ -267,6 +273,7 @@ function siteOptionText(id, task) {
   if (b) bits.push(`plus ${b} ${task === 'wood' ? 'wood' : 'food'} per worker`);
   if (task !== 'wood') bits.push(`${task === 'hunt' ? 'game' : 'wild food'} ${abundanceWord(state.places[id].abundance[task])}`);
   if (PLACES[id].distance >= 3) bits.push('far');
+  if (task === 'hunt' && wolvesAt(state, id)) bits.push('wolves');
   return bits.length ? `${name} (${bits.join(', ')})` : name;
 }
 
@@ -291,6 +298,7 @@ function mapScreen() {
     const linkParts = [...links];
     if (unexplored) linkParts.push(unexplored === 1 ? 'one unexplored path' : `${unexplored} unexplored paths`);
     const conditions = [];
+    if (wolvesAt(state, id)) conditions.push('A wolf pack roams here. Hunting is dangerous and poor.');
     if (place.tasks.includes('hunt')) conditions.push(`Game is ${abundanceWord(state.places[id].abundance.hunt)}.`);
     if (place.tasks.includes('forage')) conditions.push(`Wild food is ${abundanceWord(state.places[id].abundance.forage)}.`);
     const workingHere = [];
@@ -420,9 +428,24 @@ function menuScreen() {
     <p>Autumn and winter fires burn wood, and anyone without shelter suffers from the cold. Each lean-to shelters 4 more people.</p>
     <p>Hurt people work at half strength. Have them rest, and have a healer tend them.</p>
     <p>The Map screen shows the places you know. Choose where hunters, foragers, and woodcutters work, and where scouts explore from. Scouts can find better places and new people. Hunting and foraging grounds wear down with use, so move your workers when a place gets thin.</p>
+    <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
+}
+
+function storyScreen() {
+  const view = describePending(state);
+  let html = `<h1>${esc(view.title)}</h1><p>${esc(view.text)}</p>`;
+  if (view.advice.length) {
+    html += `<h2>Advice</h2><ul>${view.advice.map((a) => `<li>${esc(a.name)}, ${esc(a.title.toLowerCase())}: ${esc(a.text)}</li>`).join('')}</ul>`;
+  }
+  html += `<form id="storyForm"><fieldset><legend>What will you do?</legend>
+    ${view.options.map((o) => `<label class="choice"><input type="radio" name="choice" value="${esc(o.id)}"> ${esc(o.label)}</label>`).join('')}
+    </fieldset>
+    <div class="actions"><button type="submit" class="primary">Confirm</button></div>
+  </form>`;
+  return html;
 }
 
 function raidScreen() {
@@ -451,7 +474,7 @@ function raidScreen() {
   for (const p of people) {
     const canFight = p.health >= 40;
     html += `<label class="choice"><input type="checkbox" name="defender" value="${p.id}"${canFight ? ' checked' : ''}>
-      ${esc(p.name)}, hunting ${p.skills.hunting}, ${healthWord(p.health)}</label>`;
+      ${esc(p.name)}, hunting ${p.skills.hunting}, ${healthWord(p.health)}${p.sick ? ', sick' : ''}</label>`;
   }
   html += `</fieldset>
       <h2>War chief's estimate</h2>
@@ -623,6 +646,16 @@ $main.addEventListener('submit', (e) => {
   e.preventDefault();
   if (e.target.id === 'newGameForm') {
     startNewGame(document.getElementById('campName').value);
+    return;
+  }
+  if (e.target.id === 'storyForm') {
+    const picked = e.target.querySelector('input[name="choice"]:checked');
+    if (!picked) {
+      announce('Choose one of the options first.');
+      return;
+    }
+    const msg = act({ type: 'resolveEvent', choice: picked.value });
+    if (msg) show('report');
     return;
   }
   if (e.target.id === 'raidForm') {

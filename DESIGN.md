@@ -94,6 +94,15 @@ Advisors always follow orders, but they actively give recommendations and warn t
 - **Auto-resolve.** The war advisor can resolve minor battles such as small raids.
 - **Standing orders in Phase 1** (on the Advisors screen): badly hurt people rest until healed and then return to work; keep someone tending the hurt; keep enough food to last 1 to 4 seasons; foragers hunt in winter and return to foraging in spring; newcomers start at their best task; and a raid policy (ask me, fight if likely to win, or decide for me). Orders run at the start of each season and are listed in the report. A player's own reassignment always overrides an order.
 
+## Events
+
+Events keep seasons from feeling the same. After each season there is a 40 percent chance of one event, and the same event cannot repeat within 6 seasons. Raids take priority.
+
+- **Instant events** simply happen and appear in the report: storms (wreck a lean-to or soak the woodpile), bumper crops, fever outbreaks, mice in the food stores (a storehouse prevents this), winter cold snaps, and fireside stories that lift spirits.
+- **Choice events** stop the game on their own screen, with advisors' views, and the player picks an option: a sick traveler asking to join, wolves moving into a hunting ground, a quarrel between two survivors, a missing worker, river traders, and a wild beehive. Outcomes appear under "Your decision" in the report.
+- **Ongoing conditions.** Fever: the sick lose health, work at half strength, and spread it, faster in a crowded camp; tending the sick and a healer's hut speed recovery. Wolves: hunting at their place is more dangerous and yields less for about a year.
+- Events tie into existing systems: places on the map, shelter, the storehouse, advisors, and standing orders (for example, keeping a healer on duty also covers the sick).
+
 ## Playstyles, traditions, and reputation
 
 Players never choose a playstyle or win condition. Their actions make certain things easier, and a nation's identity emerges from its history.

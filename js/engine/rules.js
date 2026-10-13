@@ -2,7 +2,7 @@
 // resolution (which adds randomness) and the advisors (who forecast).
 
 import { PLACES } from './data.js';
-import { isKnown } from './state.js';
+import { isKnown, wolvesAt } from './state.js';
 
 const HUNT_SEASON = [1, 1, 1.1, 0.6];
 const FORAGE_BASE = [2, 4, 5, 0];
@@ -17,6 +17,7 @@ export const RECOVERY = { hunt: [10, 10, 8, 4], forage: [12, 12, 6, 0] };
 export function workFactor(person) {
   let f = 1;
   if (person.health < 40) f *= 0.5;
+  if (person.sick) f *= 0.5;
   if (person.morale < 25) f *= 0.7;
   else if (person.morale < 45) f *= 0.85;
   return f;
@@ -50,6 +51,7 @@ export function expectedFood(state, person, task, seasonIdx) {
     const site = siteFor(state, 'hunt');
     amount = (2 + s.hunting) * HUNT_SEASON[seasonIdx] + bonus(site, 'hunt');
     amount *= abundanceFactor(state, site, 'hunt') * distanceFactor(site);
+    if (wolvesAt(state, site)) amount *= 0.7; // Wolves scare off and take the game.
   } else if (task === 'forage') {
     if (seasonIdx === 3) return 0;
     const site = siteFor(state, 'forage');
@@ -80,7 +82,9 @@ export function healingPoints(state, person) {
 
 // Hunting farther from camp is a little more dangerous.
 export function huntInjuryChance(state, person) {
-  const extra = 0.02 * Math.max(0, PLACES[siteFor(state, 'hunt')].distance - 1);
+  const site = siteFor(state, 'hunt');
+  let extra = 0.02 * Math.max(0, PLACES[site].distance - 1);
+  if (wolvesAt(state, site)) extra += 0.15;
   return Math.max(0.03, 0.12 - 0.015 * person.skills.hunting) + extra;
 }
 

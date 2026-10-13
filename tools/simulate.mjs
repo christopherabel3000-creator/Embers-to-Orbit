@@ -5,6 +5,7 @@ import { newGame, applyAction } from '../js/engine/game.js';
 import { living, shelterCapacity, seasonIndex, knownPlaces, unexploredNeighbors } from '../js/engine/state.js';
 import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
+import { describePending } from '../js/engine/events.js';
 
 const GAMES = Number(process.argv[2] || 200);
 const YEARS = Number(process.argv[3] || 5);
@@ -70,6 +71,11 @@ function play(seed, strategy) {
     }
   }
   for (let t = 0; t < YEARS * 4 && !state.gameOver; t++) {
+    if (state.pendingEvent && state.pendingEvent.type === 'story') {
+      // Simple players take the first option offered.
+      state = act(state, { type: 'resolveEvent', choice: describePending(state).options[0].id });
+      if (state.gameOver) break;
+    }
     if (state.pendingEvent) {
       const fighters = living(state).filter((p) => p.health >= 40);
       const odds = raidOdds(state, fighters, state.pendingEvent.warned, state.pendingEvent.raiders);

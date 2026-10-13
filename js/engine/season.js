@@ -10,6 +10,7 @@ import {
   scoutSuccessChance, siteFor, DEPLETION, RECOVERY,
 } from './rules.js';
 import { applyStandingOrders } from './orders.js';
+import { progressConditions, maybeStartEvent } from './events.js';
 import { nextRandom, randomBetween, randomInt, chance, pick } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
 
@@ -155,6 +156,11 @@ export function resolveSeason(state) {
     a.forage = Math.max(0, Math.min(100, a.forage + RECOVERY.forage[s]));
   }
 
+  // Fever and other ongoing conditions.
+  const conditionLines = progressConditions(state, people.filter((p) => p.task === 'heal').length);
+  urgent.push(...conditionLines.urgent);
+  events.push(...conditionLines.events);
+
   // 4. Healing: the most hurt are treated first, up to 30 health each.
   const patients = people.filter((p) => p.health < 100).sort((a, b) => a.health - b.health);
   const healed = [];
@@ -258,6 +264,9 @@ export function resolveSeason(state) {
       for (const p of survivors) p.morale = clamp(p.morale + 3);
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
+    const happened = maybeStartEvent(state);
+    urgent.push(...happened.urgent);
+    events.push(...happened.events);
     const fromOrders = applyStandingOrders(state);
     urgent.push(...fromOrders.urgent);
     ordersDone.push(...fromOrders.orders);

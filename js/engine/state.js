@@ -6,7 +6,7 @@ import {
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE,
 } from './data.js';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -34,6 +34,7 @@ export function makePerson(template, id, task = 'forage') {
     alive: true,
     task,
     orderReturn: null, // Set when a standing order moved this person.
+    sick: false,
   };
 }
 
@@ -64,6 +65,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     places: initialPlaces(),
     workSites: { hunt: 'camp', forage: 'camp', wood: 'camp', scout: 'camp' },
     orders: { ...DEFAULT_ORDERS },
+    conditions: [], // Ongoing situations, like wolves at a place.
+    eventHistory: {}, // Event id to the turn it last happened.
     advisors: { steward: 6, warChief: 7, healer: 4 }, // Fenna, Garrow, Dalia
     pendingEvent: null,
     report: null,
@@ -100,6 +103,12 @@ export function migrate(data) {
     for (const p of data.people) p.orderReturn = null;
     if (data.report) data.report.orders = [];
     data.version = 2;
+  }
+  if (data.version === 2) {
+    data.conditions = [];
+    data.eventHistory = {};
+    for (const p of data.people) p.sick = false;
+    data.version = 3;
   }
   return data.version === SAVE_VERSION ? data : null;
 }
@@ -146,6 +155,10 @@ export function knownPlaces(state) {
 
 export function unexploredNeighbors(state, placeId) {
   return PLACES[placeId].neighbors.filter((n) => !isKnown(state, n));
+}
+
+export function wolvesAt(state, placeId) {
+  return (state.conditions || []).some((c) => c.id === 'wolves' && c.place === placeId);
 }
 
 export function foodNeeded(count) {

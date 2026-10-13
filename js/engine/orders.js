@@ -6,6 +6,7 @@ import { living, seasonIndex, canFight, allowedTasksFor } from './state.js';
 import { advisorPerson, ADVISOR_ROLES, forecastFood, raidOdds } from './advisors.js';
 import { expectedFood } from './rules.js';
 import { resolveRaidPlan } from './raid.js';
+import { bestWorkPlan } from './assign.js';
 
 function listNames(people) {
   const names = people.map((p) => p.name);
@@ -84,46 +85,61 @@ export function applyStandingOrders(state) {
   // Steward: put newcomers to work at what they do best.
   const newcomers = people.filter((p) => p.isNew);
   for (const p of newcomers) delete p.isNew;
-  if (orders.placeNewcomers) {
+  if (orders.placeNewcomers && !orders.autoAssign) {
     for (const p of newcomers.filter((x) => x.task === 'rest')) {
       p.task = bestTaskFor(p, s);
       say('steward', `put ${p.name} to work: ${TASKS[p.task].name.toLowerCase()}.`);
     }
   }
 
-  // Healer: the badly hurt rest until they are healthy again.
-  const backToWork = people.filter((p) => p.health >= 75 && returnFrom(p, 'hurt', 'rest'));
-  if (backToWork.length) say('healer', `${listNames(backToWork)} ${backToWork.length === 1 ? 'has' : 'have'} recovered and gone back to work.`);
-  if (orders.restWhenHurt) {
-    const sent = people.filter((p) => p.health < 40 && p.task !== 'rest' && p.age >= 5);
-    for (const p of sent) moveFor(p, 'rest', 'hurt');
-    if (sent.length) say('healer', `sent ${listNames(sent)} to rest until healed.`);
-  }
-
-  // Steward: foragers and farmers hunt in winter, then go back in spring.
-  if (s === 0) {
-    const back = people.filter((p) => returnFrom(p, 'winter', 'hunt'));
-    if (back.length) say('steward', `${listNames(back)} went back to the fields and foraging grounds now that spring has come.`);
-  }
-  if (orders.winterForagers && s === 3) {
-    const idle = people.filter((p) => p.task === 'forage' || p.task === 'farm');
-    for (const p of idle) moveFor(p, 'hunt', 'winter');
-    if (idle.length) say('steward', `nothing grows in winter, so ${listNames(idle)} will hunt until spring.`);
-  }
-
-  // Healer: keep someone tending the hurt while anyone is hurt.
-  const anyoneHurt = people.some((p) => p.health < 75 || p.sick);
-  if (!anyoneHurt) {
-    const freed = people.filter((p) => returnFrom(p, 'healer', 'heal'));
-    if (freed.length) say('healer', `no one needs tending, so ${listNames(freed)} went back to ${TASKS[freed[0].task].name.toLowerCase()}.`);
-  } else if (orders.keepHealer && !people.some((p) => p.task === 'heal')) {
-    const candidate = people
-      .filter((p) => p.health >= 40 && p.task !== 'rest' && p.age >= 12)
-      .sort((a, b) => b.skills.healing - a.skills.healing)[0];
-    if (candidate) {
-      moveFor(candidate, 'heal', 'healer');
-      say('healer', `${candidate.name} will tend the hurt.`);
+  if (orders.autoAssign) {
+    // Steward: everyone to their best work. This covers resting the hurt,
+    // tending the sick, winter work, and newcomers, so those orders wait.
+    const plan = bestWorkPlan(state);
+    let changed = 0;
+    for (const [id, task] of plan) {
+      const p = people.find((x) => x.id === id);
+      if (p.task !== task) changed += 1;
+      p.task = task;
+      p.orderReturn = null;
     }
+    if (changed) say('steward', `put everyone on their best work for the season; ${changed} changed jobs.`);
+  } else {
+    // Healer: the badly hurt rest until they are healthy again.
+    const backToWork = people.filter((p) => p.health >= 75 && returnFrom(p, 'hurt', 'rest'));
+    if (backToWork.length) say('healer', `${listNames(backToWork)} ${backToWork.length === 1 ? 'has' : 'have'} recovered and gone back to work.`);
+    if (orders.restWhenHurt) {
+      const sent = people.filter((p) => p.health < 40 && p.task !== 'rest' && p.age >= 5);
+      for (const p of sent) moveFor(p, 'rest', 'hurt');
+      if (sent.length) say('healer', `sent ${listNames(sent)} to rest until healed.`);
+    }
+
+    // Steward: foragers and farmers hunt in winter, then go back in spring.
+    if (s === 0) {
+      const back = people.filter((p) => returnFrom(p, 'winter', 'hunt'));
+      if (back.length) say('steward', `${listNames(back)} went back to the fields and foraging grounds now that spring has come.`);
+    }
+    if (orders.winterForagers && s === 3) {
+      const idle = people.filter((p) => p.task === 'forage' || p.task === 'farm');
+      for (const p of idle) moveFor(p, 'hunt', 'winter');
+      if (idle.length) say('steward', `nothing grows in winter, so ${listNames(idle)} will hunt until spring.`);
+    }
+
+    // Healer: keep someone tending the hurt while anyone is hurt.
+    const anyoneHurt = people.some((p) => p.health < 75 || p.sick);
+    if (!anyoneHurt) {
+      const freed = people.filter((p) => returnFrom(p, 'healer', 'heal'));
+      if (freed.length) say('healer', `no one needs tending, so ${listNames(freed)} went back to ${TASKS[freed[0].task].name.toLowerCase()}.`);
+    } else if (orders.keepHealer && !people.some((p) => p.task === 'heal')) {
+      const candidate = people
+        .filter((p) => p.health >= 40 && p.task !== 'rest' && p.age >= 12)
+        .sort((a, b) => b.skills.healing - a.skills.healing)[0];
+      if (candidate) {
+        moveFor(candidate, 'heal', 'healer');
+        say('healer', `${candidate.name} will tend the hurt.`);
+      }
+    }
+
   }
 
   // Steward: make sure food will last the chosen number of seasons.

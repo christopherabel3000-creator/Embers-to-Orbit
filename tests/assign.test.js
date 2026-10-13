@@ -42,3 +42,15 @@ test('children only get work they can do, and infants rest', () => {
   assert.equal(task(s, 'Alder'), 'forage');
   assert.equal(task(s, 'Wren'), 'rest');
 });
+
+test('the best-work standing order reassigns everyone each season', async () => {
+  const { applyStandingOrders } = await import('../js/engine/orders.js');
+  let s = newGame({ seed: 1 });
+  for (const p of living(s)) s = applyAction(s, { type: 'assign', personId: p.id, task: 'rest' }).state;
+  s = applyAction(s, { type: 'setOrder', id: 'autoAssign', value: true }).state;
+  s.people.find((p) => p.name === 'Jora').health = 30;
+  const { orders } = applyStandingOrders(s);
+  assert.equal(task(s, 'Aric'), 'hunt');
+  assert.equal(task(s, 'Jora'), 'rest');
+  assert.ok(orders.some((line) => /best work/.test(line)));
+});

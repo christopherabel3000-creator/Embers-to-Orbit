@@ -83,7 +83,7 @@ function chooseStudy(state) {
 function play(seed, strategy) {
   let state = newGame({ seed });
   if (strategy === 'orders') {
-    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto']]) {
+    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto'], ['autoAssign', true]]) {
       state = act(state, { type: 'setOrder', id, value });
     }
   }
@@ -103,6 +103,7 @@ function play(seed, strategy) {
     }
     if (strategy === 'orders') {
       state = chooseSites(state);
+      state = chooseStudy(state);
       const project = chooseProject(state);
       if (project) state = act(state, { type: 'startProject', buildingId: project });
     }

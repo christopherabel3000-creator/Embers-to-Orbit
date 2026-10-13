@@ -21,6 +21,7 @@ export const DEFAULT_ORDERS = {
   foodReserve: 0, // 0 = off, otherwise the number of seasons food must last.
   winterForagers: false,
   placeNewcomers: true,
+  autoAssign: false, // Put everyone on their best work each season.
   raidPolicy: 'ask', // 'ask', 'fightIfLikely', or 'auto'.
 };
 

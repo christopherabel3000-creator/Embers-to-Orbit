@@ -5,6 +5,7 @@ import { defenseStrength, raidAttackStrength } from './rules.js';
 import { randomBetween, randomInt, chance } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
 import { gainExperience } from './skills.js';
+import { meet, changeRelation } from './neighbors.js';
 
 // Returns { error } or { lines } describing what happened.
 export function resolveRaidPlan(state, plan, defenderIds = []) {
@@ -54,6 +55,12 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
     for (const p of injured.filter((x) => x.health <= 0)) {
       p.alive = false;
       lines.push(`${p.name} was killed.`);
+    }
+    if (ev.from !== 'outlaws') {
+      if (meet(state, 'skarn', { contact: false })) {
+        lines.push('After the fighting, a wounded raider told your people who they were: the Skarn, from a fortified hold in the rocky hills. You can now deal with them on the Neighbors screen.');
+      }
+      if (won) changeRelation(state, 'skarn', -5);
     }
   } else {
     return { error: 'Choose to fight or hide.' };

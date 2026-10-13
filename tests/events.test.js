@@ -14,6 +14,10 @@ function richState() {
   s.resources = { food: 60, wood: 60 };
   s.buildings.leanTo = 2;
   s.places.deerTrails.known = true;
+  for (const id of ['velari', 'tellani', 'skarn']) s.neighbors[id].known = true;
+  s.neighbors.velari.relation = 40;
+  s.neighbors.tellani.relation = 35;
+  s.neighbors.skarn.relation = -20;
   return s;
 }
 
@@ -29,7 +33,8 @@ test('every instant event applies cleanly', () => {
 test('every choice event offers options and resolves each one', () => {
   for (const [id, ev] of Object.entries(EVENTS).filter(([, e]) => e.choice)) {
     const base = richState();
-    assert.ok(ev.weight(base) > 0, `${id} should be possible`);
+    if (id === 'firstContact') base.neighbors.skarn.contactPending = true;
+    else assert.ok(ev.weight(base) > 0, `${id} should be possible`);
     base.pendingEvent = { type: 'story', id, ...ev.start(base) };
     const view = describePending(base);
     assert.ok(view.title && view.text && view.options.length >= 2, id);
@@ -91,6 +96,6 @@ test('version 2 saves are upgraded', () => {
   delete old.eventHistory;
   for (const p of old.people) delete p.sick;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 9);
+  assert.equal(s.version, 10);
   assert.equal(s.people[0].sick, false);
 });

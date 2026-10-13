@@ -6,19 +6,21 @@ import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
   spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName, shelterNeeded, canFight,
   unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt, hasKnowledge,
-  knowledgeBlocker, fieldPlots,
+  knowledgeBlocker, fieldPlots, metNeighbors,
 } from './state.js';
 import {
   expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
   expectedHarvest, farmerCapacity, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { birthOutlook, parents } from './population.js';
+import { skarnAtPeace } from './neighbors.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
   warChief: { title: 'War chief', skill: 'hunting', domain: 'defense' },
   healer: { title: 'Healer', skill: 'healing', domain: 'health and shelter' },
   scholar: { title: 'Scholar', skill: 'learning', domain: 'study and discovery' },
+  speaker: { title: 'Speaker', skill: 'learning', domain: 'neighbors and diplomacy' },
 };
 
 // Replace any advisor who has died with the most skilled living person.
@@ -207,6 +209,29 @@ export function getAdvice(state) {
     if (outlook.reasons.length) {
       add('steward', 'note', `Few children will be born while ${outlook.reasons.join(' and ')}.`);
     }
+  }
+
+  // Speaker: neighbors.
+  const met = metNeighbors(state);
+  const sk = state.neighbors.skarn;
+  if (!met.length && state.turn >= 4) {
+    add('speaker', 'note', 'We have met no other peoples yet. Scouts exploring far from camp may find them.');
+  }
+  if (state.raidThreat) {
+    add('warChief', 'urgent', 'The Skarn have promised to come for what we refused them. Expect raiders soon.');
+  }
+  if (sk.known && !skarnAtPeace(state) && sk.relation < -40) {
+    add('speaker', 'warning', 'The Skarn are hostile, and raids will come often. Gifts, tribute, or a strong palisade would help.');
+  }
+  if (sk.known && !sk.peace && sk.truceUntil > state.turn && sk.truceUntil - state.turn <= 1) {
+    add('speaker', 'note', 'Our truce with the Skarn ends after this season.');
+  }
+  if (sk.known && !sk.peace && sk.relation >= 10) {
+    add('speaker', 'note', 'The Skarn respect us enough now that they might accept a lasting peace.');
+  }
+  const velari = state.neighbors.velari;
+  if (velari.known && velari.relation >= 40 && !hasKnowledge(state, 'farming')) {
+    add('speaker', 'note', 'The Velari would teach us farming now. Ask them on the Neighbors screen.');
   }
 
   // War chief: raids.

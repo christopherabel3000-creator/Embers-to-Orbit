@@ -12,6 +12,9 @@ import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
 import { applyStudy } from './study.js';
 import {
+  meet, driftRelations, raidModifier, skarnAtPeace,
+} from './neighbors.js';
+import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
   scoutSuccessChance, siteFor, DEPLETION, RECOVERY, studyPoints, farmerCapacity,
   foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
@@ -200,6 +203,7 @@ export function resolveSeason(state) {
         state.resources.food += 15;
         state.resources.wood += 10;
       }
+      if (PLACES[found].people) meet(state, PLACES[found].people);
     }
   }
 
@@ -318,6 +322,8 @@ export function resolveSeason(state) {
   state.turn += 1;
   const survivors = living(state);
   refreshAdvisors(state);
+  driftRelations(state);
+  if (state.raidThreat && state.pendingEvent && state.pendingEvent.type === 'raid') state.raidThreat = false;
 
   if (survivors.length === 0) {
     state.gameOver = true;
@@ -363,12 +369,18 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   const y = year(state);
   let p = 0.1 + 0.02 * y;
   if (state.resources.food > 80) p += 0.05;
-  if (!chance(state, Math.min(0.35, p))) return;
-  const raiders = randomInt(state, 4, 7) + 2 * (y - 1);
+  p *= raidModifier(state);
+  if (!chance(state, Math.min(state.raidThreat ? 0.8 : 0.35, p))) return;
+  // With peace or a truce, the only raiders are small bands of outlaws.
+  const from = skarnAtPeace(state) ? 'outlaws' : 'skarn';
+  let raiders = randomInt(state, 4, 7) + 2 * (y - 1);
+  if (from === 'outlaws') raiders = Math.max(3, Math.ceil(raiders / 2));
   const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail')
     || (scoutsOut && chance(state, 0.6));
-  state.pendingEvent = { type: 'raid', raiders, warned };
+  state.raidThreat = false;
+  state.pendingEvent = { type: 'raid', raiders, warned, from };
+  const who = from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed strangers';
   urgent.unshift(warned
-    ? `Raiders are coming! Scouts spotted about ${raiders} armed strangers heading for the camp. Decide how to respond before anything else.`
-    : `Raiders are at the edge of camp! About ${raiders} armed strangers caught you by surprise. Decide how to respond before anything else.`);
+    ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp. Decide how to respond before anything else.`
+    : `Raiders are at the edge of camp! About ${raiders} ${who} caught you by surprise. Decide how to respond before anything else.`);
 }

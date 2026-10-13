@@ -123,6 +123,21 @@ Discovery starts in the Survival era. People set to the Study task earn study po
 
 Reaching the Settlement era (for now, a milestone) needs 16 people, a storehouse, a palisade, and farming.
 
+## Neighbors (Survival era)
+
+Three hand-crafted peoples live around the forest valley. Each has a home on the local map, a temperament, and relations with you from -100 (hostile) to 100 (close friends), which drift slowly back toward their nature.
+
+| People | Home | Nature | Starting relations | What they offer |
+| --- | --- | --- | --- | --- |
+| Velari | Velari fields, beyond the North meadow | Peaceful hill farmers, slow to trust | 10 | Food for wood; at 40 or more, they will teach farming |
+| Tellani | Teln landing, downriver beyond the beaver ponds | River traders | 5 | The best trade rates, both ways |
+| Skarn | Skarn hold, at the end of the raider trail | Raiders who respect strength | -30 | Nothing but peace: tribute buys a year's truce; at 10 or more, a lasting peace |
+
+- **Meeting them.** Scouts who find a people's home make first contact, a choice event (gift, greet, or withdraw) that sets the tone. The Velari come to you if your scouts never find them. The river traders are the Tellani, who introduce themselves after a trade. The raiders are the Skarn, revealed after the first fight.
+- **Diplomacy.** The Neighbors screen allows one envoy to each people per season: gifts of food or wood, trades whose rates improve with friendship, and special deals. A new advisor, the speaker, watches over relations.
+- **The Skarn and raids.** Once known, the Skarn's mood sets how often raids come: hostile 1.5 times as often, friendly much less. Tribute or peace stops them; only small bands of outlaws remain. Defeating their raids angers them. Their riders may demand tribute; refusing or defying them brings raiders soon.
+- **Neighbor events.** The Velari may ask for food after a blight; friendly Velari or Tellani may send a young person to join the camp; the Skarn may demand tribute.
+
 ## Events
 
 Events keep seasons from feeling the same. After each season there is a 40 percent chance of one event, and the same event cannot repeat within 6 seasons. Raids take priority.

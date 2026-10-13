@@ -13,6 +13,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Births, children, aging, old age, mentoring, and a compact People view.
 - "Assign everyone to their best work" button, and a standing order that does it each season.
 - Build queue with leftover work carrying over; study queue; orders to staff the fields and to queue lean-tos.
+- Neighbors: the Velari, Tellani, and Skarn, with first contact, relations, diplomacy, and events.
 
 ## Next in the Survival era
 
@@ -27,6 +28,6 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 
 - [ ] Research tree.
 - [ ] Population moves from named individuals to groups by profession.
-- [ ] The first neighboring people: contact, trade, conflict.
+- [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, attacking the Skarn, trade goods beyond food and wood, reputation shared across peoples, a standing order to pay tribute.
 - [ ] Zone-based battles replace simple raids.
 - [ ] The other four starting regions, each with its own local map.

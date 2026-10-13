@@ -6,14 +6,15 @@ import {
   living, dateLabel, shelterCapacity, healthWord, moraleWord, seasonIndex,
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
   isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
-  allowedTasksFor, lifeStage, canFight,
+  allowedTasksFor, lifeStage, canFight, metNeighbors, relationWord,
 } from '../engine/state.js';
 import {
-  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER,
+  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
 import { describePending } from '../engine/events.js';
+import { diplomacyOptions } from '../engine/neighbors.js';
 import {
   remainingQueueWork, queueBlocker, queuedCount, refundFor,
 } from '../engine/building.js';
@@ -34,6 +35,7 @@ const SCREENS = [
   ['map', 'Map'],
   ['build', 'Build'],
   ['knowledge', 'Knowledge'],
+  ['neighbors', 'Neighbors'],
   ['advisors', 'Advisors'],
   ['chronicle', 'Chronicle'],
   ['menu', 'Menu'],
@@ -136,7 +138,7 @@ function render() {
     html = state.pendingEvent.type === 'raid' ? raidScreen() : storyScreen();
   }
   else html = ({
-    report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen, knowledge: knowledgeScreen,
+    report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen, knowledge: knowledgeScreen, neighbors: neighborsScreen,
     advisors: advisorsScreen, chronicle: chronicleScreen, menu: menuScreen,
   }[screen] || reportScreen)();
   $main.innerHTML = html;
@@ -452,6 +454,41 @@ function knowledgeScreen() {
   return html;
 }
 
+function neighborsScreen() {
+  const met = metNeighbors(state);
+  const speaker = advisorPerson(state, 'speaker');
+  let html = `<h1>Neighbors</h1>`;
+  if (!met.length) {
+    return `${html}<p>Your people know of no one else yet. Scouts exploring far from camp may find other peoples, and others may find you.</p>`;
+  }
+  html += `<p>Each season you can send envoys to each people once${speaker ? `, led by ${esc(speaker.name)}, your speaker` : ''}. Relations run from hostile to close friends, and slowly drift back toward each people's nature.</p>`;
+  for (const id of met) {
+    const def = NEIGHBORS[id];
+    const n = state.neighbors[id];
+    const opts = diplomacyOptions(state, id);
+    const ready = opts.filter((o) => o.ok);
+    const blocked = opts.filter((o) => !o.ok);
+    let status = '';
+    if (id === 'skarn' && n.peace) status = ' You are at peace with them.';
+    else if (id === 'skarn' && n.truceUntil > state.turn) status = ` A truce holds for ${plural(n.truceUntil - state.turn, 'more season', 'more seasons')}.`;
+    html += `<h2 id="neighbor-${id}">${esc(def.title)}</h2>
+      <p>Relations: ${relationWord(n.relation)} (${n.relation}).${status}</p>
+      <p>${esc(capitalize(def.temperament))}. ${esc(def.description)}</p>
+      <p>Home: ${esc(placeName(state, def.home))}${isKnown(state, def.home) ? '' : ', a place your scouts have not found'}. They want ${esc(def.wants)}, and offer ${esc(def.offers)}.</p>
+      <h3>Envoys this season</h3>`;
+    if (n.lastEnvoy === state.turn) html += '<p>Your envoys have already visited them this season.</p>';
+    else if (!ready.length) html += '<p>Nothing you can offer them right now.</p>';
+    if (ready.length) {
+      html += `<div class="actions">${ready.map((o) => `<button type="button" data-action="diplomacy" data-neighbor="${id}" data-act="${o.key}">${esc(o.label)}</button>`).join('')}</div>`;
+    }
+    const notNow = blocked.filter((o) => n.lastEnvoy !== state.turn);
+    if (notNow.length) {
+      html += `<p>Not possible now:</p><ul>${notNow.map((o) => `<li>${esc(o.label)}. ${esc(o.why)}</li>`).join('')}</ul>`;
+    }
+  }
+  return html;
+}
+
 function buildScreen() {
   const people = living(state);
   const builders = people.filter((p) => p.task === 'build');
@@ -586,6 +623,7 @@ function menuScreen() {
     <p>The Map screen shows the places you know. Choose where hunters, foragers, and woodcutters work, and where scouts explore from. Scouts can find better places and new people. Hunting and foraging grounds wear down with use, so move your workers when a place gets thin.</p>
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
     <p>Set people to Study and choose a discovery on the Knowledge screen. Discoveries improve hunting, building, storage, and health. Farming is the great one: build fields, plant in spring, tend in summer, and harvest in autumn.</p>
+    <p>Other peoples live around the valley. Scouts may find their homes, and some will find you. On the Neighbors screen you can send gifts, trade, and make deals, once per people each season. The raiders who trouble your camp are a people too, and they can be bargained with.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
@@ -611,10 +649,11 @@ function raidScreen() {
   const able = people.filter(canFight);
   const odds = raidOdds(state, able, ev.warned, ev.raiders);
   const chief = advisorPerson(state, 'warChief');
+  const who = ev.from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed raiders';
   let html = `<h1>Raiders!</h1>
     <p class="urgent">${ev.warned
-      ? `Scouts spotted about ${ev.raiders} armed raiders heading for ${esc(state.campName)}. There is time to prepare.`
-      : `About ${ev.raiders} armed raiders are at the edge of ${esc(state.campName)}, and they caught you by surprise. Defenders will fight at a disadvantage.`}</p>
+      ? `Scouts spotted about ${ev.raiders} ${who} heading for ${esc(state.campName)}. There is time to prepare.`
+      : `About ${ev.raiders} ${who} are at the edge of ${esc(state.campName)}, and they caught you by surprise. Defenders will fight at a disadvantage.`}</p>
     ${state.buildings.palisade ? '<p>Your palisade will help the defenders.</p>' : ''}
     <form id="raidForm">
       <fieldset>
@@ -740,6 +779,16 @@ function handleAction(action, btn) {
       if (msg) {
         show('build', { focus: false });
         refocus('#queueHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'diplomacy': {
+      const id = btn.dataset.neighbor;
+      const msg = act({ type: 'diplomacy', neighborId: id, act: btn.dataset.act });
+      if (msg) {
+        show('neighbors', { focus: false });
+        refocus(`#neighbor-${id}`);
         announce(msg);
       }
       break;

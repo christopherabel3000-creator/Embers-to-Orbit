@@ -123,7 +123,7 @@ export const PLACES = {
     description: 'Old oaks with acorns, mushrooms, and good timber.',
   },
   meadow: {
-    name: 'North meadow', distance: 1, neighbors: ['camp', 'herbHillside', 'abandonedCamp'],
+    name: 'North meadow', distance: 1, neighbors: ['camp', 'herbHillside', 'abandonedCamp', 'velariFields'],
     tasks: ['forage'], bonus: { forage: 2 },
     found: 'an open meadow full of wild greens and roots. Good foraging outside of winter.',
     description: 'Open grassland, rich with greens and roots outside of winter.',
@@ -159,16 +159,34 @@ export const PLACES = {
     description: 'The cold remains of someone else\'s camp. Already searched.',
   },
   beaverPonds: {
-    name: 'Beaver ponds', distance: 3, neighbors: ['berryThicket'],
+    name: 'Beaver ponds', distance: 3, neighbors: ['berryThicket', 'telnLanding'],
     tasks: ['hunt', 'forage'], bonus: { hunt: 2, forage: 2 },
     found: 'a chain of beaver ponds full of game and plants. It is far, so work there goes a little slower.',
     description: 'Ponds full of fish, fowl, and plants. Far from camp.',
   },
   raiderTrail: {
-    name: 'Raider trail', distance: 3, neighbors: ['deerTrails'],
+    name: 'Raider trail', distance: 3, neighbors: ['deerTrails', 'skarnHold'],
     tasks: [], bonus: {},
     found: 'a trail used by raiders. From now on, you will always see raiders coming.',
     description: 'A trail the raiders use. Watching it means raiders never catch you by surprise.',
+  },
+  velariFields: {
+    name: 'Velari fields', distance: 3, neighbors: ['meadow'], people: 'velari',
+    tasks: [], bonus: {},
+    found: 'terraced fields of grain in the eastern hills, and the round houses of the people who tend them. They call themselves the Velari.',
+    description: 'Terraced grain fields and round houses in the eastern hills. Home of the Velari.',
+  },
+  telnLanding: {
+    name: 'Teln landing', distance: 3, neighbors: ['beaverPonds'], people: 'tellani',
+    tasks: [], bonus: {},
+    found: 'a busy river landing where boats come and go. The people here call themselves the Tellani.',
+    description: 'A river landing downstream, crowded with boats. Home port of the Tellani traders.',
+  },
+  skarnHold: {
+    name: 'Skarn hold', distance: 4, neighbors: ['raiderTrail'], people: 'skarn',
+    tasks: [], bonus: {},
+    found: 'a fortified hilltop camp at the end of the raider trail. This is where the raiders live. They call themselves the Skarn.',
+    description: 'A fortified camp on a rocky hilltop at the end of the raider trail. Home of the Skarn.',
   },
 };
 
@@ -249,3 +267,59 @@ export const BABY_NAMES = [
   'Fern', 'Gale', 'Heath', 'Isla', 'Jasper', 'Kit', 'Lark', 'Merle', 'Nim', 'Ora',
   'Perrin', 'Reed', 'Sorrel', 'Tarn', 'Ulla', 'Vesper', 'Wynn', 'Zephyr', 'Briar', 'Cedar',
 ];
+
+// The peoples of the forest valley. Relations run from -100 to 100 and
+// drift slowly toward each people's own temperament (baseline).
+export const NEIGHBORS = {
+  velari: {
+    name: 'the Velari',
+    title: 'Velari',
+    home: 'velariFields',
+    temperament: 'peaceful farmers',
+    description: 'Patient hill farmers who have worked their terraces for generations. Slow to trust, but loyal once won over. They have more grain than wood.',
+    baseline: 10,
+    giftValue: 6, // Relation gained per gift.
+    trades: { woodForFood: 14 }, // Give 20 wood for this much food, before relations.
+    wants: 'wood',
+    offers: 'food',
+  },
+  tellani: {
+    name: 'the Tellani',
+    title: 'Tellani',
+    home: 'telnLanding',
+    temperament: 'river traders',
+    description: 'Boat people who trade up and down the river. They care about a fair deal more than friendship, and they give the best prices.',
+    baseline: 5,
+    giftValue: 4,
+    trades: { woodForFood: 16, foodForWood: 22 },
+    wants: 'food and wood',
+    offers: 'food and wood',
+  },
+  skarn: {
+    name: 'the Skarn',
+    title: 'Skarn',
+    home: 'skarnHold',
+    temperament: 'raiders',
+    description: 'A hard people from the rocky hills who take what they need. They respect strength, and they can be bought off, for a while.',
+    baseline: -30,
+    giftValue: 3,
+    trades: {},
+    wants: 'food',
+    offers: 'nothing but peace',
+  },
+};
+
+export const NEIGHBOR_ORDER = Object.keys(NEIGHBORS);
+
+// Young people from friendly neighbors who may ask to join the camp.
+export const NEIGHBOR_RECRUITS = {
+  velari: [
+    { name: 'Tamar', note: 'A Velari farmer\'s daughter who wants to see more of the world.', skills: { hunting: 0, foraging: 3, building: 1, healing: 1, scouting: 1, learning: 2 } },
+    { name: 'Odo', note: 'A quiet Velari terrace builder.', skills: { hunting: 1, foraging: 2, building: 3, healing: 0, scouting: 0, learning: 1 } },
+    { name: 'Liss', note: 'A Velari herb-gatherer with a gift for remedies.', skills: { hunting: 0, foraging: 2, building: 0, healing: 3, scouting: 1, learning: 2 } },
+  ],
+  tellani: [
+    { name: 'Corrin', note: 'A Tellani boatman tired of the river.', skills: { hunting: 2, foraging: 1, building: 2, healing: 0, scouting: 3, learning: 1 } },
+    { name: 'Mira', note: 'A sharp-eyed Tellani trader\'s apprentice.', skills: { hunting: 0, foraging: 1, building: 1, healing: 0, scouting: 2, learning: 3 } },
+  ],
+};

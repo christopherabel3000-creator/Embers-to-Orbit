@@ -5,9 +5,10 @@ import {
   FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, BUILDING_ORDER,
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
+  NEIGHBORS, NEIGHBOR_ORDER,
 } from './data.js';
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -44,6 +45,22 @@ export function makePerson(template, id, task = 'forage') {
   };
 }
 
+function initialNeighbors() {
+  const all = {};
+  for (const id of NEIGHBOR_ORDER) {
+    all[id] = {
+      known: false,
+      relation: NEIGHBORS[id].baseline,
+      lastEnvoy: -1, // The turn of the last diplomatic act, one per season.
+      contactPending: false, // First contact is waiting to happen.
+      peace: false, // A lasting peace (the Skarn).
+      truceUntil: -1, // Tribute buys a truce until this turn.
+      joined: 0, // How many of their people have joined the camp.
+    };
+  }
+  return all;
+}
+
 function initialPlaces() {
   const places = {};
   for (const id of PLACE_ORDER) {
@@ -75,7 +92,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
-    advisors: { steward: 6, warChief: 7, healer: 4, scholar: 8 }, // Fenna, Garrow, Dalia, Hesta
+    neighbors: initialNeighbors(),
+    advisors: { steward: 6, warChief: 7, healer: 4, scholar: 8, speaker: 9 }, // Fenna, Garrow, Dalia, Hesta, Iven
     pendingEvent: null,
     report: null,
     log: [],
@@ -161,6 +179,17 @@ export function migrate(data) {
     data.knowledge.queue = [];
     data.version = 9;
   }
+  if (data.version === 9) {
+    for (const id of PLACE_ORDER) {
+      if (!data.places[id]) data.places[id] = { known: false, abundance: { hunt: 100, forage: 100 } };
+    }
+    data.neighbors = initialNeighbors();
+    const taken = Object.values(data.advisors);
+    const speaker = data.people.filter((p) => p.alive && p.age >= 16 && !taken.includes(p.id))
+      .sort((a, b) => b.skills.learning - a.skills.learning)[0];
+    data.advisors.speaker = speaker ? speaker.id : null;
+    data.version = 10;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -206,6 +235,18 @@ export function knownPlaces(state) {
 
 export function unexploredNeighbors(state, placeId) {
   return PLACES[placeId].neighbors.filter((n) => !isKnown(state, n));
+}
+
+export function metNeighbors(state) {
+  return NEIGHBOR_ORDER.filter((id) => state.neighbors && state.neighbors[id].known);
+}
+
+export function relationWord(value) {
+  if (value >= 60) return 'close friends';
+  if (value >= 25) return 'friendly';
+  if (value >= -10) return 'neutral';
+  if (value >= -40) return 'wary';
+  return 'hostile';
 }
 
 export function hasKnowledge(state, id) {

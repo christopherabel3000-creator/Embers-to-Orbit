@@ -2,15 +2,16 @@
 // are reported. Choice events stop the game and ask the player what to do.
 // Ongoing conditions (fever, wolves) are handled here too.
 
-import { WANDERERS, PLACES } from './data.js';
+import { WANDERERS, PLACES, NEIGHBORS, NEIGHBOR_RECRUITS, NEIGHBOR_ORDER } from './data.js';
 import {
   living, seasonIndex, shelterCapacity, placeName, knownPlaces, makePerson,
-  personById, wolvesAt, hasKnowledge, shelterNeeded,
+  personById, wolvesAt, hasKnowledge, shelterNeeded, isKnown,
 } from './state.js';
 import { siteFor } from './rules.js';
 import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
 import { chance, pick, randomInt } from './rng.js';
 import { shuffle, listNames, clamp } from './util.js';
+import { meet, changeRelation, skarnAtPeace } from './neighbors.js';
 
 const EVENT_CHANCE = 0.4;
 const COOLDOWN = 6; // Seasons before the same event can happen again.
@@ -351,33 +352,220 @@ export const EVENTS = {
 
   traders: {
     choice: true,
-    weight: (state) => (state.turn >= 3 ? 0.7 : 0),
+    weight: (state) => (state.turn >= 3 && state.neighbors.tellani.relation > -40 ? 0.7 : 0),
     start: () => ({}),
     view(state) {
+      const known = state.neighbors.tellani.known;
+      const rel = state.neighbors.tellani.relation;
+      const food = Math.max(8, Math.round(15 + rel / 10));
+      const wood = Math.max(8, Math.round(20 + rel / 10));
       const options = [];
-      if (state.resources.wood >= 20) options.push({ id: 'woodForFood', label: 'Trade 20 wood for 15 food.' });
-      if (state.resources.food >= 15) options.push({ id: 'foodForWood', label: 'Trade 15 food for 20 wood.' });
+      if (state.resources.wood >= 20) options.push({ id: 'woodForFood', label: `Trade 20 wood for ${food} food.` });
+      if (state.resources.food >= 15) options.push({ id: 'foodForWood', label: `Trade 15 food for ${wood} wood.` });
       options.push({ id: 'decline', label: 'Send them on their way.' });
       return {
-        title: 'Traders',
-        text: 'A small boat of traders from downriver pulls up at the riverbank. They speak a strange tongue, but they understand trade.',
+        title: known ? 'Tellani traders' : 'Traders',
+        text: known
+          ? 'A Tellani trading boat pulls up at the riverbank, low in the water with goods.'
+          : 'A small boat of traders from downriver pulls up at the riverbank. They speak a strange tongue, but they understand trade.',
         options,
         advice: [['steward', `We have ${state.resources.food} food and ${state.resources.wood} wood.`]],
+        food,
+        wood,
       };
     },
     resolve(state, ev, choice) {
       const r = state.resources;
+      const view = EVENTS.traders.view(state);
+      const lines = [];
       if (choice === 'woodForFood' && r.wood >= 20) {
         r.wood -= 20;
-        r.food += 15;
-        return ['You traded 20 wood for 15 food. The traders promised to return someday.'];
-      }
-      if (choice === 'foodForWood' && r.food >= 15) {
+        r.food += view.food;
+        changeRelation(state, 'tellani', 2);
+        lines.push(`You traded 20 wood for ${view.food} food.`);
+      } else if (choice === 'foodForWood' && r.food >= 15) {
         r.food -= 15;
-        r.wood += 20;
-        return ['You traded 15 food for 20 wood. The traders promised to return someday.'];
+        r.wood += view.wood;
+        changeRelation(state, 'tellani', 2);
+        lines.push(`You traded 15 food for ${view.wood} wood.`);
+      } else {
+        lines.push('The traders shrugged and rowed on downriver.');
       }
-      return ['The traders shrugged and rowed on downriver.'];
+      if (meet(state, 'tellani', { contact: false })) {
+        lines.push('Before they left, the traders told you who they were: the Tellani, from Teln landing far downriver. You can now deal with them on the Neighbors screen.');
+      }
+      return lines;
+    },
+  },
+
+  // ----- Neighbor events -----
+  firstContact: {
+    choice: true,
+    weight: () => 0, // Started directly when a people is first met.
+    start(state) {
+      return { neighbor: NEIGHBOR_ORDER.find((id) => state.neighbors[id].contactPending) };
+    },
+    view(state, ev) {
+      const def = NEIGHBORS[ev.neighbor];
+      const intro = {
+        velari: isKnown(state, 'velariFields')
+          ? 'At the edge of the Velari fields, a group of farmers with long staffs comes out to meet your scouts. They are wary, but they do not raise their staffs.'
+          : 'A group of farmers with long staffs walks into camp from the eastern hills. They call themselves the Velari. They are wary, but they do not raise their staffs.',
+        tellani: 'At Teln landing, a Tellani trader in a bright cloak looks your scouts up and down, clearly working out what they might be worth.',
+        skarn: 'Skarn sentries spot your scouts near their hold and ride out to surround them, spears lowered.',
+      }[ev.neighbor];
+      const options = {
+        velari: [
+          { id: 'gift', label: 'Greet them warmly, with a gift of 10 food. They will remember the kindness.' },
+          { id: 'greet', label: 'Greet them politely and share news.' },
+          { id: 'withdraw', label: 'Withdraw quietly. They will think you strange.' },
+        ],
+        tellani: [
+          { id: 'gift', label: 'Offer 10 wood as a gift, to start on good terms.' },
+          { id: 'greet', label: 'Talk trade and see what they offer.' },
+          { id: 'withdraw', label: 'Withdraw. They will not be offended, only uninterested.' },
+        ],
+        skarn: [
+          { id: 'gift', label: 'Offer 10 food as a gift of peace.' },
+          { id: 'greet', label: 'Stand firm and speak plainly. The Skarn respect boldness.' },
+          { id: 'withdraw', label: 'Back away and run. They will take it as weakness.' },
+        ],
+      }[ev.neighbor];
+      return {
+        title: `First contact: ${def.title}`,
+        text: `${intro} ${def.description}`,
+        options,
+        advice: [['speaker', ev.neighbor === 'skarn'
+          ? 'These are the raiders. Whatever we do, they will judge us by it.'
+          : `First impressions matter. ${def.title} could be good friends to have.`]],
+      };
+    },
+    resolve(state, ev, choice) {
+      const id = ev.neighbor;
+      const n = state.neighbors[id];
+      n.contactPending = false;
+      const def = NEIGHBORS[id];
+      if (choice === 'gift') {
+        const what = id === 'tellani' ? 'wood' : 'food';
+        state.resources[what] = Math.max(0, state.resources[what] - 10);
+        changeRelation(state, id, id === 'skarn' ? 8 : 15);
+        return [`You offered 10 ${what} to ${def.name}. ${id === 'skarn' ? 'The Skarn took it without thanks, but lowered their spears.' : 'They accepted it gladly.'} You can deal with them on the Neighbors screen.`];
+      }
+      if (choice === 'greet') {
+        changeRelation(state, id, 5);
+        if (id === 'skarn') for (const p of living(state)) p.morale = clamp(p.morale + 3);
+        return [`Your scouts greeted ${def.name} and came home with news. You can deal with them on the Neighbors screen.`];
+      }
+      changeRelation(state, id, -5);
+      return [`Your scouts withdrew from ${def.name}. You can still deal with them on the Neighbors screen.`];
+    },
+  },
+
+  // If your scouts never find the Velari, they come to look at you.
+  velariVisit: {
+    weight: (state) => (!state.neighbors.velari.known && state.turn >= 6 ? 0.8 : 0),
+    apply(state) {
+      meet(state, 'velari');
+      return { urgent: ['Strangers from the eastern hills came down through the North meadow to see who had settled in the valley. Your people will meet them soon.'] };
+    },
+  },
+
+  velariHunger: {
+    choice: true,
+    weight: (state) => (state.neighbors.velari.known && state.neighbors.velari.relation > -20 ? 0.6 : 0),
+    start: () => ({}),
+    view(state) {
+      const options = [];
+      if (state.resources.food >= 20) options.push({ id: 'all', label: 'Send the 20 food they ask for.' });
+      if (state.resources.food >= 10) options.push({ id: 'some', label: 'Send 10 food, what you can spare.' });
+      options.push({ id: 'refuse', label: 'Refuse. Your own people come first.' });
+      return {
+        title: 'A Velari request',
+        text: 'A Velari elder arrives, footsore and thin. Blight has struck their terraces, and the Velari ask for 20 food to see them through.',
+        options,
+        advice: [['speaker', 'The Velari remember who helped them in hard times.'], ['steward', `We have ${state.resources.food} food.`]],
+      };
+    },
+    resolve(state, ev, choice) {
+      if (choice === 'all' && state.resources.food >= 20) {
+        state.resources.food -= 20;
+        changeRelation(state, 'velari', 18);
+        return ['You sent 20 food to the Velari. Their elder wept with gratitude.'];
+      }
+      if (choice === 'some' && state.resources.food >= 10) {
+        state.resources.food -= 10;
+        changeRelation(state, 'velari', 8);
+        return ['You sent 10 food to the Velari. They thanked you for what you could spare.'];
+      }
+      changeRelation(state, 'velari', -10);
+      return ['You turned the Velari elder away. The walk home will be long.'];
+    },
+  },
+
+  neighborRecruit: {
+    choice: true,
+    weight: (state) => (recruitSources(state).length ? 0.6 : 0),
+    start(state) {
+      const from = pick(state, recruitSources(state));
+      return { from, recruit: state.neighbors[from].joined };
+    },
+    view(state, ev) {
+      const t = NEIGHBOR_RECRUITS[ev.from][ev.recruit];
+      return {
+        title: `A ${NEIGHBORS[ev.from].title} newcomer`,
+        text: `${t.name}, ${t.note.charAt(0).toLowerCase()}${t.note.slice(1)} asks to join your camp.`,
+        options: [
+          { id: 'accept', label: `Welcome ${t.name}.` },
+          { id: 'decline', label: 'Politely decline.' },
+        ],
+        advice: [['speaker', `Taking in one of ${NEIGHBORS[ev.from].name} would bind our peoples closer.`]],
+      };
+    },
+    resolve(state, ev, choice) {
+      const t = NEIGHBOR_RECRUITS[ev.from][ev.recruit];
+      state.neighbors[ev.from].joined += 1;
+      if (choice !== 'accept') return [`${t.name} went home, a little disappointed.`];
+      const p = makePerson({ ...t, age: 18 + randomInt(state, 0, 6) }, state.nextPersonId++, 'rest');
+      p.isNew = true;
+      state.people.push(p);
+      changeRelation(state, ev.from, 5);
+      return [`${t.name} joined the camp.`];
+    },
+  },
+
+  skarnDemand: {
+    choice: true,
+    weight: (state) => (state.neighbors.skarn.known && !skarnAtPeace(state) && state.neighbors.skarn.relation < 25 ? 0.8 : 0),
+    start: () => ({}),
+    view(state) {
+      const options = [];
+      if (state.resources.food >= 25) options.push({ id: 'pay', label: 'Pay 25 food. They promise a year without raids.' });
+      options.push({ id: 'refuse', label: 'Refuse, politely. They may come for it themselves.' });
+      options.push({ id: 'defy', label: 'Send them off with a warning. Your people will cheer, and the Skarn will be angry.' });
+      return {
+        title: 'Skarn riders',
+        text: 'Three Skarn riders come to the edge of camp and demand 25 food in tribute.',
+        options,
+        advice: [['warChief', state.buildings.palisade ? 'Behind our palisade, we can hold them off.' : 'Without a palisade, a real attack would hurt us.'], ['steward', `We have ${state.resources.food} food.`]],
+      };
+    },
+    resolve(state, ev, choice) {
+      const sk = state.neighbors.skarn;
+      if (choice === 'pay' && state.resources.food >= 25) {
+        state.resources.food -= 25;
+        sk.truceUntil = state.turn + 4;
+        changeRelation(state, 'skarn', 5);
+        return ['You paid the Skarn 25 food. They rode off satisfied, promising a year of peace.'];
+      }
+      if (choice === 'defy') {
+        changeRelation(state, 'skarn', -20);
+        state.raidThreat = true;
+        for (const p of living(state)) p.morale = clamp(p.morale + 6);
+        return ['You sent the Skarn riders off with a warning. Your people cheered. The riders promised to return in force.'];
+      }
+      changeRelation(state, 'skarn', -10);
+      state.raidThreat = true;
+      return ['You refused the Skarn. The riders left without a word. Expect them soon.'];
     },
   },
 
@@ -411,6 +599,13 @@ export const EVENTS = {
   },
 };
 
+function recruitSources(state) {
+  return Object.keys(NEIGHBOR_RECRUITS).filter((id) => {
+    const n = state.neighbors[id];
+    return n.known && n.relation >= 30 && n.joined < NEIGHBOR_RECRUITS[id].length;
+  });
+}
+
 function wolfPlaces(state) {
   return knownPlaces(state).filter((id) => id !== 'camp' && PLACES[id].tasks.includes('hunt') && !wolvesAt(state, id));
 }
@@ -421,6 +616,13 @@ function wolfPlaces(state) {
 export function maybeStartEvent(state) {
   const out = { urgent: [], events: [] };
   if (state.pendingEvent || state.gameOver || state.turn < 1) return out;
+  // Meeting a new people comes before anything else.
+  if (NEIGHBOR_ORDER.some((id) => state.neighbors[id].contactPending)) {
+    const ev = EVENTS.firstContact;
+    state.pendingEvent = { type: 'story', id: 'firstContact', ...ev.start(state) };
+    out.urgent.push(`${ev.view(state, state.pendingEvent).title}: a decision is waiting for you.`);
+    return out;
+  }
   if (!chance(state, EVENT_CHANCE)) return out;
   const history = state.eventHistory || (state.eventHistory = {});
   const options = Object.entries(EVENTS)

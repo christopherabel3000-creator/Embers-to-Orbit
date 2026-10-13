@@ -12,6 +12,7 @@ import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 import { queueBlocker, refundFor } from './building.js';
 import { startNextStudy } from './study.js';
+import { applyDiplomacy } from './neighbors.js';
 import { resolveStoryEvent } from './events.js';
 
 export { newGame } from './state.js';
@@ -175,6 +176,12 @@ const handlers = {
     if (i === -1) return { error: 'That is not in the study queue.' };
     k.queue.splice(i, 1);
     return { message: `Removed ${KNOWLEDGE[knowledgeId].name.toLowerCase()} from the study queue.` };
+  },
+
+  diplomacy(state, { neighborId, act }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return applyDiplomacy(state, neighborId, act);
   },
 
   setWorkSite(state, { task, placeId }) {

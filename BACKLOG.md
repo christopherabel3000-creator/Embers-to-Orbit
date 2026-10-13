@@ -9,6 +9,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Standing orders run by advisors.
 - Events: instant and choice events, fever, wolves.
 - Knowledge tree foundation: study, seven discoveries, scholar advisor, farming with fields.
+- Skills improve with practice.
 
 ## Next in the Survival era
 

@@ -75,6 +75,7 @@ Era advancement is driven by research and growth, not a fixed timer.
 People start as individuals and become groups as the settlement grows, so management scales with the nation.
 
 - **Survival era:** each survivor has a name, skills (hunting, building, healing, leadership), health, and morale. Losing one person matters.
+- **Skills grow with practice.** Every season at a task earns experience in that task's skill (half as much while badly hurt or sick). Going from level L to L+1 takes 3 + 2L seasons, so early levels come quickly and reaching 5 takes years. Defending against a raid counts as two seasons of hunting practice. The People screen shows each person's progress toward their next level.
 - **Settlement era onward:** population is tracked in groups by profession (farmers, builders, soldiers, scholars), with overall happiness and loyalty.
 - **Early resources:** food, water, wood, stone, and later metal. Food must be stored to survive winter.
 - **Later resources** unlock by era: gold and trade goods, iron, then fuel, electricity, and rare minerals; in the space age, off-world materials.

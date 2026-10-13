@@ -13,6 +13,7 @@ import {
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
 import { describePending } from '../engine/events.js';
+import { seasonsToNextLevel } from '../engine/skills.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -236,6 +237,14 @@ function farmSentence() {
   return `Fields: room for ${plots} plots. ${now}${harvest ? ` Expected harvest this autumn: about ${harvest} food.` : ''}`;
 }
 
+function practiceLine(p) {
+  const skill = TASKS[p.task] && TASKS[p.task].skill;
+  if (!skill) return '';
+  const left = seasonsToNextLevel(p, skill);
+  if (left === null) return `<p>A master of ${skill}.</p>`;
+  return `<p>Practicing ${skill}: about ${plural(left, 'more season', 'more seasons')} to reach ${p.skills[skill] + 1}.</p>`;
+}
+
 function peopleScreen() {
   const people = living(state);
   const s = seasonIndex(state);
@@ -263,6 +272,7 @@ function peopleScreen() {
       <h3>${esc(p.name)}${role ? `, ${esc(role)}` : ''}</h3>
       <p>${healthWord(p.health)}${p.sick ? ', sick with fever' : ''}, ${moraleWord(p.morale)}. Skills: ${skills}.</p>
       <p class="muted">${esc(p.note)}</p>
+      ${practiceLine(p)}
       ${p.orderReturn ? `<p>${esc(ORDER_NOTES[p.orderReturn.reason] || 'Moved by a standing order.')}</p>` : ''}
       <p><label for="task-${p.id}">Task for ${esc(p.name)}</label>
         <select id="task-${p.id}" data-person="${p.id}">${taskOptions(p.task)}</select></p>
@@ -485,6 +495,7 @@ function menuScreen() {
     <p>Each turn is one season. Assign every person a task on the People screen, choose a building project on the Build screen, then choose End season.</p>
     <p>Everyone eats 2 food each season. Nothing grows in winter and hunting is poor, so store food during summer and autumn. Food also spoils in storage.</p>
     <p>Autumn and winter fires burn wood, and anyone without shelter suffers from the cold. Each lean-to shelters 4 more people.</p>
+    <p>People get better at whatever they practice. Each season at a task builds that skill, up to 5. Early levels come quickly; mastery takes years. Fighting off raiders hardens defenders fast.</p>
     <p>Hurt people work at half strength. Have them rest, and have a healer tend them.</p>
     <p>The Map screen shows the places you know. Choose where hunters, foragers, and woodcutters work, and where scouts explore from. Scouts can find better places and new people. Hunting and foraging grounds wear down with use, so move your workers when a place gets thin.</p>
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>

@@ -7,7 +7,7 @@ import {
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD,
 } from './data.js';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -36,6 +36,7 @@ export function makePerson(template, id, task = 'forage') {
     task,
     orderReturn: null, // Set when a standing order moved this person.
     sick: false,
+    xp: {}, // Practice toward the next level in each skill.
   };
 }
 
@@ -126,6 +127,10 @@ export function migrate(data) {
       .sort((a, b) => b.skills.learning - a.skills.learning)[0];
     data.advisors.scholar = scholar ? scholar.id : null;
     data.version = 4;
+  }
+  if (data.version === 4) {
+    for (const p of data.people) p.xp = {};
+    data.version = 5;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

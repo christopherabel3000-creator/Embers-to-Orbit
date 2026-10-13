@@ -4,6 +4,7 @@ import { living, personById } from './state.js';
 import { defenseStrength, raidAttackStrength } from './rules.js';
 import { randomBetween, randomInt, chance } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
+import { gainExperience } from './skills.js';
 
 // Returns { error } or { lines } describing what happened.
 export function resolveRaidPlan(state, plan, defenderIds = []) {
@@ -47,6 +48,9 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
       for (const p of all) p.morale = Math.max(0, p.morale - 10);
     }
     if (injured.length) lines.push(`Wounded in the fighting: ${injured.map((p) => p.name).join(', ')}.`);
+    // Real fighting teaches fast: each defender gains two seasons' practice.
+    const hardened = defenders.filter((p) => p.health > 0 && gainExperience(p, 'hunting', 2));
+    if (hardened.length) lines.push(`The fight hardened ${hardened.map((p) => `${p.name} (hunting ${p.skills.hunting})`).join(', ')}.`);
     for (const p of injured.filter((x) => x.health <= 0)) {
       p.alive = false;
       lines.push(`${p.name} was killed.`);

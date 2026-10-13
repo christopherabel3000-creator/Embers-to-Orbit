@@ -91,6 +91,6 @@ test('version 2 saves are upgraded', () => {
   delete old.eventHistory;
   for (const p of old.people) delete p.sick;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 4);
+  assert.equal(s.version, 5);
   assert.equal(s.people[0].sick, false);
 });

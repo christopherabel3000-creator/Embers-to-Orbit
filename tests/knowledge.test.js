@@ -104,8 +104,28 @@ test('version 3 saves are upgraded with learning skills and a scholar', () => {
   delete old.advisors.scholar;
   for (const p of old.people) delete p.skills.learning;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 4);
+  assert.equal(s.version, 5);
   assert.equal(s.people.find((p) => p.name === 'Dalia').skills.learning, 4);
   assert.ok(s.advisors.scholar);
   assert.deepEqual(s.knowledge, { learned: [], progress: {}, current: null });
+});
+
+test('skills improve with practice, faster at first', async () => {
+  const { gainExperience, experienceNeeded, seasonsToNextLevel } = await import('../js/engine/skills.js');
+  const p = { skills: { hunting: 0 }, xp: {} };
+  let seasons = 0;
+  while (p.skills.hunting < 2) { gainExperience(p, 'hunting'); seasons += 1; }
+  assert.equal(seasons, experienceNeeded(0) + experienceNeeded(1));
+  p.skills.hunting = 5;
+  assert.equal(gainExperience(p, 'hunting'), null);
+  assert.equal(seasonsToNextLevel(p, 'hunting'), null);
+});
+
+test('a season of hunting is practice', () => {
+  let s = newGame({ seed: 4 });
+  s.resources.food = 500;
+  const kael = s.people.find((p) => p.name === 'Kael');
+  s = act(s, { type: 'assign', personId: kael.id, task: 'hunt' });
+  s = act(s, { type: 'endTurn' });
+  assert.equal(s.people.find((p) => p.name === 'Kael').xp.hunting, 1);
 });

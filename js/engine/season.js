@@ -1,7 +1,7 @@
 // Resolving the end of a season: work, food, warmth, health, events.
 
 import {
-  BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, KNOWLEDGE,
+  BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, KNOWLEDGE, TASKS,
 } from './data.js';
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
@@ -14,6 +14,7 @@ import {
   foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { applyStandingOrders } from './orders.js';
+import { gainExperience } from './skills.js';
 import { progressConditions, maybeStartEvent } from './events.js';
 import { nextRandom, randomBetween, randomInt, chance, pick } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
@@ -118,6 +119,19 @@ export function resolveSeason(state) {
       events.push(`Builders worked on the ${b.name.toLowerCase()}. ${left} work remaining.`);
     }
   }
+
+  // Practice: everyone who worked gets a little better at it.
+  // Badly hurt or sick people learn at half speed. Winter farmers have no
+  // farm work to practice.
+  const improved = [];
+  for (const p of people) {
+    const skill = TASKS[p.task] && TASKS[p.task].skill;
+    if (!skill || (p.task === 'farm' && s === 3) || (p.task === 'forage' && s === 3)) continue;
+    const amount = p.health < 40 || p.sick ? 0.5 : 1;
+    const level = gainExperience(p, skill, amount);
+    if (level) improved.push(`${p.name}'s ${skill} rose to ${level}`);
+  }
+  if (improved.length) events.push(`Practice paid off: ${improved.join('; ')}.`);
 
   // Study: progress toward the chosen discovery.
   if (studyPool > 0) {

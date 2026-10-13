@@ -11,11 +11,13 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Knowledge tree foundation: study, seven discoveries, scholar advisor, farming with fields.
 - Skills improve with practice.
 - Births, children, aging, old age, mentoring, and a compact People view.
+- "Assign everyone to their best work" button.
 
 ## Next in the Survival era
 
 - [ ] Families and relationships: partners, parents and children named together, grief that lasts.
 - [ ] More events: elders' deaths and succession, a returning trader, a rival camp, a failed harvest.
+- [ ] A standing order to reassign everyone to their best work each season.
 - [ ] Standing orders for the fields (plant, tend, harvest automatically) and a study queue.
 - [ ] Desktop keyboard shortcuts that don't clash with screen reader keys.
 - [ ] Optional audio cues (decide which ones first).

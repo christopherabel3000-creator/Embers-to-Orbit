@@ -302,6 +302,8 @@ function peopleScreen() {
       <ul>${availableTasks(state).map((t) => `<li><strong>${TASKS[t].name}:</strong> ${esc(TASKS[t].description)}</li>`).join('')}</ul>
       <p>Children from 5 to 11 can forage, farm, study, or rest, at half strength. From 12 they can do any work.</p>
     </details>
+    <p><button type="button" class="primary" data-action="assignBest">Assign everyone to their best work</button></p>
+    <p class="muted">Puts each person on the work they are most skilled at, as far as it makes sense this season. The hurt and sick rest. Check your steward's advice afterward; the best work is not always enough food.</p>
     <h2>Move a group</h2>
     <p><label for="bulkFrom">Move everyone doing</label>
       <select id="bulkFrom">${taskOptions(s === 3 ? 'forage' : 'rest')}</select></p>
@@ -692,6 +694,16 @@ function handleAction(action, btn) {
         announce(msg);
         const h = $main.querySelector('h2');
         if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+      }
+      break;
+    }
+    case 'assignBest': {
+      const msg = act({ type: 'assignBest' });
+      if (msg) {
+        show('people', { focus: false });
+        const again = $main.querySelector('[data-action="assignBest"]');
+        if (again) again.focus();
+        announce(msg);
       }
       break;
     }

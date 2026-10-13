@@ -9,6 +9,7 @@ import {
 } from './state.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
+import { bestWorkPlan } from './assign.js';
 import { resolveStoryEvent } from './events.js';
 
 export { newGame } from './state.js';
@@ -54,6 +55,26 @@ const handlers = {
       p.orderReturn = null;
     }
     return { message: `${moved.length} ${moved.length === 1 ? 'person' : 'people'} moved to ${TASKS[task].name.toLowerCase()}.` };
+  },
+
+  assignBest(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const plan = bestWorkPlan(state);
+    let changed = 0;
+    for (const [id, task] of plan) {
+      const p = personById(state, id);
+      if (p.task !== task) changed += 1;
+      p.task = task;
+      p.orderReturn = null;
+    }
+    const counts = {};
+    for (const task of plan.values()) counts[task] = (counts[task] || 0) + 1;
+    const summary = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, n]) => `${TASKS[t].name.toLowerCase()} ${n}`)
+      .join(', ');
+    return { message: changed ? `Everyone is on their best work. ${changed} changed. ${summary}.` : `Everyone was already on their best work. ${summary}.` };
   },
 
   startProject(state, { buildingId }) {

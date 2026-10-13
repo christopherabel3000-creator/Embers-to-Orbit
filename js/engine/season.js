@@ -1,14 +1,15 @@
 // Resolving the end of a season: work, food, warmth, health, events.
 
-import { BUILDINGS, DISCOVERIES, WANDERERS, MILESTONE_POPULATION } from './data.js';
+import { BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION } from './data.js';
 import {
-  living, seasonIndex, dateLabel, shelterCapacity, hasDiscovery, foodNeeded,
-  woodNeededForWarmth, spoilageRate, makePerson, year,
+  living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
+  woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
 } from './state.js';
 import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
-  scoutSuccessChance,
+  scoutSuccessChance, siteFor, DEPLETION, RECOVERY,
 } from './rules.js';
+import { applyStandingOrders } from './orders.js';
 import { nextRandom, randomBetween, randomInt, chance, pick } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
 
@@ -38,6 +39,7 @@ function hurt(person, amount) {
 export function resolveSeason(state) {
   const urgent = [];
   const events = [];
+  const ordersDone = [];
   const s = seasonIndex(state);
   const finishedLabel = dateLabel(state);
   const people = living(state);
@@ -55,7 +57,7 @@ export function resolveSeason(state) {
     switch (p.task) {
       case 'hunt':
         food += expectedFood(state, p, 'hunt', s) * variance;
-        if (chance(state, huntInjuryChance(p))) {
+        if (chance(state, huntInjuryChance(state, p))) {
           hurt(p, randomInt(state, 25, 40));
           injuredWhileHunting.push(p);
         }
@@ -108,17 +110,17 @@ export function resolveSeason(state) {
     }
   }
 
-  // 3. Scouting.
+  // 3. Scouting: scouts explore the unknown paths leading from their place.
+  const scoutBase = siteFor(state, 'scout');
   for (const scout of scouts) {
     if (!chance(state, scoutSuccessChance(scout))) {
-      events.push(`${scout.name} scouted the land but found nothing new.`);
+      events.push(`${scout.name} scouted beyond ${placeName(state, scoutBase)} but found nothing new.`);
       continue;
     }
-    const remaining = Object.keys(DISCOVERIES).filter((id) => !hasDiscovery(state, id));
-    const options = [...remaining];
+    const options = [...unexploredNeighbors(state, scoutBase)];
     if (state.wanderersMet < WANDERERS.length) options.push('wanderer');
     if (options.length === 0) {
-      events.push(`${scout.name} scouted the land but found nothing new.`);
+      events.push(`${scout.name} scouted beyond ${placeName(state, scoutBase)}, but every path from there is already explored. Send scouts out from another place.`);
       continue;
     }
     const found = pick(state, options);
@@ -127,16 +129,30 @@ export function resolveSeason(state) {
       state.wanderersMet += 1;
       const newcomer = makePerson(template, state.nextPersonId++, 'rest');
       newcomer.morale = 50;
+      newcomer.isNew = true;
       state.people.push(newcomer);
-      events.push(`${scout.name} met ${newcomer.name}, ${template.note.charAt(0).toLowerCase()}${template.note.slice(1)} ${newcomer.name} has joined the camp and is resting until given a task.`);
+      events.push(`${scout.name} met ${newcomer.name}, ${template.note.charAt(0).toLowerCase()}${template.note.slice(1)} ${newcomer.name} has joined the camp.`);
     } else {
-      state.discoveries.push(found);
-      events.push(`${scout.name} ${DISCOVERIES[found].text}`);
+      state.places[found].known = true;
+      events.push(`${scout.name} explored beyond ${placeName(state, scoutBase)} and found ${PLACES[found].found}`);
       if (found === 'abandonedCamp') {
         state.resources.food += 15;
         state.resources.wood += 10;
       }
     }
+  }
+
+  // Hunting and foraging use up a place; every place slowly recovers.
+  const huntSite = siteFor(state, 'hunt');
+  const forageSite = siteFor(state, 'forage');
+  const huntersOut = people.filter((p) => p.task === 'hunt').length;
+  const foragersOut = s === 3 ? 0 : people.filter((p) => p.task === 'forage').length;
+  for (const id of PLACE_ORDER) {
+    const a = state.places[id].abundance;
+    if (id === huntSite) a.hunt -= huntersOut * DEPLETION.hunt;
+    if (id === forageSite) a.forage -= foragersOut * DEPLETION.forage;
+    a.hunt = Math.max(0, Math.min(100, a.hunt + RECOVERY.hunt[s]));
+    a.forage = Math.max(0, Math.min(100, a.forage + RECOVERY.forage[s]));
   }
 
   // 4. Healing: the most hurt are treated first, up to 30 health each.
@@ -242,6 +258,9 @@ export function resolveSeason(state) {
       for (const p of survivors) p.morale = clamp(p.morale + 3);
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
+    const fromOrders = applyStandingOrders(state);
+    urgent.push(...fromOrders.urgent);
+    ordersDone.push(...fromOrders.orders);
     if (!state.milestoneReached && survivors.length >= MILESTONE_POPULATION
         && state.buildings.storehouse > 0 && state.buildings.palisade > 0) {
       state.milestoneReached = true;
@@ -252,8 +271,8 @@ export function resolveSeason(state) {
     events.push(`${state.campName} now has ${survivors.length} people.`);
   }
 
-  state.report = { title: dateLabel(state), finished: finishedLabel, urgent, events };
-  for (const line of [...urgent, ...events]) {
+  state.report = { title: dateLabel(state), finished: finishedLabel, urgent, events, orders: ordersDone };
+  for (const line of [...urgent, ...events, ...ordersDone]) {
     state.log.push({ turn: state.turn - 1, date: finishedLabel, text: line });
   }
   if (state.log.length > 400) state.log.splice(0, state.log.length - 400);
@@ -266,7 +285,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   if (state.resources.food > 80) p += 0.05;
   if (!chance(state, Math.min(0.35, p))) return;
   const raiders = randomInt(state, 4, 7) + 2 * (y - 1);
-  const warned = state.buildings.watchtower > 0 || hasDiscovery(state, 'raiderTracks')
+  const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail')
     || (scoutsOut && chance(state, 0.6));
   state.pendingEvent = { type: 'raid', raiders, warned };
   urgent.unshift(warned

@@ -2,13 +2,14 @@
 // browser storage used now can later be swapped for native app storage or
 // Steam Cloud without touching the game itself.
 
-import { SAVE_VERSION } from './engine/state.js';
+import { migrate } from './engine/state.js';
 
+// The key stays the same across save versions; old saves are upgraded on load.
 const KEY = 'embers-to-orbit/save/v1';
 
-function isValidSave(data) {
-  return data && typeof data === 'object' && data.version === SAVE_VERSION
-    && Array.isArray(data.people) && data.resources && typeof data.turn === 'number';
+function upgrade(data) {
+  if (!data || typeof data !== 'object' || typeof data.turn !== 'number') return null;
+  return migrate(data);
 }
 
 export const storage = {
@@ -16,8 +17,7 @@ export const storage = {
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return null;
-      const data = JSON.parse(raw);
-      return isValidSave(data) ? data : null;
+      return upgrade(JSON.parse(raw));
     } catch {
       return null;
     }
@@ -62,7 +62,8 @@ export const storage = {
     } catch {
       throw new Error('That file is not an Embers to Orbit save.');
     }
-    if (!isValidSave(data)) throw new Error('That file is not an Embers to Orbit save, or it is from an incompatible version.');
-    return data;
+    const upgraded = upgrade(data);
+    if (!upgraded) throw new Error('That file is not an Embers to Orbit save, or it is from an incompatible version.');
+    return upgraded;
   },
 };

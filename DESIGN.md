@@ -47,6 +47,15 @@ The player chooses a starting region, which acts as the difficulty setting and d
 
 Neighbor examples are placeholders until the 7 nations are designed.
 
+### The local map
+
+Each starting region has a hand-crafted local map of connected places. The forest valley has 11: the camp, riverbank, and oak woods are known at the start; the north meadow, deer trails, storm deadfall, berry thicket, herb hillside, abandoned camp, beaver ponds, and a raider trail are found by scouting.
+
+- **Work sites.** Everyone doing the same task works at one chosen place. Places add a bonus to hunting, foraging, or wood gathering. Far places (distance 3) work 10 percent slower, and distant hunting is a little more dangerous.
+- **Wear and recovery.** Hunting and foraging use up a place's game and wild food; places recover each season (slowly in winter). Worn places yield as little as 60 percent, which pushes players to rotate sites.
+- **Scouting.** Scouts explore the unexplored paths leading from a chosen place, so exploration spreads outward. Some places have special effects: herbs improve healing, the raider trail means raids are always spotted, and the abandoned camp gives one-time supplies.
+- The map screen describes each place by its condition, its paths, and who works there.
+
 ## Turns and eras
 
 Each turn is one season: spring, summer, autumn, winter. Seasons drive planting, harvests, campaigning weather, and winter survival.
@@ -83,6 +92,7 @@ Advisors always follow orders, but they actively give recommendations and warn t
 - **Standing orders.** The player delegates repetitive work, e.g. "keep two winters of food in storage" or "train soldiers whenever the barracks is idle."
 - **Turn report.** Each season opens with a report: urgent alerts first, then completed projects, then opportunities, then what advisors did under standing orders and anything they couldn't handle.
 - **Auto-resolve.** The war advisor can resolve minor battles such as small raids.
+- **Standing orders in Phase 1** (on the Advisors screen): badly hurt people rest until healed and then return to work; keep someone tending the hurt; keep enough food to last 1 to 4 seasons; foragers hunt in winter and return to foraging in spring; newcomers start at their best task; and a raid policy (ask me, fight if likely to win, or decide for me). Orders run at the start of each season and are listed in the report. A player's own reassignment always overrides an order.
 
 ## Playstyles, traditions, and reputation
 

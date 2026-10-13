@@ -89,14 +89,82 @@ export const WANDERERS = [
   { name: 'Ula', note: 'An old soldier who wants somewhere to belong.', skills: { hunting: 3, foraging: 0, building: 2, healing: 1, scouting: 1 } },
 ];
 
-// One-time discoveries made by scouts. "wanderer" can happen many times.
-export const DISCOVERIES = {
-  huntingGrounds: { name: 'Deer trails', text: 'found deer trails to the north. Hunting will be better from now on.' },
-  berryThicket: { name: 'Berry thicket', text: 'found a huge berry thicket by the stream. Foraging will be better outside of winter.' },
-  deadfall: { name: 'Storm deadfall', text: 'found a stretch of storm-felled trees. Gathering wood will be easier.' },
-  abandonedCamp: { name: 'Abandoned camp', text: 'found an abandoned camp and brought back 15 food and 10 wood.' },
-  raiderTracks: { name: 'Raider tracks', text: 'found the tracks of a raider band. From now on we will see raiders coming.' },
-  herbGarden: { name: 'Wild herbs', text: 'found a hillside of medicinal herbs. Healing will be more effective.' },
+// The local map of the forest valley. Places are nodes connected to their
+// neighbors. Bonuses are added to each worker's yield at that place.
+// distance: 0 = camp, 1 = nearby, 2 = a day's walk, 3 = far.
+export const PLACES = {
+  camp: {
+    name: 'Camp', distance: 0, neighbors: ['riverbank', 'oakWoods', 'meadow'],
+    tasks: ['hunt', 'forage', 'wood'], bonus: {},
+    description: 'Your camp, in a clearing beside the river.',
+  },
+  riverbank: {
+    name: 'Riverbank', distance: 1, neighbors: ['camp', 'berryThicket'],
+    tasks: ['hunt', 'forage'], bonus: { hunt: 1, forage: 1 },
+    description: 'Reeds, shallows, and waterfowl. Some hunting and foraging.',
+  },
+  oakWoods: {
+    name: 'Oak woods', distance: 1, neighbors: ['camp', 'deerTrails', 'deadfall'],
+    tasks: ['forage', 'wood'], bonus: { forage: 1, wood: 1 },
+    description: 'Old oaks with acorns, mushrooms, and good timber.',
+  },
+  meadow: {
+    name: 'North meadow', distance: 1, neighbors: ['camp', 'herbHillside', 'abandonedCamp'],
+    tasks: ['forage'], bonus: { forage: 2 },
+    found: 'an open meadow full of wild greens and roots. Good foraging outside of winter.',
+    description: 'Open grassland, rich with greens and roots outside of winter.',
+  },
+  deerTrails: {
+    name: 'Deer trails', distance: 2, neighbors: ['oakWoods', 'raiderTrail'],
+    tasks: ['hunt'], bonus: { hunt: 3 },
+    found: 'well-worn deer trails. Hunters will do much better there.',
+    description: 'Game trails where deer pass in numbers. The best hunting nearby.',
+  },
+  deadfall: {
+    name: 'Storm deadfall', distance: 2, neighbors: ['oakWoods'],
+    tasks: ['wood'], bonus: { wood: 3 },
+    found: 'a stretch of storm-felled trees. Woodcutters will gather far more there.',
+    description: 'A swath of trees knocked flat by an old storm. Easy wood.',
+  },
+  berryThicket: {
+    name: 'Berry thicket', distance: 2, neighbors: ['riverbank', 'beaverPonds'],
+    tasks: ['forage'], bonus: { forage: 3 },
+    found: 'a huge berry thicket along a stream. The richest foraging nearby, outside of winter.',
+    description: 'Brambles heavy with berries in summer and autumn.',
+  },
+  herbHillside: {
+    name: 'Herb hillside', distance: 2, neighbors: ['meadow'],
+    tasks: [], bonus: {},
+    found: 'a hillside of medicinal herbs. From now on, healing is more effective.',
+    description: 'Medicinal herbs grow here. Knowing this place makes healing more effective.',
+  },
+  abandonedCamp: {
+    name: 'Abandoned camp', distance: 2, neighbors: ['meadow'],
+    tasks: [], bonus: {},
+    found: 'an abandoned camp, and brought back 15 food and 10 wood.',
+    description: 'The cold remains of someone else\'s camp. Already searched.',
+  },
+  beaverPonds: {
+    name: 'Beaver ponds', distance: 3, neighbors: ['berryThicket'],
+    tasks: ['hunt', 'forage'], bonus: { hunt: 2, forage: 2 },
+    found: 'a chain of beaver ponds full of game and plants. It is far, so work there goes a little slower.',
+    description: 'Ponds full of fish, fowl, and plants. Far from camp.',
+  },
+  raiderTrail: {
+    name: 'Raider trail', distance: 3, neighbors: ['deerTrails'],
+    tasks: [], bonus: {},
+    found: 'a trail used by raiders. From now on, you will always see raiders coming.',
+    description: 'A trail the raiders use. Watching it means raiders never catch you by surprise.',
+  },
+};
+
+export const PLACE_ORDER = Object.keys(PLACES);
+export const STARTING_PLACES = ['camp', 'riverbank', 'oakWoods'];
+
+// Version 1 saves recorded discoveries instead of places.
+export const V1_DISCOVERY_TO_PLACE = {
+  huntingGrounds: 'deerTrails', berryThicket: 'berryThicket', deadfall: 'deadfall',
+  abandonedCamp: 'abandonedCamp', raiderTracks: 'raiderTrail', herbGarden: 'herbHillside',
 };
 
 export const MILESTONE_POPULATION = 20;

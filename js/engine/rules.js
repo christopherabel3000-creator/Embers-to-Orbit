@@ -1,11 +1,17 @@
 // Formulas for what a person produces at a task. Shared by the season
 // resolution (which adds randomness) and the advisors (who forecast).
 
-import { hasDiscovery } from './state.js';
+import { PLACES } from './data.js';
+import { isKnown } from './state.js';
 
 const HUNT_SEASON = [1, 1, 1.1, 0.6];
 const FORAGE_BASE = [2, 4, 5, 0];
 const WOOD_SEASON = [1, 1, 1, 0.8];
+
+// How much hunting and foraging use up a place each season, per worker,
+// and how much it recovers each season by season of the year.
+export const DEPLETION = { hunt: 6, forage: 5 };
+export const RECOVERY = { hunt: [10, 10, 8, 4], forage: [12, 12, 6, 0] };
 
 // How effectively someone works, from 0.35 to 1.
 export function workFactor(person) {
@@ -16,24 +22,48 @@ export function workFactor(person) {
   return f;
 }
 
+// The place where everyone doing a task works. Falls back to camp.
+export function siteFor(state, task) {
+  const id = state.workSites && state.workSites[task];
+  if (!id || !isKnown(state, id)) return 'camp';
+  if (task !== 'scout' && !PLACES[id].tasks.includes(task)) return 'camp';
+  return id;
+}
+
+// Hunted-out or picked-over places yield less: from 60 to 100 percent.
+export function abundanceFactor(state, placeId, task) {
+  return 0.6 + 0.4 * (state.places[placeId].abundance[task] / 100);
+}
+
+function distanceFactor(placeId) {
+  return PLACES[placeId].distance >= 3 ? 0.9 : 1;
+}
+
+function bonus(placeId, task) {
+  return PLACES[placeId].bonus[task] || 0;
+}
+
 export function expectedFood(state, person, task, seasonIdx) {
   const s = person.skills;
   let amount = 0;
   if (task === 'hunt') {
-    amount = (2 + s.hunting) * HUNT_SEASON[seasonIdx];
-    if (hasDiscovery(state, 'huntingGrounds')) amount += 2;
+    const site = siteFor(state, 'hunt');
+    amount = (2 + s.hunting) * HUNT_SEASON[seasonIdx] + bonus(site, 'hunt');
+    amount *= abundanceFactor(state, site, 'hunt') * distanceFactor(site);
   } else if (task === 'forage') {
     if (seasonIdx === 3) return 0;
-    amount = FORAGE_BASE[seasonIdx] + s.foraging * 0.6;
-    if (hasDiscovery(state, 'berryThicket')) amount += 2;
+    const site = siteFor(state, 'forage');
+    amount = FORAGE_BASE[seasonIdx] + s.foraging * 0.6 + bonus(site, 'forage');
+    amount *= abundanceFactor(state, site, 'forage') * distanceFactor(site);
   }
   return amount * workFactor(person);
 }
 
 export function expectedWood(state, person, task, seasonIdx) {
   if (task !== 'wood') return 0;
-  let amount = (4 + person.skills.building * 0.6) * WOOD_SEASON[seasonIdx];
-  if (hasDiscovery(state, 'deadfall')) amount += 2;
+  const site = siteFor(state, 'wood');
+  let amount = (4 + person.skills.building * 0.6) * WOOD_SEASON[seasonIdx] + bonus(site, 'wood');
+  amount *= distanceFactor(site);
   return amount * workFactor(person);
 }
 
@@ -44,12 +74,14 @@ export function expectedWork(person) {
 export function healingPoints(state, person) {
   let points = 10 + person.skills.healing * 5;
   if (state.buildings.healersHut > 0) points *= 1.5;
-  if (hasDiscovery(state, 'herbGarden')) points *= 1.25;
+  if (isKnown(state, 'herbHillside')) points *= 1.25;
   return points * workFactor(person);
 }
 
-export function huntInjuryChance(person) {
-  return Math.max(0.03, 0.12 - 0.015 * person.skills.hunting);
+// Hunting farther from camp is a little more dangerous.
+export function huntInjuryChance(state, person) {
+  const extra = 0.02 * Math.max(0, PLACES[siteFor(state, 'hunt')].distance - 1);
+  return Math.max(0.03, 0.12 - 0.015 * person.skills.hunting) + extra;
 }
 
 export function scoutSuccessChance(person) {

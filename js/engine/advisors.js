@@ -1,13 +1,14 @@
 // Advisors: who holds each role, and the recommendations they make.
 // Advisors never act on their own; they only warn and suggest.
 
-import { BUILDINGS, SEASONS } from './data.js';
+import { BUILDINGS, SEASONS, PLACES } from './data.js';
 import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
-  spoilageRate, shelterCapacity, isBadlyHurt,
+  spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName,
+  unexploredNeighbors, knownPlaces, abundanceWord,
 } from './state.js';
 import {
-  expectedFood, expectedWood, defenseStrength, raidAttackStrength,
+  expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
 } from './rules.js';
 
 export const ADVISOR_ROLES = {
@@ -101,6 +102,24 @@ export function getAdvice(state) {
     add('steward', 'note', `No one is working on the ${BUILDINGS[state.project.id].name.toLowerCase()}.`);
   }
 
+  // Steward: worn-out hunting and foraging grounds.
+  for (const task of ['hunt', 'forage']) {
+    if (count(task) === 0 || (task === 'forage' && s === 3)) continue;
+    const site = siteFor(state, task);
+    const level = state.places[site].abundance[task];
+    if (level >= 40) continue;
+    const better = knownPlaces(state).filter((id) => id !== site && PLACES[id].tasks.includes(task)
+      && state.places[id].abundance[task] >= 70);
+    const what = task === 'hunt' ? 'Game' : 'Wild food';
+    add('steward', 'warning', `${what} is ${abundanceWord(level)} at ${placeName(state, site)}.${better.length ? ` ${better.map((id) => placeName(state, id)).join(' or ')} ${better.length === 1 ? 'is' : 'are'} still plentiful; you can move the work site on the Map screen.` : ' Letting it rest will help it recover.'}`);
+  }
+  if (count('scout') > 0 && unexploredNeighbors(state, siteFor(state, 'scout')).length === 0) {
+    const fresh = knownPlaces(state).filter((id) => unexploredNeighbors(state, id).length > 0);
+    if (fresh.length) {
+      add('steward', 'note', `Every path from ${placeName(state, siteFor(state, 'scout'))} is explored. Scouts could explore beyond ${fresh.map((id) => placeName(state, id)).join(' or ')} instead.`);
+    }
+  }
+
   // Healer: injuries and shelter.
   const badlyHurt = people.filter(isBadlyHurt);
   if (badlyHurt.length) {
@@ -129,7 +148,7 @@ export function getAdvice(state) {
     if (state.buildings.palisade === 0 && state.turn >= 4) {
       add('warChief', 'note', 'Raiders grow bolder each year. A palisade would make us far harder to attack.');
     }
-    if (count('scout') === 0 && state.buildings.watchtower === 0 && !state.discoveries.includes('raiderTracks')) {
+    if (count('scout') === 0 && state.buildings.watchtower === 0 && !isKnown(state, 'raiderTrail')) {
       add('warChief', 'note', 'No one is scouting, so raiders could catch us by surprise. Surprised defenders fight poorly.');
     }
   }

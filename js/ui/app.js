@@ -4,11 +4,14 @@
 import { newGame, applyAction } from '../engine/game.js';
 import {
   living, dateLabel, shelterCapacity, healthWord, moraleWord, seasonIndex,
-  foodNeeded, personById,
+  foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
+  isKnown,
 } from '../engine/state.js';
-import { TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, DISCOVERIES } from '../engine/data.js';
+import {
+  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES,
+} from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
-import { expectedWork } from '../engine/rules.js';
+import { expectedWork, siteFor } from '../engine/rules.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -22,6 +25,7 @@ let screen = 'title';
 const SCREENS = [
   ['report', 'Report'],
   ['people', 'People'],
+  ['map', 'Map'],
   ['build', 'Build'],
   ['advisors', 'Advisors'],
   ['chronicle', 'Chronicle'],
@@ -34,6 +38,11 @@ function esc(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
+}
+
+function listWords(words) {
+  if (words.length <= 1) return words.join('');
+  return `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
 }
 
 function plural(n, one, many) {
@@ -102,7 +111,7 @@ function render() {
   else if (screen === 'newGame') html = newGameScreen();
   else if (state.pendingEvent && !state.gameOver) html = raidScreen();
   else html = ({
-    report: reportScreen, people: peopleScreen, build: buildScreen,
+    report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen,
     advisors: advisorsScreen, chronicle: chronicleScreen, menu: menuScreen,
   }[screen] || reportScreen)();
   $main.innerHTML = html;
@@ -165,6 +174,9 @@ function reportScreen() {
     html += `<div class="actions"><button type="button" class="primary" data-action="showNewGame">Start a new game</button></div>`;
     return html;
   }
+  if (r.orders && r.orders.length) {
+    html += `<h2>Standing orders carried out</h2><ul>${r.orders.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  }
   html += `<h2>Advisors</h2>${adviceList(getAdvice(state))}`;
   html += `<div class="actions"><button type="button" data-nav="people">Assign people</button><button type="button" data-nav="build">Build</button></div>`;
   return html;
@@ -190,12 +202,26 @@ function taskOptions(selected) {
   return TASK_ORDER.map((t) => `<option value="${t}"${t === selected ? ' selected' : ''}>${TASKS[t].name}</option>`).join('');
 }
 
+const ORDER_NOTES = {
+  hurt: 'Resting until healed, by standing order.',
+  winter: 'Hunting through the winter, by standing order.',
+  healer: 'Tending the hurt, by standing order.',
+};
+
+function workSitesSentence() {
+  return `Hunters work at ${placeName(state, siteFor(state, 'hunt'))}. `
+    + `Foragers work at ${placeName(state, siteFor(state, 'forage'))}. `
+    + `Woodcutters work at ${placeName(state, siteFor(state, 'wood'))}. `
+    + `Scouts explore beyond ${placeName(state, siteFor(state, 'scout'))}.`;
+}
+
 function peopleScreen() {
   const people = living(state);
   const s = seasonIndex(state);
   let html = `<h1>People</h1>
     <p>${plural(people.length, 'person', 'people')} in camp. Food needed this season: ${foodNeeded(people.length)}.</p>
     <p id="taskSummary">${esc(taskCounts())}.</p>
+    <p>${esc(workSitesSentence())} Change work sites on the Map screen.</p>
     <details>
       <summary>What each task does</summary>
       <ul>${TASK_ORDER.map((t) => `<li><strong>${TASKS[t].name}:</strong> ${esc(TASKS[t].description)}</li>`).join('')}</ul>
@@ -215,8 +241,68 @@ function peopleScreen() {
       <h3>${esc(p.name)}${role ? `, ${esc(role)}` : ''}</h3>
       <p>${healthWord(p.health)}, ${moraleWord(p.morale)}. Skills: ${skills}.</p>
       <p class="muted">${esc(p.note)}</p>
+      ${p.orderReturn ? `<p>${esc(ORDER_NOTES[p.orderReturn.reason] || 'Moved by a standing order.')}</p>` : ''}
       <p><label for="task-${p.id}">Task for ${esc(p.name)}</label>
         <select id="task-${p.id}" data-person="${p.id}">${taskOptions(p.task)}</select></p>
+    </li>`;
+  }
+  html += '</ul>';
+  return html;
+}
+
+const SITE_LABELS = {
+  hunt: 'Hunters work at',
+  forage: 'Foragers work at',
+  wood: 'Woodcutters work at',
+};
+
+function siteOptionText(id, task) {
+  const name = placeName(state, id);
+  if (task === 'scout') {
+    const n = unexploredNeighbors(state, id).length;
+    return `${name} (${n ? `${n} unexplored ${n === 1 ? 'path' : 'paths'}` : 'all paths explored'})`;
+  }
+  const bits = [];
+  const b = PLACES[id].bonus[task] || 0;
+  if (b) bits.push(`plus ${b} ${task === 'wood' ? 'wood' : 'food'} per worker`);
+  if (task !== 'wood') bits.push(`${task === 'hunt' ? 'game' : 'wild food'} ${abundanceWord(state.places[id].abundance[task])}`);
+  if (PLACES[id].distance >= 3) bits.push('far');
+  return bits.length ? `${name} (${bits.join(', ')})` : name;
+}
+
+function mapScreen() {
+  const known = knownPlaces(state);
+  let html = `<h1>Map</h1>
+    <p>You know ${plural(known.length, 'place', 'places')}, counting your camp, ${esc(state.campName)}. Scouts find more by exploring the unexplored paths.</p>
+    <h2>Work sites</h2>
+    <p>Everyone doing the same task works at the same place. Hunting and foraging wear a place down over time; it recovers when left alone.</p>`;
+  for (const task of ['hunt', 'forage', 'wood']) {
+    const options = known.filter((id) => PLACES[id].tasks.includes(task));
+    html += `<p><label for="site-${task}">${SITE_LABELS[task]}</label>
+      <select id="site-${task}" data-site="${task}">${options.map((id) => `<option value="${id}"${siteFor(state, task) === id ? ' selected' : ''}>${esc(siteOptionText(id, task))}</option>`).join('')}</select></p>`;
+  }
+  html += `<p><label for="site-scout">Scouts explore beyond</label>
+    <select id="site-scout" data-site="scout">${known.map((id) => `<option value="${id}"${siteFor(state, 'scout') === id ? ' selected' : ''}>${esc(siteOptionText(id, 'scout'))}</option>`).join('')}</select></p>`;
+  html += '<h2>Places you know</h2><ul class="plain">';
+  for (const id of known) {
+    const place = PLACES[id];
+    const links = place.neighbors.filter((n) => isKnown(state, n)).map((n) => placeName(state, n));
+    const unexplored = unexploredNeighbors(state, id).length;
+    const linkParts = [...links];
+    if (unexplored) linkParts.push(unexplored === 1 ? 'one unexplored path' : `${unexplored} unexplored paths`);
+    const conditions = [];
+    if (place.tasks.includes('hunt')) conditions.push(`Game is ${abundanceWord(state.places[id].abundance.hunt)}.`);
+    if (place.tasks.includes('forage')) conditions.push(`Wild food is ${abundanceWord(state.places[id].abundance.forage)}.`);
+    const workingHere = [];
+    if (siteFor(state, 'hunt') === id) workingHere.push('hunters');
+    if (siteFor(state, 'forage') === id) workingHere.push('foragers');
+    if (siteFor(state, 'wood') === id) workingHere.push('woodcutters');
+    html += `<li class="card"><h3>${esc(placeName(state, id))}</h3>
+      <p>${esc(place.description)}${place.distance >= 3 ? ' It is far from camp, so work here goes a little slower.' : ''}</p>
+      ${conditions.length ? `<p>${conditions.join(' ')}</p>` : ''}
+      <p>Paths lead to ${esc(listWords(linkParts) || 'nowhere new')}.</p>
+      ${workingHere.length ? `<p>Your ${esc(listWords(workingHere))} work here.</p>` : ''}
+      ${siteFor(state, 'scout') === id ? '<p>Your scouts explore from here.</p>' : ''}
     </li>`;
   }
   html += '</ul>';
@@ -256,17 +342,42 @@ function buildScreen() {
   return html;
 }
 
+function checkbox(id, checked, label) {
+  return `<label class="choice"><input type="checkbox" data-order="${id}"${checked ? ' checked' : ''}> ${esc(label)}</label>`;
+}
+
+function ordersFor(role) {
+  const o = state.orders;
+  if (role === 'steward') {
+    const options = [0, 1, 2, 3, 4].map((n) => `<option value="${n}"${o.foodReserve === n ? ' selected' : ''}>${n === 0 ? 'No food order' : plural(n, 'season', 'seasons')}</option>`).join('');
+    return `<p><label for="order-food">Make sure our food will last at least</label>
+      <select id="order-food" data-order="foodReserve">${options}</select></p>
+      ${checkbox('winterForagers', o.winterForagers, 'Foragers hunt during winter, then go back to foraging in spring')}
+      ${checkbox('placeNewcomers', o.placeNewcomers, 'Put newcomers to work at what they do best')}`;
+  }
+  if (role === 'healer') {
+    return `${checkbox('restWhenHurt', o.restWhenHurt, 'Badly hurt people rest until healed, then go back to their work')}
+      ${checkbox('keepHealer', o.keepHealer, 'Keep someone tending the hurt whenever anyone is hurt')}`;
+  }
+  const radio = (value, label) => `<label class="choice"><input type="radio" name="raidPolicy" data-order="raidPolicy" value="${value}"${o.raidPolicy === value ? ' checked' : ''}> ${esc(label)}</label>`;
+  return `<fieldset><legend>When raiders come</legend>
+    ${radio('ask', 'Ask me every time')}
+    ${radio('fightIfLikely', 'Fight if we are likely to win; otherwise ask me')}
+    ${radio('auto', 'Decide for me: fight when the odds are even or better, hide when they are not')}
+  </fieldset>`;
+}
+
 function advisorsScreen() {
   const advice = getAdvice(state);
-  let html = '<h1>Advisors</h1><p>Your advisors always follow your orders, but they will tell you when they think something is going wrong.</p>';
+  let html = `<h1>Advisors</h1>
+    <p>Your advisors always follow your orders, and they tell you when they think something is going wrong.</p>
+    <p>Standing orders are carried out at the start of every season. You can still change anything yourself afterward.</p>`;
   for (const [role, info] of Object.entries(ADVISOR_ROLES)) {
     const person = advisorPerson(state, role);
     if (!person) continue;
     html += `<h2>${esc(info.title)}: ${esc(person.name)}</h2><p class="muted">Watches over ${esc(info.domain)}.</p>`;
     html += adviceList(advice.filter((a) => a.role === role));
-  }
-  if (state.discoveries.length) {
-    html += `<h2>Places discovered</h2><ul>${state.discoveries.map((d) => `<li>${esc(DISCOVERIES[d].name)}</li>`).join('')}</ul>`;
+    html += `<h3>${esc(person.name)}'s standing orders</h3>${ordersFor(role)}`;
   }
   return html;
 }
@@ -308,7 +419,9 @@ function menuScreen() {
     <p>Everyone eats 2 food each season. Nothing grows in winter and hunting is poor, so store food during summer and autumn. Food also spoils in storage.</p>
     <p>Autumn and winter fires burn wood, and anyone without shelter suffers from the cold. Each lean-to shelters 4 more people.</p>
     <p>Hurt people work at half strength. Have them rest, and have a healer tend them.</p>
-    <p>Scouts can find useful places and new people. Raiders may attack; scouts and a watchtower help you see them coming, and a palisade helps you hold them off.</p>
+    <p>The Map screen shows the places you know. Choose where hunters, foragers, and woodcutters work, and where scouts explore from. Scouts can find better places and new people. Hunting and foraging grounds wear down with use, so move your workers when a place gets thin.</p>
+    <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off.</p>
+    <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }
 
@@ -476,6 +589,18 @@ $main.addEventListener('change', (e) => {
   if (sel) {
     const ok = act({ type: 'assign', personId: Number(sel.dataset.person), task: sel.value });
     if (ok) document.getElementById('taskSummary').textContent = `${taskCounts()}.`;
+    return;
+  }
+  const site = e.target.closest('select[data-site]');
+  if (site) {
+    const msg = act({ type: 'setWorkSite', task: site.dataset.site, placeId: site.value });
+    if (msg) announce(msg);
+    return;
+  }
+  const order = e.target.closest('[data-order]');
+  if (order) {
+    const value = order.type === 'checkbox' ? order.checked : order.value;
+    act({ type: 'setOrder', id: order.dataset.order, value });
     return;
   }
   if (e.target.name === 'defender') {

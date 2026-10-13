@@ -2,12 +2,12 @@
 // an action object; applyAction returns a new state and never mutates
 // the old one. This keeps saves simple and leaves room for multiplayer.
 
-import { TASKS, BUILDINGS } from './data.js';
-import { personById, living, foodNeeded } from './state.js';
+import { TASKS, BUILDINGS, PLACES } from './data.js';
+import {
+  personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
+} from './state.js';
 import { resolveSeason } from './season.js';
-import { defenseStrength, raidAttackStrength } from './rules.js';
-import { randomBetween, randomInt, chance } from './rng.js';
-import { refreshAdvisors } from './advisors.js';
+import { resolveRaidPlan } from './raid.js';
 
 export { newGame } from './state.js';
 
@@ -33,6 +33,7 @@ const handlers = {
     if (!p || !p.alive) return { error: 'That person is not in the camp.' };
     if (!TASKS[task]) return { error: 'Unknown task.' };
     p.task = task;
+    p.orderReturn = null; // The player's choice overrides any standing order.
     return { message: `${p.name}: ${TASKS[task].name}.` };
   },
 
@@ -41,7 +42,10 @@ const handlers = {
     if (stop) return stop;
     if (!TASKS[task]) return { error: 'Unknown task.' };
     const moved = living(state).filter((p) => p.task === fromTask);
-    for (const p of moved) p.task = task;
+    for (const p of moved) {
+      p.task = task;
+      p.orderReturn = null;
+    }
     return { message: `${moved.length} ${moved.length === 1 ? 'person' : 'people'} moved to ${TASKS[task].name.toLowerCase()}.` };
   },
 
@@ -72,60 +76,41 @@ const handlers = {
   resolveRaid(state, { plan, defenderIds = [] }) {
     const stop = blocked(state);
     if (stop) return stop;
-    const ev = state.pendingEvent;
-    if (!ev || ev.type !== 'raid') return { error: 'There is no raid to respond to.' };
-    const lines = [];
-    const res = state.resources;
-    const loseShare = (foodShare, woodShare) => {
-      const f = Math.floor(res.food * foodShare);
-      const w = Math.floor(res.wood * woodShare);
-      res.food -= f;
-      res.wood -= w;
-      return `The raiders took ${f} food and ${w} wood.`;
-    };
-    const all = living(state);
-    if (plan === 'hide') {
-      lines.push(ev.warned
-        ? 'Your people hid what they could and slipped into the trees until the raiders left.'
-        : 'Caught by surprise, your people grabbed what they could and fled into the trees.');
-      lines.push(ev.warned ? loseShare(0.2, 0.15) : loseShare(0.35, 0.25));
-      for (const p of all) p.morale = Math.max(0, p.morale - 6);
-    } else if (plan === 'fight') {
-      const defenders = defenderIds.map((id) => personById(state, id)).filter((p) => p && p.alive);
-      if (defenders.length === 0) return { error: 'Choose at least one defender, or choose to hide.' };
-      const defense = defenseStrength(state, defenders, ev.warned);
-      const attack = raidAttackStrength(ev.raiders) * randomBetween(state, 0.85, 1.15);
-      const won = defense >= attack;
-      const injured = [];
-      for (const p of defenders) {
-        if (chance(state, won ? 0.15 : 0.4)) {
-          p.health = Math.max(0, p.health - randomInt(state, won ? 20 : 30, won ? 35 : 55));
-          injured.push(p);
-        }
-      }
-      if (won) {
-        lines.push(`${defenders.length} defenders drove the raiders off${state.buildings.palisade ? ' from behind the palisade' : ''}.`);
-        for (const p of all) p.morale = Math.min(100, p.morale + 8);
-      } else {
-        lines.push(`The defenders were overwhelmed.`);
-        lines.push(loseShare(0.4, 0.3));
-        for (const p of all) p.morale = Math.max(0, p.morale - 10);
-      }
-      if (injured.length) lines.push(`Wounded in the fighting: ${injured.map((p) => p.name).join(', ')}.`);
-      const killed = injured.filter((p) => p.health <= 0);
-      for (const p of killed) {
-        p.alive = false;
-        lines.push(`${p.name} was killed.`);
-      }
-    } else {
-      return { error: 'Choose to fight or hide.' };
+    const result = resolveRaidPlan(state, plan, defenderIds);
+    if (result.error) return result;
+    state.report.urgent.push(...result.lines);
+    for (const text of result.lines) state.log.push({ turn: state.turn, date: state.report.title, text });
+    return { message: result.lines.join(' ') };
+  },
+
+  setWorkSite(state, { task, placeId }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (!['hunt', 'forage', 'wood', 'scout'].includes(task)) return { error: 'Unknown task.' };
+    if (!isKnown(state, placeId)) return { error: 'You have not found that place yet.' };
+    if (task !== 'scout' && !PLACES[placeId].tasks.includes(task)) {
+      return { error: `${placeName(state, placeId)} is no place for that work.` };
     }
-    state.pendingEvent = null;
-    refreshAdvisors(state);
-    if (living(state).length === 0) state.gameOver = true;
-    state.report.urgent.push(...lines);
-    for (const text of lines) state.log.push({ turn: state.turn, date: state.report.title, text });
-    return { message: lines.join(' ') };
+    state.workSites[task] = placeId;
+    const verb = { hunt: 'Hunters will work at', forage: 'Foragers will work at', wood: 'Woodcutters will work at', scout: 'Scouts will explore beyond' }[task];
+    return { message: `${verb} ${placeName(state, placeId)}.` };
+  },
+
+  setOrder(state, { id, value }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (!(id in DEFAULT_ORDERS)) return { error: 'Unknown order.' };
+    if (id === 'foodReserve') {
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 0 || n > 4) return { error: 'Choose between 0 and 4 seasons.' };
+      state.orders.foodReserve = n;
+    } else if (id === 'raidPolicy') {
+      if (!['ask', 'fightIfLikely', 'auto'].includes(value)) return { error: 'Unknown raid policy.' };
+      state.orders.raidPolicy = value;
+    } else {
+      state.orders[id] = Boolean(value);
+    }
+    return { message: 'Standing order updated.' };
   },
 
   endTurn(state) {

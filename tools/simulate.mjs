@@ -2,8 +2,8 @@
 // Run with: node tools/simulate.mjs [games] [years]
 
 import { newGame, applyAction } from '../js/engine/game.js';
-import { living, shelterCapacity, seasonIndex } from '../js/engine/state.js';
-import { BUILDINGS } from '../js/engine/data.js';
+import { living, shelterCapacity, seasonIndex, knownPlaces, unexploredNeighbors } from '../js/engine/state.js';
+import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
 
 const GAMES = Number(process.argv[2] || 200);
@@ -36,6 +36,18 @@ function sensiblePlan(state) {
   return plan;
 }
 
+// Pick the known place with the best bonus and abundance for each task.
+function chooseSites(state) {
+  for (const task of ['hunt', 'forage', 'wood']) {
+    const score = (id) => (PLACES[id].bonus[task] || 0) + (task === 'wood' ? 0 : state.places[id].abundance[task] / 25);
+    const best = knownPlaces(state).filter((id) => PLACES[id].tasks.includes(task)).sort((a, b) => score(b) - score(a))[0];
+    if (best && best !== state.workSites[task]) state = act(state, { type: 'setWorkSite', task, placeId: best });
+  }
+  const scoutFrom = knownPlaces(state).find((id) => unexploredNeighbors(state, id).length > 0);
+  if (scoutFrom && scoutFrom !== state.workSites.scout) state = act(state, { type: 'setWorkSite', task: 'scout', placeId: scoutFrom });
+  return state;
+}
+
 function chooseProject(state) {
   if (state.project) return null;
   const people = living(state).length;
@@ -52,6 +64,11 @@ function chooseProject(state) {
 
 function play(seed, strategy) {
   let state = newGame({ seed });
+  if (strategy === 'orders') {
+    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto']]) {
+      state = act(state, { type: 'setOrder', id, value });
+    }
+  }
   for (let t = 0; t < YEARS * 4 && !state.gameOver; t++) {
     if (state.pendingEvent) {
       const fighters = living(state).filter((p) => p.health >= 40);
@@ -61,7 +78,13 @@ function play(seed, strategy) {
         : act(state, { type: 'resolveRaid', plan: 'hide' });
       if (state.gameOver) break;
     }
+    if (strategy === 'orders') {
+      state = chooseSites(state);
+      const project = chooseProject(state);
+      if (project) state = act(state, { type: 'startProject', buildingId: project });
+    }
     if (strategy === 'sensible') {
+      state = chooseSites(state);
       for (const [personId, task] of sensiblePlan(state)) state = act(state, { type: 'assign', personId, task });
       const project = chooseProject(state);
       if (project) state = act(state, { type: 'startProject', buildingId: project });
@@ -71,7 +94,7 @@ function play(seed, strategy) {
   return state;
 }
 
-for (const strategy of ['sensible', 'idle']) {
+for (const strategy of ['sensible', 'orders', 'idle']) {
   let wiped = 0;
   let pop = 0;
   let milestone = 0;

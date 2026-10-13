@@ -27,3 +27,5 @@ Code layout:
 - `js/engine/` holds all game rules and state. It has no knowledge of the page.
 - `js/ui/app.js` draws the screens and sends actions to the engine.
 - `js/storage.js` is the only place saves are read or written.
+
+See [BACKLOG.md](BACKLOG.md) for what comes next.

@@ -12,6 +12,24 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 - **Complexity without tedium.** Advisors and standing orders handle repetitive work so the player spends time on real decisions.
 - **Turn-based.** No real-time pressure. Every decision can be read, considered, and made at the player's pace.
 
+## Where the game stands
+
+Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceOver. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+
+- **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
+- **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
+- **Food, shelter, and winter:** eating, spoilage, fires, exposure, and six buildings worked through a build queue.
+- **A local map** of 14 places with work sites, wear and recovery, and scouting outward.
+- **Knowledge:** seven discoveries through a study queue, including farming with fields.
+- **Events:** 17 instant and choice events, plus fever and wolves as ongoing conditions.
+- **Three neighboring peoples** with relations, first contact, envoys, trade, tribute, and peace.
+- **Tactical battles** for raids and for an attack on the Skarn hold.
+- **Five advisors** who give ranked advice, forecasts, and odds, and carry out standing orders.
+- **Traditions and reputation** that grow from what the camp actually does.
+- **The Chronicle** of the campaign, a turn report each season, autosave, and save export and import.
+
+The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
+
 ## Accessibility principles
 
 Every screen must be usable by swiping through it with VoiceOver, with no visual-only information.
@@ -23,6 +41,15 @@ Every screen must be usable by swiping through it with VoiceOver, with no visual
 - **Headings as landmarks.** Each screen uses headings so the player can jump between sections with the rotor or heading keys.
 - **Keyboard shortcuts on desktop.** Common actions (end turn, open report, open advisors) get shortcuts that don't clash with screen reader keys.
 - **Optional audio cues.** Sounds for turn start, combat hits, and alerts can supplement speech but never carry information alone.
+
+**Built so far**
+
+- Nine screens reached from a navigation list: Report, People, Map, Build, Knowledge, Neighbors, Advisors, Chronicle, and Menu, plus an End season button. Each screen has one h1, which takes focus when the screen opens.
+- Decisions that stop the game (choice events, raids, battle deployment, each battle round) get their own screen with the advisors' views and one button per choice.
+- Short confirmations are spoken through a live region; after a screen redraws, focus returns to the control the player was using.
+- The People screen has a compact view (one line per person) and splits adults from young people, so a large camp stays quick to swipe through.
+- Only native controls: buttons, selects, checkboxes, radio buttons, headings, and lists. Nothing is carried by color alone.
+- Every screen is checked automatically with axe in light and dark mode, and play-tested with VoiceOver on iPhone.
 
 ## World and peoples
 
@@ -45,11 +72,11 @@ The player chooses a starting region, which acts as the difficulty setting and d
 | Desert | Hard | Water is the constant struggle | Rival nomad clans | Valuable trade goods, later solar power |
 | Arctic | Hardest | Brutal winters, scarce food | Few, hardy peoples | Later oil and rare minerals |
 
-Neighbor examples are placeholders until the 7 nations are designed.
+Neighbor examples are placeholders until the 7 nations are designed. Only the forest valley is built so far; the other four regions come in Phase 2.
 
-### The local map
+### The local map (built)
 
-Each starting region has a hand-crafted local map of connected places. The forest valley has 11: the camp, riverbank, and oak woods are known at the start; the north meadow, deer trails, storm deadfall, berry thicket, herb hillside, abandoned camp, beaver ponds, and a raider trail are found by scouting.
+Each starting region has a hand-crafted local map of connected places. The forest valley has 14: the camp, riverbank, and oak woods are known at the start; the north meadow, deer trails, storm deadfall, berry thicket, herb hillside, abandoned camp, beaver ponds, and raider trail are found by scouting, and beyond them lie the homes of three peoples: the Velari fields, Teln landing, and Skarn hold (see Neighbors).
 
 - **Work sites.** Everyone doing the same task works at one chosen place. Places add a bonus to hunting, foraging, or wood gathering. Far places (distance 3) work 10 percent slower, and distant hunting is a little more dangerous.
 - **Wear and recovery.** Hunting and foraging use up a place's game and wild food; places recover each season (slowly in winter). Worn places yield as little as 60 percent, which pushes players to rotate sites.
@@ -68,19 +95,21 @@ The game unfolds in eras. Each era layers new systems on top of the old ones, so
 4. **Modern.** Advanced industry, mechanized warfare, intelligence agencies, rocketry research.
 5. **Space.** Satellites, orbital mining, colonization, fleets (see Space age).
 
-Era advancement is driven by research and growth, not a fixed timer.
+Era advancement is driven by research and growth, not a fixed timer. For now, reaching the Settlement era is a milestone the game announces: 16 people, a storehouse, a palisade, and farming.
 
 ## Population and resources
 
 People start as individuals and become groups as the settlement grows, so management scales with the nation.
 
-- **Survival era:** each survivor has a name, skills (hunting, building, healing, leadership), health, and morale. Losing one person matters.
+- **Survival era (built):** each survivor has a name, an age, a short story, six skills from 0 to 5 (hunting, foraging, building, healing, scouting, learning), health, and morale. Losing one person matters. Twelve founders start the game; eight wanderers may be found by scouts or arrive asking to join, and friendly neighbors may send young people of their own.
 - **Ages and the cycle of life.** Everyone has an age and grows a year older each spring. Children under 5 cannot work. From 5 to 11 they can forage, farm, study, or rest at half strength; from 12 to 15 they can do any work at three quarters strength, including defending the camp; at 16 they are adults. Young children eat 1 food instead of 2 and take half a place in the shelters. From 55, strength fades (85 percent, then 70 percent from 65), and from 60 each year brings a growing chance of dying peacefully. Advisors are succeeded by the most skilled adult.
 - **Births.** Each season, a camp with at least two adults aged 18 to 40 may have a baby. The chance grows with the number of young adults, rises when food is plentiful, and falls when food is short, the shelters are full, or spirits are low. The steward says what is holding families back.
 - **Learning.** People under 16 learn half again as fast, and anyone working beside a more skilled mentor (skill 4 or more) at the same task learns faster.
 - **Skills grow with practice.** Every season at a task earns experience in that task's skill (half as much while badly hurt or sick). Going from level L to L+1 takes 3 + 2L seasons, so early levels come quickly and reaching 5 takes years. Defending against a raid counts as two seasons of hunting practice. The People screen shows each person's progress toward their next level.
 - **Settlement era onward:** population is tracked in groups by profession (farmers, builders, soldiers, scholars), with overall happiness and loyalty.
-- **Early resources:** food, water, wood, stone, and later metal. Food must be stored to survive winter.
+- **Food (built).** Each adult eats 2 food a season and each child under 12 eats 1. Stored food spoils 12 percent a season, 4 percent with a storehouse; smoking cuts that by a third and pottery halves it again.
+- **Shelter and warmth (built).** The starting tent and each lean-to shelter 4 people. In autumn and winter the camp burns wood for its fires; anyone without shelter, or left cold when the wood runs out, loses health.
+- **Early resources:** food and wood are built; water, stone, and later metal are planned. Food must be stored to survive winter.
 - **Later resources** unlock by era: gold and trade goods, iron, then fuel, electricity, and rare minerals; in the space age, off-world materials.
 
 The exact resource list per era is still to be designed.
@@ -90,8 +119,8 @@ The exact resource list per era is still to be designed.
 Advisors always follow orders, but they actively give recommendations and warn the player when a strategy looks risky.
 
 - **Origins.** The first advisors are the original survivors (the skilled hunter becomes war advisor, the herbalist becomes scholar). Successors take over as they age or die.
-- **Domains.** Steward (food and stores), war, diplomacy, research, trade, and later intelligence and space.
-- **Forecasts.** Advisors project consequences, e.g. "At current consumption, the granaries run empty in three seasons, one season before harvest."
+- **Domains.** Built: steward (food and stores), war chief (defense), healer (health and shelter), scholar (study and discovery), and speaker (neighbors and diplomacy). Each is held by the camp's most skilled adult in the matching skill. Later: trade, intelligence, and space.
+- **Forecasts.** Advisors project consequences, e.g. "At current consumption, the granaries run empty in three seasons, one season before harvest." Built: the steward's food forecast counts the coming harvest, the war chief gives the odds of winning a fight, and the steward explains what is holding back births.
 - **Severity levels.** Notes, warnings, and urgent alerts.
 - **Standing orders.** The player delegates repetitive work, e.g. "keep two winters of food in storage" or "train soldiers whenever the barracks is idle."
 - **Best work button.** On the People screen, one button puts everyone on the work they are most skilled at, as far as it makes sense this season: no foraging in winter, only as many farmers as the fields need, builders only when a project is underway (enough to finish in about two seasons), one or two healers only when someone is hurt or sick, at most two scouts while there is anything left to find, and studiers only when a discovery is chosen. The badly hurt and the sick rest. Ties go to food first.
@@ -99,15 +128,26 @@ Advisors always follow orders, but they actively give recommendations and warn t
 - **Auto-resolve.** The war advisor can resolve minor battles such as small raids.
 - **Standing orders in Phase 1** (on the Advisors screen): badly hurt people rest until healed and then return to work; keep someone tending the hurt; keep enough food to last 1 to 4 seasons; foragers hunt in winter and return to foraging in spring; newcomers start at their best task; and a raid policy (ask me, fight if likely to win, or decide for me). The steward can also put everyone on their best work at the start of each season (the same as the People screen button); while that order is on, it takes the place of the rest, healer, winter, and newcomer orders, and the food reserve order still runs after it as a safety net. Two more orders save tedium: the steward can keep the fields staffed (sending people to plant, tend, and harvest, then back to their other work), and the healer can put a lean-to near the front of the build queue whenever the shelters are nearly full. Orders run at the start of each season and are listed in the report. A player's own reassignment always overrides an order.
 
-## Building and study queues
+## Buildings (built)
+
+| Building | Wood | Work | Effect |
+| --- | --- | --- | --- |
+| Lean-to | 15 | 8 | Shelters 4 more people; can be built many times |
+| Field | 15 | 10 | 6 plots of grain; needs Farming; can be built many times |
+| Storehouse | 25 | 12 | Spoilage falls from 12 to 4 percent; stops mice |
+| Healer's hut | 15 | 8 | Healing half again as effective; faster fever recovery |
+| Watchtower | 20 | 10 | Raiders are always spotted early |
+| Palisade | 40 | 20 | Covers every zone in battles at the camp |
+
+## Building and study queues (built)
 
 The player queues as many buildings as they like on the Build screen and can move them up or down or remove them. Builders' work flows through the queue in order: when a building is finished, leftover work goes straight into the next. For example, 25 work against four queued fields of 10 work each finishes two and leaves the third half built. Each building's wood is paid when work on it begins; if there is not enough wood, building pauses until there is. Removing a building refunds its wood in full if no work was done, or half once work has started.
 
 Study works the same way: the player can queue discoveries, including ones not yet possible, which start as soon as they can. Leftover study points carry into the next discovery.
 
-## Knowledge
+## Knowledge (built)
 
-Discovery starts in the Survival era. People set to the Study task earn study points (2 plus their learning skill each season); the player chooses a discovery or builds a queue of them on the Knowledge screen, and partial progress is kept if they switch. The scholar, a fourth advisor, watches over study.
+Discovery starts in the Survival era. People set to the Study task earn study points (2 plus their learning skill each season, plus 1 with the Love of learning tradition); the player chooses a discovery or builds a queue of them on the Knowledge screen, and partial progress is kept if they switch. The scholar, a fourth advisor, watches over study.
 
 | Discovery | Cost | Needs | Effect |
 | --- | --- | --- | --- |
@@ -119,19 +159,19 @@ Discovery starts in the Survival era. People set to the Study task earn study po
 | Pottery | 25 | Smoking and drying | Spoilage halved again; no more mice in the stores |
 | Farming | 35 | Stone tools; North meadow found | Fields and the Farm task |
 
-**Farming** follows the year. Each field holds 6 plots. In spring each farmer plants 2 plots; in summer each tends 3; in autumn each harvests 3. A tended plot yields 10 food and an untended one 6; grain nobody harvests yields half. There is no farm work in winter. Farming does not wear out the land, and the harvest arrives just before winter.
+**Farming** follows the year. Each field holds 6 plots. In spring each farmer plants 2 plots; in summer each tends 3; in autumn each harvests 3. A tended plot yields 10 food and an untended one 6 (1 more with the Rhythm of the seasons tradition); grain nobody harvests yields half. There is no farm work in winter. Farming does not wear out the land, and the harvest arrives just before winter.
 
-Reaching the Settlement era (for now, a milestone) needs 16 people, a storehouse, a palisade, and farming.
+Reaching the Settlement era (for now, a milestone) needs 16 people, a storehouse, a palisade, and farming. The full research tree is a Phase 2 task.
 
-## Neighbors (Survival era)
+## Neighbors (built, Survival era)
 
-Three hand-crafted peoples live around the forest valley. Each has a home on the local map, a temperament, and relations with you from -100 (hostile) to 100 (close friends), which drift slowly back toward their nature.
+Three hand-crafted peoples live around the forest valley. Each has a home on the local map, a temperament, and relations with you from -100 (hostile) to 100 (close friends), which drift slowly back toward their nature and your reputation (see Traditions and reputation). These are local peoples, not the 7 rival nations, which arrive in later eras.
 
 | People | Home | Nature | Starting relations | What they offer |
 | --- | --- | --- | --- | --- |
 | Velari | Velari fields, beyond the North meadow | Peaceful hill farmers, slow to trust | 10 | Food for wood; at 40 or more, they will teach farming |
 | Tellani | Teln landing, downriver beyond the beaver ponds | River traders | 5 | The best trade rates, both ways |
-| Skarn | Skarn hold, at the end of the raider trail | Raiders who respect strength | -30 | Nothing but peace: tribute buys a year's truce; at 10 or more, a lasting peace |
+| Skarn | Skarn hold, at the end of the raider trail | Raiders who respect strength | -30 | Nothing but peace: tribute of 20 food buys a year's truce; at 10 or more, a lasting peace |
 
 - **Meeting them.** Scouts who find a people's home make first contact, a choice event (gift, greet, or withdraw) that sets the tone. The Velari come to you if your scouts never find them. The river traders are the Tellani, who introduce themselves after a trade. The raiders are the Skarn, revealed after the first fight.
 - **Diplomacy.** The Neighbors screen allows one envoy to each people per season: gifts of food or wood, trades whose rates improve with friendship, and special deals. A new advisor, the speaker, watches over relations.
@@ -156,16 +196,18 @@ The camp keeps count of its deeds: battles won, seasons of hunting, harvests, st
 
 **Reputation** has four parts, each 0 to 30: fierce fighters (battles won and attacks), generous friends (gifts), welcoming to strangers (taken in minus turned away), and honest traders (trades). Each people weighs them differently: the Velari like generosity and welcome and dislike fierceness; the Tellani like honest trading and some generosity; the Skarn respect fierceness and see generosity as softness. Relations drift toward each people's nature plus these shifts. The Chronicle screen shows traditions, those taking shape, and your reputation; the Neighbors screen shows how each people sees you.
 
-## Events
+## Events (built)
 
 Events keep seasons from feeling the same. After each season there is a 40 percent chance of one event, and the same event cannot repeat within 6 seasons. Raids take priority.
 
-- **Instant events** simply happen and appear in the report: storms (wreck a lean-to or soak the woodpile), bumper crops, fever outbreaks, mice in the food stores (a storehouse prevents this), winter cold snaps, and fireside stories that lift spirits.
-- **Choice events** stop the game on their own screen, with advisors' views, and the player picks an option: a sick traveler asking to join, wolves moving into a hunting ground, a quarrel between two survivors, a missing worker, river traders, and a wild beehive. Outcomes appear under "Your decision" in the report.
+- **Instant events** simply happen and appear in the report: storms (wreck a lean-to or soak the woodpile), bumper crops, fever outbreaks, mice in the food stores (a storehouse or pottery prevents this), winter cold snaps, fireside stories that lift spirits, and a visit from the Velari if your scouts have not found them.
+- **Choice events** stop the game on their own screen, with advisors' views, and the player picks an option: a sick traveler asking to join, wolves moving into a hunting ground, a quarrel between two survivors, a missing worker, river traders, a wild beehive, first contact with a people, the Velari asking for food after a blight, a neighbor's young person asking to join, and a Skarn demand for tribute. Outcomes appear under "Your decision" in the report.
 - **Ongoing conditions.** Fever: the sick lose health, work at half strength, and spread it, faster in a crowded camp; tending the sick and a healer's hut speed recovery. Wolves: hunting at their place is more dangerous and yields less for about a year.
 - Events tie into existing systems: places on the map, shelter, the storehouse, advisors, and standing orders (for example, keeping a healer on duty also covers the sick).
 
 ## Playstyles, traditions, and reputation
+
+The Survival-era version of traditions and reputation is built (see above); this section is the long-term design.
 
 Players never choose a playstyle or win condition. Their actions make certain things easier, and a nation's identity emerges from its history.
 
@@ -205,7 +247,9 @@ Battles happen on a battlefield split into zones, and both sides make tactical d
 - **Breaking:** a group that loses more than 60 percent of its strength breaks and flees; the enemy gives up when it is down to 35 percent of its fighters, and after 4 rounds they pull back with what they took.
 - **Wounds and deaths** fall on the people who fought. Every fighter gains two seasons of hunting practice.
 - **The war chief** suggests orders each round and can finish the battle at any time; their estimate of the odds comes from quietly fighting the battle many times in their head.
-- **Attacking Skarn hold** (from the Neighbors screen, once your scouts have found it): 8 warriors plus 1 per year defend it. Victory brings their stores, two years of truce, and enough respect for a lasting peace. Defeat brings revenge raids.
+- **Strength:** each raider fights with a strength of 6; defenders fight by their hunting skill and health, with bonuses from fire-hardened spears and the Warrior tradition. Raids grow by 2 raiders a year. Surprise (no warning from scouts or the watchtower) weakens the defenders and strengthens the raiders in the first round.
+- **Attacking Skarn hold** (from the Neighbors screen, once your scouts have found it): 8 warriors plus 1 per year defend it. Victory brings their stores (30 food and 20 wood), two years of truce, and enough respect for a lasting peace. Defeat brings revenge raids.
+- **Raid choices:** before a raid the player can deploy and fight, let the war chief command, or hide in the woods and lose some stores. A standing order can decide for them.
 
 **Modern era additions**
 
@@ -243,7 +287,9 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 
 - **Game logic separate from display.** All rules and game state live in their own layer; the screens only read state and send player actions. This keeps the UI accessible and makes multiplayer possible without a rewrite.
 - **Actions as data.** Every player decision (build, recruit, battle orders) is a recorded action applied to the state. This suits turn-based multiplayer, where players submit orders each season.
-- **Saves.** Saved in the browser at first, with export and import of save files so a campaign can move between phone and computer. Cloud saves can come later.
+- **Saves.** Saved in the browser at the end of every season, with export and import of save files so a campaign can move between phone and computer. Saves carry a version number, and older saves are upgraded automatically when loaded. Cloud saves can come later.
+- **Repeatable randomness.** All chance in the game comes from a seeded random number generator kept in the saved game, so the same choices from the same save give the same results. This makes testing, balance checks, and future multiplayer possible.
+- **Testing and balance tools.** Engine tests run with `npm test`. `npm run simulate` plays hundreds of automatic campaigns with different strategies, and `npm run battles` fights hundreds of battles, to check balance after changes.
 - **Multiplayer later.** Likely async turn-based play through an online backend such as Firebase. Not built in the first phases, but the design must not block it.
 - **Plain HTML, CSS, and JavaScript**, no build tools. Published through GitHub Pages so it can be played on iPhone from a link.
 - **Store releases later.** Packaged with Capacitor for the App Store and Google Play, and with Electron or Tauri for Steam. To keep this possible: the game is fully offline (no outside servers or CDNs), uses relative paths, and saves only through one swappable save module.
@@ -252,9 +298,9 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
-1. **Phase 1: Survival era.** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one. Each season the player assigns every survivor a task (hunt, forage, gather wood, build, scout, tend the hurt, study, rest, and later farm). Raids are fought as zone-based tactical battles (see Combat), with the option to let the war chief command or to hide.
-2. **Phase 2: Settlement era.** Population groups, buildings, research, all five starting regions, the first rival nations, trade, and zone-based combat.
-3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation, defenses and sieges, all 7 nations.
+1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, and traditions and reputation. Still to do: families and relationships, more events, keyboard shortcuts, audio cues, and balance (see BACKLOG.md).
+2. **Phase 2: Settlement era.** Started early: zone-based combat, buildings, the first research, trade, and neighboring peoples exist in Survival-era form. Still to build: population groups by profession, the full research tree, the other four starting regions, the first rival nations, deeper trade and diplomacy, and unit types in battle.
+3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.
 6. **Later:** multiplayer modes, challenge mode with 16 to 20 nations, endgame.
@@ -265,7 +311,13 @@ The game is built in layers, and each phase should be playable and fun on its ow
 - [ ] How the game ends: victory conditions, or endless play
 - [ ] Names, cultures, and homelands of the 7 core nations
 - [ ] Exact resource list per era
-- [ ] Shape of the research tree
+- [ ] Shape of the research tree beyond the first seven discoveries
 - [ ] Audio: which sound cues, if any, in Phase 1
 - [x] Phase 1 starting region: forest valley
+- [x] Battle model: zones, simultaneous orders, morale (built in Phase 1)
+- [x] Traditions earned from deeds, never chosen (built in Phase 1)
+- [ ] When and how named survivors become population groups
+- [ ] How the Settlement era begins: a milestone the player accepts, or a gradual change
+- [ ] Late-game balance: what keeps a well-run camp challenged (bigger threats, uses for surplus, harder regions)
+- [ ] Whether traditions can fade if neglected
 - [ ] Multiplayer modes: head-to-head, co-op, async with friends

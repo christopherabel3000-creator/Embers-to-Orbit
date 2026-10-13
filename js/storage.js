@@ -6,6 +6,7 @@ import { migrate } from './engine/state.js';
 
 // The key stays the same across save versions; old saves are upgraded on load.
 const KEY = 'embers-to-orbit/save/v1';
+const SETTINGS_KEY = 'embers-to-orbit/settings';
 
 function upgrade(data) {
   if (!data || typeof data !== 'object' || typeof data.turn !== 'number') return null;
@@ -29,6 +30,26 @@ export const storage = {
       return true;
     } catch {
       return false;
+    }
+  },
+
+  // Player preferences, kept apart from the game itself.
+  getSetting(name, fallback) {
+    try {
+      const all = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      return name in all ? all[name] : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+
+  setSetting(name, value) {
+    try {
+      const all = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+      all[name] = value;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(all));
+    } catch {
+      // Settings are a convenience; ignore storage failures.
     }
   },
 

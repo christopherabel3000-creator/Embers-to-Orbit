@@ -6,8 +6,9 @@ import {
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
-  hasKnowledge, fieldPlots,
+  hasKnowledge, fieldPlots, shelterNeeded,
 } from './state.js';
+import { advanceLife } from './life.js';
 import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
   scoutSuccessChance, siteFor, DEPLETION, RECOVERY, studyPoints, farmerCapacity,
@@ -123,11 +124,16 @@ export function resolveSeason(state) {
   // Practice: everyone who worked gets a little better at it.
   // Badly hurt or sick people learn at half speed. Winter farmers have no
   // farm work to practice.
+  // The young learn half again as fast, and anyone working beside a
+  // skilled mentor (skill 4 or more) picks up extra.
   const improved = [];
   for (const p of people) {
     const skill = TASKS[p.task] && TASKS[p.task].skill;
     if (!skill || (p.task === 'farm' && s === 3) || (p.task === 'forage' && s === 3)) continue;
-    const amount = p.health < 40 || p.sick ? 0.5 : 1;
+    let amount = p.health < 40 || p.sick ? 0.5 : 1;
+    if (p.age < 16) amount *= 1.5;
+    const mentor = people.some((m) => m !== p && m.task === p.task && m.skills[skill] >= 4 && m.skills[skill] > p.skills[skill]);
+    if (mentor) amount += 0.5;
     const level = gainExperience(p, skill, amount);
     if (level) improved.push(`${p.name}'s ${skill} rose to ${level}`);
   }
@@ -249,14 +255,17 @@ export function resolveSeason(state) {
   if (healed.length) events.push(`${listNames(healed)} ${healed.length === 1 ? 'was' : 'were'} treated for injuries.`);
 
   // 5. Eating.
-  const need = foodNeeded(people.length);
+  const need = foodNeeded(people);
   const unfed = new Set();
   if (state.resources.food >= need) {
     state.resources.food -= need;
   } else {
-    const canFeed = Math.floor(state.resources.food / 2);
-    state.resources.food -= canFeed * 2;
-    const hungry = shuffle(state, people).slice(canFeed);
+    const hungry = [];
+    for (const p of shuffle(state, people)) {
+      const portion = foodNeeded([p]);
+      if (state.resources.food >= portion) state.resources.food -= portion;
+      else hungry.push(p);
+    }
     for (const p of hungry) {
       unfed.add(p.id);
       hurt(p, 25);
@@ -285,8 +294,9 @@ export function resolveSeason(state) {
     }
   }
   const capacity = shelterCapacity(state);
-  if (people.length > capacity && (s === 2 || s === 3)) {
-    const exposed = shuffle(state, people).slice(0, people.length - capacity);
+  const excess = Math.ceil(shelterNeeded(people) - capacity);
+  if (excess > 0 && (s === 2 || s === 3)) {
+    const exposed = shuffle(state, people).slice(0, excess);
     for (const p of exposed) {
       cold.add(p.id);
       hurt(p, (s === 3 ? 30 : 10) * (hasKnowledge(state, 'clothing') ? 0.6 : 1));
@@ -335,8 +345,15 @@ export function resolveSeason(state) {
     urgent.unshift(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
   } else {
     // Plenty of food lifts spirits.
-    if (state.resources.food >= foodNeeded(survivors.length) * 2) {
+    if (state.resources.food >= foodNeeded(survivors) * 2) {
       for (const p of survivors) p.morale = clamp(p.morale + 3);
+    }
+    const life = advanceLife(state);
+    urgent.push(...life.urgent);
+    events.push(...life.events);
+    if (living(state).length === 0) {
+      state.gameOver = true;
+      urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
     const happened = maybeStartEvent(state);

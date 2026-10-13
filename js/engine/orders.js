@@ -2,7 +2,7 @@
 // the start of every season. The player can still change anything after.
 
 import { TASKS } from './data.js';
-import { living, seasonIndex } from './state.js';
+import { living, seasonIndex, canFight, allowedTasksFor } from './state.js';
 import { advisorPerson, ADVISOR_ROLES, forecastFood, raidOdds } from './advisors.js';
 import { expectedFood } from './rules.js';
 import { resolveRaidPlan } from './raid.js';
@@ -61,7 +61,7 @@ export function applyStandingOrders(state) {
   // Raids first, so anyone wounded is then handled by the healer's orders.
   const ev = state.pendingEvent;
   if (ev && ev.type === 'raid' && orders.raidPolicy !== 'ask') {
-    const able = living(state).filter((p) => p.health >= 40);
+    const able = living(state).filter(canFight);
     const odds = raidOdds(state, able, ev.warned, ev.raiders);
     let plan = null;
     if (orders.raidPolicy === 'fightIfLikely' && odds.ratio >= 1.3) plan = 'fight';
@@ -95,7 +95,7 @@ export function applyStandingOrders(state) {
   const backToWork = people.filter((p) => p.health >= 75 && returnFrom(p, 'hurt', 'rest'));
   if (backToWork.length) say('healer', `${listNames(backToWork)} ${backToWork.length === 1 ? 'has' : 'have'} recovered and gone back to work.`);
   if (orders.restWhenHurt) {
-    const sent = people.filter((p) => p.health < 40 && p.task !== 'rest');
+    const sent = people.filter((p) => p.health < 40 && p.task !== 'rest' && p.age >= 5);
     for (const p of sent) moveFor(p, 'rest', 'hurt');
     if (sent.length) say('healer', `sent ${listNames(sent)} to rest until healed.`);
   }
@@ -118,7 +118,7 @@ export function applyStandingOrders(state) {
     if (freed.length) say('healer', `no one needs tending, so ${listNames(freed)} went back to ${TASKS[freed[0].task].name.toLowerCase()}.`);
   } else if (orders.keepHealer && !people.some((p) => p.task === 'heal')) {
     const candidate = people
-      .filter((p) => p.health >= 40 && p.task !== 'rest')
+      .filter((p) => p.health >= 40 && p.task !== 'rest' && p.age >= 12)
       .sort((a, b) => b.skills.healing - a.skills.healing)[0];
     if (candidate) {
       moveFor(candidate, 'heal', 'healer');
@@ -135,7 +135,7 @@ export function applyStandingOrders(state) {
     if (!lastsLongEnough()) {
       const rank = { rest: 0, scout: 1, study: 2, build: 3, wood: 4 };
       const candidates = people
-        .filter((p) => p.task in rank && p.health >= 40 && !(p.orderReturn && p.orderReturn.reason === 'hurt'))
+        .filter((p) => p.task in rank && p.health >= 40 && p.age >= 5 && !(p.orderReturn && p.orderReturn.reason === 'hurt'))
         .sort((a, b) => rank[a.task] - rank[b.task]);
       const moved = [];
       for (const p of candidates) {
@@ -143,7 +143,8 @@ export function applyStandingOrders(state) {
         if (p.task === 'wood' && people.filter((x) => x.task === 'wood').length <= 1) continue;
         const hunt = expectedFood(state, p, 'hunt', s);
         const forage = expectedFood(state, p, 'forage', s);
-        p.task = forage > hunt ? 'forage' : 'hunt';
+        p.task = forage > hunt || !allowedTasksFor(state, p).includes('hunt') ? 'forage' : 'hunt';
+        if (!allowedTasksFor(state, p).includes(p.task)) p.task = 'rest';
         p.orderReturn = null;
         moved.push(p);
       }

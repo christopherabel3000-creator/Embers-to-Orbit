@@ -6,6 +6,7 @@ import {
   living, dateLabel, shelterCapacity, healthWord, moraleWord, seasonIndex,
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
   isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
+  allowedTasksFor, lifeStage, canFight,
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER,
@@ -41,6 +42,10 @@ function esc(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
+}
+
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function listWords(words) {
@@ -206,8 +211,9 @@ function advisorTitleFor(person) {
   return '';
 }
 
-function taskOptions(selected) {
-  return availableTasks(state).map((t) => `<option value="${t}"${t === selected ? ' selected' : ''}>${TASKS[t].name}</option>`).join('');
+function taskOptions(selected, person = null) {
+  const tasks = person ? allowedTasksFor(state, person) : availableTasks(state);
+  return tasks.map((t) => `<option value="${t}"${t === selected ? ' selected' : ''}>${TASKS[t].name}</option>`).join('');
 }
 
 const ORDER_NOTES = {
@@ -245,40 +251,68 @@ function practiceLine(p) {
   return `<p>Practicing ${skill}: about ${plural(left, 'more season', 'more seasons')} to reach ${p.skills[skill] + 1}.</p>`;
 }
 
+function personStatus(p) {
+  const bits = [`age ${p.age}`, healthWord(p.health)];
+  if (p.sick) bits.push('sick with fever');
+  bits.push(moraleWord(p.morale));
+  return bits.join(', ');
+}
+
+function personCard(p) {
+  const role = advisorTitleFor(p);
+  const skills = SKILLS.map((k) => `${k} ${p.skills[k]}`).join(', ');
+  const infant = lifeStage(p) === 'infant';
+  return `<li class="card">
+    <h3>${esc(p.name)}${role ? `, ${esc(role)}` : ''}</h3>
+    <p>${esc(capitalize(personStatus(p)))}.${infant ? '' : ` Skills: ${skills}.`}</p>
+    <p class="muted">${esc(p.note)}</p>
+    ${infant ? '<p>Too young to work, and looked after by everyone.</p>' : `
+    ${practiceLine(p)}
+    ${p.orderReturn ? `<p>${esc(ORDER_NOTES[p.orderReturn.reason] || 'Moved by a standing order.')}</p>` : ''}
+    <p><label for="task-${p.id}">Task for ${esc(p.name)}</label>
+      <select id="task-${p.id}" data-person="${p.id}">${taskOptions(p.task, p)}</select></p>`}
+  </li>`;
+}
+
+// One line per person: fewer swipes when the camp is large.
+function personRow(p) {
+  const role = advisorTitleFor(p);
+  const skill = TASKS[p.task] && TASKS[p.task].skill;
+  const label = `${p.name}${role ? `, ${role}` : ''}, ${personStatus(p)}${skill ? `, ${skill} ${p.skills[skill]}` : ''}`;
+  if (lifeStage(p) === 'infant') return `<li><p>${esc(label)}. Too young to work.</p></li>`;
+  return `<li><p><label for="task-${p.id}">${esc(label)}</label>
+    <select id="task-${p.id}" data-person="${p.id}">${taskOptions(p.task, p)}</select></p></li>`;
+}
+
 function peopleScreen() {
   const people = living(state);
   const s = seasonIndex(state);
+  const compact = storage.getSetting('peopleView', 'detailed') === 'compact';
+  const adults = people.filter((p) => p.age >= 16);
+  const young = people.filter((p) => p.age < 16);
   let html = `<h1>People</h1>
-    <p>${plural(people.length, 'person', 'people')} in camp. Food needed this season: ${foodNeeded(people.length)}.</p>
+    <p>${plural(people.length, 'person', 'people')} in camp${young.length ? `, ${plural(young.length, 'of them young', 'of them young')}` : ''}. Food needed this season: ${foodNeeded(people)}.</p>
     <p id="taskSummary">${esc(taskCounts())}.</p>
     <p>${esc(workSitesSentence())} Change work sites on the Map screen.</p>
     ${hasKnowledge(state, 'farming') ? `<p>${esc(farmSentence())}</p>` : ''}
+    <p><label for="peopleView">List style</label>
+      <select id="peopleView"><option value="detailed"${compact ? '' : ' selected'}>Detailed, with a heading for each person</option><option value="compact"${compact ? ' selected' : ''}>Compact, one line per person</option></select></p>
     <details>
       <summary>What each task does</summary>
       <ul>${availableTasks(state).map((t) => `<li><strong>${TASKS[t].name}:</strong> ${esc(TASKS[t].description)}</li>`).join('')}</ul>
+      <p>Children from 5 to 11 can forage, farm, study, or rest, at half strength. From 12 they can do any work.</p>
     </details>
     <h2>Move a group</h2>
     <p><label for="bulkFrom">Move everyone doing</label>
       <select id="bulkFrom">${taskOptions(s === 3 ? 'forage' : 'rest')}</select></p>
     <p><label for="bulkTo">to</label>
       <select id="bulkTo">${taskOptions('hunt')}</select></p>
-    <p><button type="button" data-action="bulkMove">Move them</button></p>
-    <h2>Everyone</h2>
-    <ul class="plain">`;
-  for (const p of people) {
-    const role = advisorTitleFor(p);
-    const skills = SKILLS.map((k) => `${k} ${p.skills[k]}`).join(', ');
-    html += `<li class="card">
-      <h3>${esc(p.name)}${role ? `, ${esc(role)}` : ''}</h3>
-      <p>${healthWord(p.health)}${p.sick ? ', sick with fever' : ''}, ${moraleWord(p.morale)}. Skills: ${skills}.</p>
-      <p class="muted">${esc(p.note)}</p>
-      ${practiceLine(p)}
-      ${p.orderReturn ? `<p>${esc(ORDER_NOTES[p.orderReturn.reason] || 'Moved by a standing order.')}</p>` : ''}
-      <p><label for="task-${p.id}">Task for ${esc(p.name)}</label>
-        <select id="task-${p.id}" data-person="${p.id}">${taskOptions(p.task)}</select></p>
-    </li>`;
-  }
-  html += '</ul>';
+    <p><button type="button" data-action="bulkMove">Move them</button></p>`;
+  const section = (title, list) => {
+    if (!list.length) return '';
+    return `<h2>${title} (${list.length})</h2><ul class="plain">${list.map(compact ? personRow : personCard).join('')}</ul>`;
+  };
+  html += section('Adults', adults) + section('Young people', young);
   return html;
 }
 
@@ -496,6 +530,7 @@ function menuScreen() {
     <p>Everyone eats 2 food each season. Nothing grows in winter and hunting is poor, so store food during summer and autumn. Food also spoils in storage.</p>
     <p>Autumn and winter fires burn wood, and anyone without shelter suffers from the cold. Each lean-to shelters 4 more people.</p>
     <p>People get better at whatever they practice. Each season at a task builds that skill, up to 5. Early levels come quickly; mastery takes years. Fighting off raiders hardens defenders fast.</p>
+    <p>A well-fed camp with room in its shelters and good spirits will have children. Young children eat half as much and take half a place in the shelters. From 5 they can help with light work, and from 12 they can do anything, including defending the camp. Everyone ages a year each spring, and the old grow weaker and eventually pass away. Young people learn faster, and anyone working beside a skilled mentor learns faster too.</p>
     <p>Hurt people work at half strength. Have them rest, and have a healer tend them.</p>
     <p>The Map screen shows the places you know. Choose where hunters, foragers, and woodcutters work, and where scouts explore from. Scouts can find better places and new people. Hunting and foraging grounds wear down with use, so move your workers when a place gets thin.</p>
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
@@ -522,7 +557,7 @@ function storyScreen() {
 function raidScreen() {
   const ev = state.pendingEvent;
   const people = living(state);
-  const able = people.filter((p) => p.health >= 40);
+  const able = people.filter(canFight);
   const odds = raidOdds(state, able, ev.warned, ev.raiders);
   const chief = advisorPerson(state, 'warChief');
   let html = `<h1>Raiders!</h1>
@@ -542,9 +577,9 @@ function raidScreen() {
           <button type="button" data-action="selectAllDefenders">Select all able</button>
           <button type="button" data-action="clearDefenders">Clear</button>
         </div>`;
-  for (const p of people) {
-    const canFight = p.health >= 40;
-    html += `<label class="choice"><input type="checkbox" name="defender" value="${p.id}"${canFight ? ' checked' : ''}>
+  for (const p of people.filter((x) => x.age >= 12)) {
+    const fit = canFight(p);
+    html += `<label class="choice"><input type="checkbox" name="defender" value="${p.id}"${fit ? ' checked' : ''}>
       ${esc(p.name)}, hunting ${p.skills.hunting}, ${healthWord(p.health)}${p.sick ? ', sick' : ''}</label>`;
   }
   html += `</fieldset>
@@ -678,7 +713,7 @@ function handleAction(action, btn) {
     case 'clearDefenders': {
       for (const box of $main.querySelectorAll('input[name="defender"]')) {
         const p = personById(state, Number(box.value));
-        box.checked = action === 'selectAllDefenders' ? p.health >= 40 : false;
+        box.checked = action === 'selectAllDefenders' ? canFight(p) : false;
       }
       updateRaidOdds();
       break;
@@ -693,6 +728,14 @@ $main.addEventListener('change', (e) => {
   if (sel) {
     const ok = act({ type: 'assign', personId: Number(sel.dataset.person), task: sel.value });
     if (ok) document.getElementById('taskSummary').textContent = `${taskCounts()}.`;
+    return;
+  }
+  if (e.target.id === 'peopleView') {
+    storage.setSetting('peopleView', e.target.value);
+    render();
+    const again = document.getElementById('peopleView');
+    if (again) again.focus();
+    announce(e.target.value === 'compact' ? 'Compact list.' : 'Detailed list.');
     return;
   }
   const site = e.target.closest('select[data-site]');

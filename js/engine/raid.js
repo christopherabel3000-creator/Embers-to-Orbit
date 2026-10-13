@@ -1,6 +1,6 @@
 // Resolving a raid, whether the player decides or a standing order does.
 
-import { living, personById } from './state.js';
+import { living, personById, canFight } from './state.js';
 import { defenseStrength, raidAttackStrength } from './rules.js';
 import { randomBetween, randomInt, chance } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
@@ -27,7 +27,7 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
     lines.push(ev.warned ? loseShare(0.2, 0.15) : loseShare(0.35, 0.25));
     for (const p of all) p.morale = Math.max(0, p.morale - 6);
   } else if (plan === 'fight') {
-    const defenders = defenderIds.map((id) => personById(state, id)).filter((p) => p && p.alive);
+    const defenders = defenderIds.map((id) => personById(state, id)).filter((p) => p && p.alive && p.age >= 12);
     if (defenders.length === 0) return { error: 'Choose at least one defender, or choose to hide.' };
     const defense = defenseStrength(state, defenders, ev.warned);
     const attack = raidAttackStrength(ev.raiders) * randomBetween(state, 0.85, 1.15);

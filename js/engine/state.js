@@ -4,10 +4,10 @@
 import {
   FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, BUILDING_ORDER,
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
-  KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD,
+  KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
 } from './data.js';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -29,6 +29,7 @@ export function makePerson(template, id, task = 'forage') {
     id,
     name: template.name,
     note: template.note,
+    age: template.age ?? 30, // Years. Everyone grows a year older each spring.
     skills: { ...template.skills },
     health: 100,
     morale: 60,
@@ -132,6 +133,10 @@ export function migrate(data) {
     for (const p of data.people) p.xp = {};
     data.version = 5;
   }
+  if (data.version === 5) {
+    for (const p of data.people) p.age = AGE_BY_NAME[p.name] ?? 30;
+    data.version = 6;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -210,8 +215,36 @@ export function wolvesAt(state, placeId) {
   return (state.conditions || []).some((c) => c.id === 'wolves' && c.place === placeId);
 }
 
-export function foodNeeded(count) {
-  return count * 2;
+// Food eaten each season: 2 per person, 1 for children under 12.
+// Accepts a list of people, or a plain count of adults.
+export function foodNeeded(people) {
+  if (typeof people === 'number') return people * 2;
+  return people.reduce((sum, p) => sum + (p.age < AGES.youth ? 1 : 2), 0);
+}
+
+// Shelter space needed: children under 12 take half a place.
+export function shelterNeeded(people) {
+  return people.reduce((sum, p) => sum + (p.age < AGES.youth ? 0.5 : 1), 0);
+}
+
+export function lifeStage(person) {
+  if (person.age < AGES.child) return 'infant';
+  if (person.age < AGES.youth) return 'child';
+  if (person.age < AGES.adult) return 'youth';
+  if (person.age < AGES.elder) return 'adult';
+  return 'elder';
+}
+
+// The tasks this person can be given, given their age and what is known.
+export function allowedTasksFor(state, person) {
+  const stage = lifeStage(person);
+  if (stage === 'infant') return ['rest'];
+  const tasks = availableTasks(state);
+  return stage === 'child' ? tasks.filter((t) => CHILD_TASKS.includes(t)) : tasks;
+}
+
+export function canFight(person) {
+  return person.alive && person.age >= AGES.youth && person.health >= 40;
 }
 
 export function woodNeededForWarmth(seasonIdx, count) {

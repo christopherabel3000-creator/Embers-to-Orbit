@@ -10,16 +10,16 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Events: instant and choice events, fever, wolves.
 - Knowledge tree foundation: study, seven discoveries, scholar advisor, farming with fields.
 - Skills improve with practice.
+- Births, children, aging, old age, mentoring, and a compact People view.
 
 ## Next in the Survival era
 
-- [ ] Births and children (needs ages). Farming creates food surpluses that have no outlet yet; population growth should come from them.
+- [ ] Families and relationships: partners, parents and children named together, grief that lasts.
 - [ ] More events: elders' deaths and succession, a returning trader, a rival camp, a failed harvest.
 - [ ] Standing orders for the fields (plant, tend, harvest automatically) and a study queue.
 - [ ] Desktop keyboard shortcuts that don't clash with screen reader keys.
 - [ ] Optional audio cues (decide which ones first).
 - [ ] A build queue, so the next project starts when one finishes.
-- [ ] People screen: a compact view or filter once the camp passes about 15 people.
 
 ## Toward Phase 2 (Settlement era)
 

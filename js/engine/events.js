@@ -5,7 +5,7 @@
 import { WANDERERS, PLACES } from './data.js';
 import {
   living, seasonIndex, shelterCapacity, placeName, knownPlaces, makePerson,
-  personById, wolvesAt, hasKnowledge,
+  personById, wolvesAt, hasKnowledge, shelterNeeded,
 } from './state.js';
 import { siteFor } from './rules.js';
 import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
@@ -44,7 +44,7 @@ export function progressConditions(state, healersAtWork) {
       }
     }
     const stillSick = people.filter((p) => p.sick).length;
-    const crowded = people.length > shelterCapacity(state) ? 0.1 : 0;
+    const crowded = shelterNeeded(people) > shelterCapacity(state) ? 0.1 : 0;
     const hut = state.buildings.healersHut > 0 ? 0.03 : 0;
     const spread = Math.max(0, Math.min(0.4, 0.05 * stillSick + crowded - hut));
     const caught = [];
@@ -79,7 +79,7 @@ function avgHunting(people) {
 }
 
 function bestHunters(state, n) {
-  return living(state).filter((p) => p.health >= 40 && !p.sick)
+  return living(state).filter((p) => p.health >= 40 && !p.sick && p.age >= 16)
     .sort((a, b) => b.skills.hunting - a.skills.hunting).slice(0, n);
 }
 
@@ -262,9 +262,9 @@ export const EVENTS = {
 
   quarrel: {
     choice: true,
-    weight: (state) => (living(state).length >= 4 ? 0.9 : 0),
+    weight: (state) => (living(state).filter((p) => p.age >= 16).length >= 4 ? 0.9 : 0),
     start(state) {
-      const [a, b] = shuffle(state, living(state));
+      const [a, b] = shuffle(state, living(state).filter((p) => p.age >= 16));
       return { a: a.id, b: b.id, reason: pick(state, QUARREL_REASONS) };
     },
     view(state, ev) {
@@ -307,9 +307,9 @@ export const EVENTS = {
 
   lostWorker: {
     choice: true,
-    weight: (state) => (living(state).some((p) => p.task in TASK_GOING) ? 0.7 : 0),
+    weight: (state) => (living(state).some((p) => p.task in TASK_GOING && p.age >= 12) ? 0.7 : 0),
     start(state) {
-      const p = pick(state, living(state).filter((x) => x.task in TASK_GOING));
+      const p = pick(state, living(state).filter((x) => x.task in TASK_GOING && x.age >= 12));
       return { person: p.id, task: p.task };
     },
     view(state, ev) {

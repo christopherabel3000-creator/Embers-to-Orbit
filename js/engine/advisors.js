@@ -4,7 +4,7 @@
 import { BUILDINGS, SEASONS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER } from './data.js';
 import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
-  spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName,
+  spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName, shelterNeeded, canFight,
   unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt, hasKnowledge,
   knowledgeBlocker, fieldPlots,
 } from './state.js';
@@ -12,6 +12,7 @@ import {
   expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
   expectedHarvest, farmerCapacity, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
+import { birthOutlook, parents } from './population.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -26,6 +27,7 @@ export function refreshAdvisors(state) {
     const current = personById(state, state.advisors[role]);
     if (current && current.alive) continue;
     const candidates = living(state)
+      .filter((p) => p.age >= 16)
       .filter((p) => !Object.values(state.advisors).includes(p.id) || p.id === state.advisors[role])
       .sort((a, b) => b.skills[info.skill] - a.skills[info.skill]);
     const successor = candidates[0] || living(state)[0];
@@ -49,7 +51,7 @@ export function forecastFood(state) {
     const s = (seasonIndex(state) + i) % 4;
     for (const p of people) stock += expectedFood(state, p, p.task, s);
     if (s === 2 && i < 3) stock += harvest; // This year's harvest only.
-    stock -= foodNeeded(people.length);
+    stock -= foodNeeded(people);
     if (stock < 0) return { emptyIn: i, season: SEASONS[s] };
     stock -= stock * spoilageRate(state);
   }
@@ -82,7 +84,7 @@ export function getAdvice(state) {
   // Steward: food, wood, and work.
   const forecast = forecastFood(state);
   if (forecast.emptyIn === 0) {
-    add('steward', 'urgent', `We will run out of food this season. We eat ${foodNeeded(people.length)} food a season and have ${state.resources.food}. Put more people on hunting${s === 3 ? '' : ' and foraging'}.`);
+    add('steward', 'urgent', `We will run out of food this season. We eat ${foodNeeded(people)} food a season and have ${state.resources.food}. Put more people on hunting${s === 3 ? '' : ' and foraging'}.`);
   } else if (forecast.emptyIn !== null) {
     add('steward', 'warning', `At this pace, our food runs out in ${forecast.emptyIn} ${forecast.emptyIn === 1 ? 'season' : 'seasons'}, during ${forecast.season}. ${s === 2 || s === 3 || forecast.season === 'Winter' ? 'Winter hunting is poor and nothing grows, so we must store food before it comes.' : 'We should gather more while the land is generous.'}`);
   } else {
@@ -189,16 +191,25 @@ export function getAdvice(state) {
     add('healer', healers === 0 || resting.length < badlyHurt.length ? 'warning' : 'note', text);
   }
   const capacity = shelterCapacity(state);
-  if (people.length > capacity) {
-    const exposed = people.length - capacity;
+  const needed = shelterNeeded(people);
+  if (needed > capacity) {
+    const exposed = Math.ceil(needed - capacity);
     const severity = s === 2 || s === 3 ? 'urgent' : s === 1 ? 'warning' : 'note';
-    add('healer', severity, `Our shelter holds ${capacity} people and we are ${people.length}. ${exposed} will sleep in the open, which is deadly in autumn and winter. Each lean-to shelters 4 more.`);
+    add('healer', severity, `Our shelter holds ${capacity} people and we need room for ${Math.ceil(needed)}${people.some((p) => p.age < 12) ? ', counting each young child as half' : ''}. ${exposed} will sleep in the open, which is deadly in autumn and winter. Each lean-to shelters 4 more.`);
+  }
+
+  // Steward: what is holding families back.
+  if (state.turn >= 4 && parents(state).length >= 2) {
+    const outlook = birthOutlook(state);
+    if (outlook.reasons.length) {
+      add('steward', 'note', `Few children will be born while ${outlook.reasons.join(' and ')}.`);
+    }
   }
 
   // War chief: raids.
   if (state.pendingEvent && state.pendingEvent.type === 'raid') {
     const ev = state.pendingEvent;
-    const fighters = people.filter((p) => p.health >= 40);
+    const fighters = people.filter(canFight);
     const odds = raidOdds(state, fighters, ev.warned, ev.raiders);
     add('warChief', 'urgent', `If everyone able stands and fights, we are ${odds.word}. Hiding the food costs us stores but nobody gets hurt.`);
   } else if (state.turn >= 1) {

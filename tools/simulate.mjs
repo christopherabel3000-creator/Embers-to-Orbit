@@ -4,7 +4,7 @@
 import { newGame, applyAction } from '../js/engine/game.js';
 import {
   living, shelterCapacity, seasonIndex, knownPlaces, unexploredNeighbors, hasKnowledge,
-  knowledgeBlocker, fieldPlots,
+  knowledgeBlocker, fieldPlots, allowedTasksFor,
 } from '../js/engine/state.js';
 import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
@@ -24,7 +24,8 @@ function sensiblePlan(state) {
   const plan = new Map();
   const free = () => people.filter((p) => !plan.has(p.id));
   const take = (n, skill, task) => {
-    free().sort((a, b) => b.skills[skill] - a.skills[skill]).slice(0, n).forEach((p) => plan.set(p.id, task));
+    free().filter((p) => allowedTasksFor(state, p).includes(task))
+      .sort((a, b) => b.skills[skill] - a.skills[skill]).slice(0, n).forEach((p) => plan.set(p.id, task));
   };
   for (const p of people) if (p.health < 40) plan.set(p.id, 'rest');
   if (people.some((p) => p.health < 75)) take(1, 'healing', 'heal');
@@ -41,7 +42,7 @@ function sensiblePlan(state) {
   }
   take(1, 'scouting', 'scout');
   if (state.project) take(2, 'building', 'build');
-  for (const p of free()) plan.set(p.id, 'wood');
+  for (const p of free()) plan.set(p.id, allowedTasksFor(state, p).includes('wood') ? 'wood' : allowedTasksFor(state, p)[0]);
   return plan;
 }
 
@@ -117,21 +118,28 @@ function play(seed, strategy) {
   return state;
 }
 
-for (const strategy of ['sensible', 'orders', 'idle']) {
+const STRATEGIES = (process.argv[4] || "sensible,orders,idle").split(",");
+for (const strategy of STRATEGIES) {
   let wiped = 0;
   let pop = 0;
   let milestone = 0;
   let farmed = 0;
   let food = 0;
+  let kids = 0;
+  let palisades = 0;
+  let born = 0;
   let firstWipeYear = [];
   for (let i = 0; i < GAMES; i++) {
     const end = play(1000 + i, strategy);
     if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); }
     pop += living(end).length;
+    kids += living(end).filter((p) => p.age < 16).length;
+    born += end.people.filter((p) => p.parent).length;
     food += end.resources.food;
     if (end.milestoneReached) milestone++;
+    if (end.buildings.palisade) palisades++;
     if (hasKnowledge(end, 'farming')) farmed++;
   }
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';
-  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)}`);
+  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)}`);
 }

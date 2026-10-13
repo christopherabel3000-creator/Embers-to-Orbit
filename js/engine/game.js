@@ -5,7 +5,7 @@
 import { TASKS, BUILDINGS, PLACES, KNOWLEDGE } from './data.js';
 import {
   personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
-  taskAvailable, hasKnowledge, knowledgeBlocker,
+  taskAvailable, hasKnowledge, knowledgeBlocker, allowedTasksFor, lifeStage,
 } from './state.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
@@ -35,6 +35,9 @@ const handlers = {
     if (!p || !p.alive) return { error: 'That person is not in the camp.' };
     if (!TASKS[task]) return { error: 'Unknown task.' };
     if (!taskAvailable(state, task)) return { error: `Your people do not know how to ${TASKS[task].name.toLowerCase()} yet.` };
+    if (!allowedTasksFor(state, p).includes(task)) {
+      return { error: lifeStage(p) === 'infant' ? `${p.name} is too young to work.` : `${p.name} is too young for that work.` };
+    }
     p.task = task;
     p.orderReturn = null; // The player's choice overrides any standing order.
     return { message: `${p.name}: ${TASKS[task].name}.` };
@@ -45,7 +48,7 @@ const handlers = {
     if (stop) return stop;
     if (!TASKS[task]) return { error: 'Unknown task.' };
     if (!taskAvailable(state, task)) return { error: `Your people do not know how to ${TASKS[task].name.toLowerCase()} yet.` };
-    const moved = living(state).filter((p) => p.task === fromTask);
+    const moved = living(state).filter((p) => p.task === fromTask && allowedTasksFor(state, p).includes(task));
     for (const p of moved) {
       p.task = task;
       p.orderReturn = null;
@@ -153,5 +156,5 @@ const handlers = {
 
 // Convenience for tests and the advisors: food needed by everyone now.
 export function currentFoodNeed(state) {
-  return foodNeeded(living(state).length);
+  return foodNeeded(living(state));
 }

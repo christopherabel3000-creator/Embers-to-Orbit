@@ -75,6 +75,9 @@ Era advancement is driven by research and growth, not a fixed timer.
 People start as individuals and become groups as the settlement grows, so management scales with the nation.
 
 - **Survival era:** each survivor has a name, skills (hunting, building, healing, leadership), health, and morale. Losing one person matters.
+- **Ages and the cycle of life.** Everyone has an age and grows a year older each spring. Children under 5 cannot work. From 5 to 11 they can forage, farm, study, or rest at half strength; from 12 to 15 they can do any work at three quarters strength, including defending the camp; at 16 they are adults. Young children eat 1 food instead of 2 and take half a place in the shelters. From 55, strength fades (85 percent, then 70 percent from 65), and from 60 each year brings a growing chance of dying peacefully. Advisors are succeeded by the most skilled adult.
+- **Births.** Each season, a camp with at least two adults aged 18 to 40 may have a baby. The chance grows with the number of young adults, rises when food is plentiful, and falls when food is short, the shelters are full, or spirits are low. The steward says what is holding families back.
+- **Learning.** People under 16 learn half again as fast, and anyone working beside a more skilled mentor (skill 4 or more) at the same task learns faster.
 - **Skills grow with practice.** Every season at a task earns experience in that task's skill (half as much while badly hurt or sick). Going from level L to L+1 takes 3 + 2L seasons, so early levels come quickly and reaching 5 takes years. Defending against a raid counts as two seasons of hunting practice. The People screen shows each person's progress toward their next level.
 - **Settlement era onward:** population is tracked in groups by profession (farmers, builders, soldiers, scholars), with overall happiness and loyalty.
 - **Early resources:** food, water, wood, stone, and later metal. Food must be stored to survive winter.

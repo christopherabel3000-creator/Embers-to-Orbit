@@ -72,7 +72,7 @@ test('a year of farming: plant, tend, harvest', () => {
   s.resources.wood = 500;
   s.buildings.leanTo = 5;
   s = everyone(s, 'rest');
-  const farmers = living(s).slice(0, 6).map((p) => p.id);
+  const farmers = living(s).filter((p) => p.age < 55).slice(0, 6).map((p) => p.id);
   for (const id of farmers) s = act(s, { type: 'assign', personId: id, task: 'farm' });
   assert.ok(expectedHarvest(s) > 100, 'the steward should expect a good harvest');
   s = act(s, { type: 'endTurn' }); // spring: plant
@@ -104,7 +104,7 @@ test('version 3 saves are upgraded with learning skills and a scholar', () => {
   delete old.advisors.scholar;
   for (const p of old.people) delete p.skills.learning;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 5);
+  assert.equal(s.version, 6);
   assert.equal(s.people.find((p) => p.name === 'Dalia').skills.learning, 4);
   assert.ok(s.advisors.scholar);
   assert.deepEqual(s.knowledge, { learned: [], progress: {}, current: null });
@@ -127,5 +127,6 @@ test('a season of hunting is practice', () => {
   const kael = s.people.find((p) => p.name === 'Kael');
   s = act(s, { type: 'assign', personId: kael.id, task: 'hunt' });
   s = act(s, { type: 'endTurn' });
-  assert.equal(s.people.find((p) => p.name === 'Kael').xp.hunting, 1);
+  // One season of practice, plus a little more for hunting beside Aric, a skilled mentor.
+  assert.equal(s.people.find((p) => p.name === 'Kael').xp.hunting, 1.5);
 });

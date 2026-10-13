@@ -15,11 +15,19 @@ const WOOD_SEASON = [1, 1, 1, 0.8];
 export const DEPLETION = { hunt: 6, forage: 5 };
 export const RECOVERY = { hunt: [10, 10, 8, 4], forage: [12, 12, 6, 0] };
 
-// How effectively someone works, from 0.35 to 1.
+// How effectively someone works, from 0 (an infant) to 1.
 export function workFactor(person) {
   let f = 1;
   if (person.health < 40) f *= 0.5;
   if (person.sick) f *= 0.5;
+  // Age: children do light work at half strength, youths at three quarters,
+  // and strength fades in old age.
+  const age = person.age ?? 30;
+  if (age < 5) return 0;
+  if (age < 12) f *= 0.5;
+  else if (age < 16) f *= 0.75;
+  else if (age >= 65) f *= 0.7;
+  else if (age >= 55) f *= 0.85;
   if (person.morale < 25) f *= 0.7;
   else if (person.morale < 45) f *= 0.85;
   return f;

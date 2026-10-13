@@ -74,32 +74,33 @@ export const STARTING_SHELTER = 4;
 export const SHELTER_PER_LEAN_TO = 4;
 
 // Hand-crafted founding survivors. Skills run from 0 to 5.
+export const AGE_BY_NAME = { Aric: 34, Brenna: 29, Corvin: 31, Dalia: 61, Esker: 22, Fenna: 38, Garrow: 45, Hesta: 36, Iven: 17, Jora: 27, Kael: 33, Lisbet: 24, Maren: 40, Noll: 35, Orla: 26, Pell: 19, Rhosyn: 30, Senna: 25, Tobin: 44, Ula: 58 };
 export const LEARNING_BY_NAME = { Aric: 1, Brenna: 2, Corvin: 0, Dalia: 4, Esker: 2, Fenna: 3, Garrow: 1, Hesta: 3, Iven: 3, Jora: 1, Kael: 0, Lisbet: 2, Maren: 1, Noll: 1, Orla: 0, Pell: 3, Rhosyn: 2, Senna: 1, Tobin: 2, Ula: 1 };
 export const FOUNDERS = [
-  { name: 'Aric', note: 'A quiet tracker who has hunted these woods before.', skills: { hunting: 4, foraging: 1, building: 1, healing: 0, scouting: 3, learning: 1 } },
-  { name: 'Brenna', note: 'Knows every edible root and berry.', skills: { hunting: 0, foraging: 5, building: 1, healing: 2, scouting: 1, learning: 2 } },
-  { name: 'Corvin', note: 'Broad-shouldered and good with an axe.', skills: { hunting: 2, foraging: 0, building: 4, healing: 0, scouting: 0, learning: 0 } },
-  { name: 'Dalia', note: 'An old herbalist with steady hands.', skills: { hunting: 0, foraging: 2, building: 0, healing: 5, scouting: 0, learning: 4 } },
-  { name: 'Esker', note: 'Restless and sharp-eyed, always over the next ridge.', skills: { hunting: 2, foraging: 1, building: 0, healing: 0, scouting: 4, learning: 2 } },
-  { name: 'Fenna', note: 'A practical organizer who keeps count of everything.', skills: { hunting: 0, foraging: 3, building: 2, healing: 1, scouting: 1, learning: 3 } },
-  { name: 'Garrow', note: 'A former soldier, scarred and fearless.', skills: { hunting: 3, foraging: 0, building: 2, healing: 0, scouting: 1, learning: 1 } },
-  { name: 'Hesta', note: 'A carpenter who misses her old workshop.', skills: { hunting: 0, foraging: 1, building: 5, healing: 0, scouting: 0, learning: 3 } },
-  { name: 'Iven', note: 'Young, eager, and good at a little of everything.', skills: { hunting: 1, foraging: 2, building: 1, healing: 1, scouting: 2, learning: 3 } },
-  { name: 'Jora', note: 'A patient trapper.', skills: { hunting: 3, foraging: 2, building: 0, healing: 0, scouting: 1, learning: 1 } },
-  { name: 'Kael', note: 'Strong but slow to trust anyone.', skills: { hunting: 1, foraging: 0, building: 3, healing: 0, scouting: 1, learning: 0 } },
-  { name: 'Lisbet', note: 'Raised by a midwife, calm in a crisis.', skills: { hunting: 0, foraging: 2, building: 0, healing: 3, scouting: 0, learning: 2 } },
+  { name: 'Aric', age: 34, note: 'A quiet tracker who has hunted these woods before.', skills: { hunting: 4, foraging: 1, building: 1, healing: 0, scouting: 3, learning: 1 } },
+  { name: 'Brenna', age: 29, note: 'Knows every edible root and berry.', skills: { hunting: 0, foraging: 5, building: 1, healing: 2, scouting: 1, learning: 2 } },
+  { name: 'Corvin', age: 31, note: 'Broad-shouldered and good with an axe.', skills: { hunting: 2, foraging: 0, building: 4, healing: 0, scouting: 0, learning: 0 } },
+  { name: 'Dalia', age: 61, note: 'An old herbalist with steady hands.', skills: { hunting: 0, foraging: 2, building: 0, healing: 5, scouting: 0, learning: 4 } },
+  { name: 'Esker', age: 22, note: 'Restless and sharp-eyed, always over the next ridge.', skills: { hunting: 2, foraging: 1, building: 0, healing: 0, scouting: 4, learning: 2 } },
+  { name: 'Fenna', age: 38, note: 'A practical organizer who keeps count of everything.', skills: { hunting: 0, foraging: 3, building: 2, healing: 1, scouting: 1, learning: 3 } },
+  { name: 'Garrow', age: 45, note: 'A former soldier, scarred and fearless.', skills: { hunting: 3, foraging: 0, building: 2, healing: 0, scouting: 1, learning: 1 } },
+  { name: 'Hesta', age: 36, note: 'A carpenter who misses her old workshop.', skills: { hunting: 0, foraging: 1, building: 5, healing: 0, scouting: 0, learning: 3 } },
+  { name: 'Iven', age: 17, note: 'Young, eager, and good at a little of everything.', skills: { hunting: 1, foraging: 2, building: 1, healing: 1, scouting: 2, learning: 3 } },
+  { name: 'Jora', age: 27, note: 'A patient trapper.', skills: { hunting: 3, foraging: 2, building: 0, healing: 0, scouting: 1, learning: 1 } },
+  { name: 'Kael', age: 33, note: 'Strong but slow to trust anyone.', skills: { hunting: 1, foraging: 0, building: 3, healing: 0, scouting: 1, learning: 0 } },
+  { name: 'Lisbet', age: 24, note: 'Raised by a midwife, calm in a crisis.', skills: { hunting: 0, foraging: 2, building: 0, healing: 3, scouting: 0, learning: 2 } },
 ];
 
 // People who may be found while scouting and invited to join.
 export const WANDERERS = [
-  { name: 'Maren', note: 'A lone fisher whose village was burned.', skills: { hunting: 2, foraging: 3, building: 1, healing: 0, scouting: 1, learning: 1 } },
-  { name: 'Noll', note: 'A wandering woodcutter.', skills: { hunting: 1, foraging: 0, building: 4, healing: 0, scouting: 1, learning: 1 } },
-  { name: 'Orla', note: 'A hunter traveling with her bow and little else.', skills: { hunting: 4, foraging: 1, building: 0, healing: 0, scouting: 2, learning: 0 } },
-  { name: 'Pell', note: 'A runaway apprentice healer.', skills: { hunting: 0, foraging: 1, building: 1, healing: 3, scouting: 0, learning: 3 } },
-  { name: 'Rhosyn', note: 'A guide who knows the hill paths.', skills: { hunting: 2, foraging: 1, building: 0, healing: 0, scouting: 4, learning: 2 } },
-  { name: 'Senna', note: 'A forager with a basket and a quick laugh.', skills: { hunting: 0, foraging: 4, building: 1, healing: 1, scouting: 1, learning: 1 } },
-  { name: 'Tobin', note: 'A builder of boats and fences.', skills: { hunting: 1, foraging: 0, building: 3, healing: 0, scouting: 1, learning: 2 } },
-  { name: 'Ula', note: 'An old soldier who wants somewhere to belong.', skills: { hunting: 3, foraging: 0, building: 2, healing: 1, scouting: 1, learning: 1 } },
+  { name: 'Maren', age: 40, note: 'A lone fisher whose village was burned.', skills: { hunting: 2, foraging: 3, building: 1, healing: 0, scouting: 1, learning: 1 } },
+  { name: 'Noll', age: 35, note: 'A wandering woodcutter.', skills: { hunting: 1, foraging: 0, building: 4, healing: 0, scouting: 1, learning: 1 } },
+  { name: 'Orla', age: 26, note: 'A hunter traveling with her bow and little else.', skills: { hunting: 4, foraging: 1, building: 0, healing: 0, scouting: 2, learning: 0 } },
+  { name: 'Pell', age: 19, note: 'A runaway apprentice healer.', skills: { hunting: 0, foraging: 1, building: 1, healing: 3, scouting: 0, learning: 3 } },
+  { name: 'Rhosyn', age: 30, note: 'A guide who knows the hill paths.', skills: { hunting: 2, foraging: 1, building: 0, healing: 0, scouting: 4, learning: 2 } },
+  { name: 'Senna', age: 25, note: 'A forager with a basket and a quick laugh.', skills: { hunting: 0, foraging: 4, building: 1, healing: 1, scouting: 1, learning: 1 } },
+  { name: 'Tobin', age: 44, note: 'A builder of boats and fences.', skills: { hunting: 1, foraging: 0, building: 3, healing: 0, scouting: 1, learning: 2 } },
+  { name: 'Ula', age: 58, note: 'An old soldier who wants somewhere to belong.', skills: { hunting: 3, foraging: 0, building: 2, healing: 1, scouting: 1, learning: 1 } },
 ];
 
 // The local map of the forest valley. Places are nodes connected to their
@@ -227,3 +228,24 @@ export const KNOWLEDGE = {
 };
 
 export const KNOWLEDGE_ORDER = Object.keys(KNOWLEDGE);
+
+// Life stages, by age in years.
+export const AGES = {
+  child: 5, // Old enough to help with light work.
+  youth: 12, // Old enough for any work, and to defend the camp.
+  adult: 16,
+  elder: 55, // Strength begins to fade.
+  oldAgeDeaths: 60, // From here, each year brings a chance of dying peacefully.
+};
+
+// Light work that children from 5 to 11 can do.
+export const CHILD_TASKS = ['forage', 'farm', 'study', 'rest'];
+
+// Names for children born in the camp.
+export const BABY_NAMES = [
+  'Wren', 'Alder', 'Bryony', 'Cass', 'Dell', 'Ember', 'Finch', 'Garnet', 'Hale', 'Ivy',
+  'Juniper', 'Kestrel', 'Linden', 'Moss', 'Nell', 'Oakley', 'Pip', 'Quill', 'Rowan', 'Sage',
+  'Tamsin', 'Umber', 'Vale', 'Willow', 'Yarrow', 'Ash', 'Bram', 'Clover', 'Dara', 'Elm',
+  'Fern', 'Gale', 'Heath', 'Isla', 'Jasper', 'Kit', 'Lark', 'Merle', 'Nim', 'Ora',
+  'Perrin', 'Reed', 'Sorrel', 'Tarn', 'Ulla', 'Vesper', 'Wynn', 'Zephyr', 'Briar', 'Cedar',
+];

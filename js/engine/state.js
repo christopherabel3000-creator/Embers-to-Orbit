@@ -7,7 +7,7 @@ import {
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
 } from './data.js';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -145,6 +145,12 @@ export function migrate(data) {
       dalia.note = 'A seasoned herbalist with steady hands.';
     }
     data.version = 7;
+  }
+  if (data.version === 7) {
+    // Dalia's starting age changed again, from 47 to 40.
+    const dalia = data.people.find((p) => p.name === 'Dalia' && p.id === 4);
+    if (dalia) dalia.age = Math.max(40, dalia.age - 7);
+    data.version = 8;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

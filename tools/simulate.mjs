@@ -2,7 +2,10 @@
 // Run with: node tools/simulate.mjs [games] [years]
 
 import { newGame, applyAction } from '../js/engine/game.js';
-import { living, shelterCapacity, seasonIndex, knownPlaces, unexploredNeighbors } from '../js/engine/state.js';
+import {
+  living, shelterCapacity, seasonIndex, knownPlaces, unexploredNeighbors, hasKnowledge,
+  knowledgeBlocker, fieldPlots,
+} from '../js/engine/state.js';
 import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
 import { describePending } from '../js/engine/events.js';
@@ -26,6 +29,11 @@ function sensiblePlan(state) {
   for (const p of people) if (p.health < 40) plan.set(p.id, 'rest');
   if (people.some((p) => p.health < 75)) take(1, 'healing', 'heal');
   const n = people.length;
+  if (hasKnowledge(state, 'farming') && fieldPlots(state) && s !== 3) {
+    const plots = fieldPlots(state);
+    take(Math.ceil(s === 0 ? (plots - state.farm.planted) / 2 : state.farm.planted / 3), 'foraging', 'farm');
+  }
+  if (state.knowledge.current) take(2, 'learning', 'study');
   if (s === 3) take(Math.ceil(n * 0.55), 'hunting', 'hunt');
   else {
     take(Math.ceil(n * 0.25), 'hunting', 'hunt');
@@ -54,6 +62,7 @@ function chooseProject(state) {
   const people = living(state).length;
   const wants = [];
   if (people + 1 > shelterCapacity(state)) wants.push('leanTo');
+  if (hasKnowledge(state, 'farming') && state.buildings.fields < 3) wants.push('fields');
   wants.push('storehouse', 'palisade', 'watchtower', 'healersHut', 'leanTo');
   for (const id of wants) {
     const b = BUILDINGS[id];
@@ -61,6 +70,13 @@ function chooseProject(state) {
     if (state.resources.wood >= b.cost + 10) return id;
   }
   return null;
+}
+
+const STUDY_ORDER = ['stoneTools', 'smoking', 'farming', 'spears', 'clothing', 'pottery', 'medicine'];
+function chooseStudy(state) {
+  if (state.knowledge.current) return state;
+  const next = STUDY_ORDER.find((id) => !knowledgeBlocker(state, id));
+  return next ? act(state, { type: 'setStudy', knowledgeId: next }) : state;
 }
 
 function play(seed, strategy) {
@@ -91,6 +107,7 @@ function play(seed, strategy) {
     }
     if (strategy === 'sensible') {
       state = chooseSites(state);
+      state = chooseStudy(state);
       for (const [personId, task] of sensiblePlan(state)) state = act(state, { type: 'assign', personId, task });
       const project = chooseProject(state);
       if (project) state = act(state, { type: 'startProject', buildingId: project });
@@ -104,13 +121,17 @@ for (const strategy of ['sensible', 'orders', 'idle']) {
   let wiped = 0;
   let pop = 0;
   let milestone = 0;
+  let farmed = 0;
+  let food = 0;
   let firstWipeYear = [];
   for (let i = 0; i < GAMES; i++) {
     const end = play(1000 + i, strategy);
     if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); }
     pop += living(end).length;
+    food += end.resources.food;
     if (end.milestoneReached) milestone++;
+    if (hasKnowledge(end, 'farming')) farmed++;
   }
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';
-  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone}`);
+  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)}`);
 }

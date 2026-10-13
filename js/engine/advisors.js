@@ -1,20 +1,23 @@
 // Advisors: who holds each role, and the recommendations they make.
 // Advisors never act on their own; they only warn and suggest.
 
-import { BUILDINGS, SEASONS, PLACES } from './data.js';
+import { BUILDINGS, SEASONS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER } from './data.js';
 import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
   spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName,
-  unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt,
+  unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt, hasKnowledge,
+  knowledgeBlocker, fieldPlots,
 } from './state.js';
 import {
   expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
+  expectedHarvest, farmerCapacity, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
   warChief: { title: 'War chief', skill: 'hunting', domain: 'defense' },
   healer: { title: 'Healer', skill: 'healing', domain: 'health and shelter' },
+  scholar: { title: 'Scholar', skill: 'learning', domain: 'study and discovery' },
 };
 
 // Replace any advisor who has died with the most skilled living person.
@@ -41,9 +44,11 @@ export function advisorPerson(state, role) {
 export function forecastFood(state) {
   const people = living(state);
   let stock = state.resources.food;
+  const harvest = expectedHarvest(state);
   for (let i = 0; i < 4; i++) {
     const s = (seasonIndex(state) + i) % 4;
     for (const p of people) stock += expectedFood(state, p, p.task, s);
+    if (s === 2 && i < 3) stock += harvest; // This year's harvest only.
     stock -= foodNeeded(people.length);
     if (stock < 0) return { emptyIn: i, season: SEASONS[s] };
     stock -= stock * spoilageRate(state);
@@ -118,6 +123,45 @@ export function getAdvice(state) {
     if (fresh.length) {
       add('steward', 'note', `Every path from ${placeName(state, siteFor(state, 'scout'))} is explored. Scouts could explore beyond ${fresh.map((id) => placeName(state, id)).join(' or ')} instead.`);
     }
+  }
+
+  // Steward: the fields.
+  if (hasKnowledge(state, 'farming')) {
+    const farmers = count('farm');
+    const plots = fieldPlots(state);
+    if (farmers && plots === 0) {
+      add('steward', 'warning', `${farmers} ${farmers === 1 ? 'person is' : 'people are'} set to farm, but we have no fields. Build a field on the Build screen.`);
+    } else if (plots > 0) {
+      const planted = state.farm.planted;
+      if (s === 0) {
+        const room = plots - planted;
+        const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER));
+        if (room > can) add('steward', farmers ? 'note' : 'warning', `It is planting season. Our fields have room for ${room} more ${room === 1 ? 'plot' : 'plots'}, and our farmers can plant ${can}. Each farmer plants 2 plots.`);
+      } else if (s === 1 && planted) {
+        const can = farmerCapacity(people, TEND_PER_FARMER);
+        if (can < planted) add('steward', 'warning', `${planted} plots need tending this summer, and our farmers can tend about ${Math.floor(can)}. Each farmer tends 3. Untended grain yields less.`);
+      } else if (s === 2 && planted) {
+        const can = farmerCapacity(people, HARVEST_PER_FARMER);
+        if (can < planted) add('steward', 'warning', `${planted} plots are ready to harvest, and our farmers can bring in about ${Math.floor(can)}. Each farmer harvests 3. Grain left in the fields rots.`);
+      } else if (s === 3 && farmers) {
+        add('steward', 'warning', `${farmers} ${farmers === 1 ? 'person is' : 'people are'} set to farm, but there is no farm work in winter.`);
+      }
+    }
+  }
+
+  // Scholar: study.
+  const studying = count('study');
+  const k = state.knowledge;
+  if (studying && !k.current) {
+    add('scholar', 'warning', `${studying} ${studying === 1 ? 'person is' : 'people are'} studying, but no discovery is chosen. Choose one on the Knowledge screen.`);
+  } else if (k.current && !studying) {
+    add('scholar', 'note', `No one is studying ${KNOWLEDGE[k.current].name.toLowerCase()}. Set someone to study on the People screen.`);
+  } else if (!k.current && !studying && state.turn >= 1) {
+    const open = KNOWLEDGE_ORDER.filter((id) => !knowledgeBlocker(state, id));
+    if (open.length) add('scholar', 'note', `We could study ${open.map((id) => KNOWLEDGE[id].name.toLowerCase()).join(', ')}. Choose one on the Knowledge screen and set someone to study.`);
+  }
+  if (!hasKnowledge(state, 'farming') && k.current !== 'farming' && !knowledgeBlocker(state, 'farming')) {
+    add('scholar', 'note', 'The wild grain in the North meadow could be planted. We are ready to study farming.');
   }
 
   // Healer: fever.

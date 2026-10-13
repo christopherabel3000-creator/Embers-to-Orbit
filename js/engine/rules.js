@@ -2,7 +2,9 @@
 // resolution (which adds randomness) and the advisors (who forecast).
 
 import { PLACES } from './data.js';
-import { isKnown, wolvesAt } from './state.js';
+import {
+  isKnown, wolvesAt, hasKnowledge, living, seasonIndex, fieldPlots,
+} from './state.js';
 
 const HUNT_SEASON = [1, 1, 1.1, 0.6];
 const FORAGE_BASE = [2, 4, 5, 0];
@@ -50,6 +52,7 @@ export function expectedFood(state, person, task, seasonIdx) {
   if (task === 'hunt') {
     const site = siteFor(state, 'hunt');
     amount = (2 + s.hunting) * HUNT_SEASON[seasonIdx] + bonus(site, 'hunt');
+    if (hasKnowledge(state, 'spears')) amount += 1;
     amount *= abundanceFactor(state, site, 'hunt') * distanceFactor(site);
     if (wolvesAt(state, site)) amount *= 0.7; // Wolves scare off and take the game.
   } else if (task === 'forage') {
@@ -65,18 +68,57 @@ export function expectedWood(state, person, task, seasonIdx) {
   if (task !== 'wood') return 0;
   const site = siteFor(state, 'wood');
   let amount = (4 + person.skills.building * 0.6) * WOOD_SEASON[seasonIdx] + bonus(site, 'wood');
+  if (hasKnowledge(state, 'stoneTools')) amount += 1;
   amount *= distanceFactor(site);
   return amount * workFactor(person);
 }
 
-export function expectedWork(person) {
-  return (2 + person.skills.building) * workFactor(person);
+export function expectedWork(person, state = null) {
+  const tools = state && hasKnowledge(state, 'stoneTools') ? 1 : 0;
+  return (2 + person.skills.building + tools) * workFactor(person);
+}
+
+// Study points a person adds toward the current discovery each season.
+export function studyPoints(person) {
+  return (2 + person.skills.learning) * workFactor(person);
+}
+
+// ----- Farming -----
+// Each farmer can plant 2 plots in spring, and tend or harvest 3 plots in
+// summer or autumn. A fully tended plot yields 10 food; an untended one 6.
+export const PLANT_PER_FARMER = 2;
+export const TEND_PER_FARMER = 3;
+export const HARVEST_PER_FARMER = 3;
+
+export function farmerCapacity(people, perFarmer) {
+  return people.filter((p) => p.task === 'farm')
+    .reduce((sum, p) => sum + perFarmer * workFactor(p), 0);
+}
+
+export function foodPerPlot(tendedFraction) {
+  return 6 + 4 * tendedFraction;
+}
+
+// Food the coming autumn harvest should bring, with current farmers.
+export function expectedHarvest(state) {
+  const s = seasonIndex(state);
+  if (s === 3) return 0;
+  const people = living(state);
+  let planted = state.farm.planted;
+  if (s === 0) planted = Math.min(fieldPlots(state), planted + Math.floor(farmerCapacity(people, PLANT_PER_FARMER)));
+  if (planted === 0) return 0;
+  let tended = state.farm.tended;
+  if (s <= 1) tended = Math.min(planted, farmerCapacity(people, TEND_PER_FARMER));
+  const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
+  const perPlot = foodPerPlot(tended / planted);
+  return harvested * perPlot + (planted - harvested) * perPlot * 0.5;
 }
 
 export function healingPoints(state, person) {
   let points = 10 + person.skills.healing * 5;
   if (state.buildings.healersHut > 0) points *= 1.5;
   if (isKnown(state, 'herbHillside')) points *= 1.25;
+  if (hasKnowledge(state, 'medicine')) points *= 1.2;
   return points * workFactor(person);
 }
 
@@ -97,7 +139,7 @@ export function defenseStrength(state, defenders, warned) {
   let total = 0;
   for (const p of defenders) {
     const fitness = Math.max(0.3, p.health / 100);
-    total += (4 + p.skills.hunting * 1.5) * fitness;
+    total += (4 + p.skills.hunting * 1.5 + (hasKnowledge(state, 'spears') ? 1.5 : 0)) * fitness;
   }
   if (!warned) total *= 0.75;
   if (state.buildings.palisade > 0) total += 30;

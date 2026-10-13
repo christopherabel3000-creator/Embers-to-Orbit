@@ -8,11 +8,13 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Local map with work sites, wear and recovery, and scouting outward.
 - Standing orders run by advisors.
 - Events: instant and choice events, fever, wolves.
+- Knowledge tree foundation: study, seven discoveries, scholar advisor, farming with fields.
 
 ## Next in the Survival era
 
-- [ ] More events: births and children (needs ages), elders' deaths and succession, a returning trader, a rival camp.
-- [ ] The first knowledge tree: smoking meat, sharpened tools, pottery, farming.
+- [ ] Births and children (needs ages). Farming creates food surpluses that have no outlet yet; population growth should come from them.
+- [ ] More events: elders' deaths and succession, a returning trader, a rival camp, a failed harvest.
+- [ ] Standing orders for the fields (plant, tend, harvest automatically) and a study queue.
 - [ ] Desktop keyboard shortcuts that don't clash with screen reader keys.
 - [ ] Optional audio cues (decide which ones first).
 - [ ] A build queue, so the next project starts when one finishes.

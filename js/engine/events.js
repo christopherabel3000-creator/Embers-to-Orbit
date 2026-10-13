@@ -5,7 +5,7 @@
 import { WANDERERS, PLACES } from './data.js';
 import {
   living, seasonIndex, shelterCapacity, placeName, knownPlaces, makePerson,
-  personById, wolvesAt,
+  personById, wolvesAt, hasKnowledge,
 } from './state.js';
 import { siteFor } from './rules.js';
 import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
@@ -37,6 +37,7 @@ export function progressConditions(state, healersAtWork) {
       let recover = 0.3;
       if (healersAtWork > 0) recover += 0.3;
       if (state.buildings.healersHut > 0) recover += 0.1;
+      if (hasKnowledge(state, 'medicine')) recover += 0.15;
       if (chance(state, recover)) {
         p.sick = false;
         recovered.push(p);
@@ -132,7 +133,7 @@ export const EVENTS = {
     },
   },
   pests: {
-    weight: (state) => (state.buildings.storehouse === 0 && state.resources.food > 30 ? 0.8 : 0),
+    weight: (state) => (state.buildings.storehouse === 0 && !hasKnowledge(state, 'pottery') && state.resources.food > 30 ? 0.8 : 0),
     apply(state) {
       const lost = Math.floor(state.resources.food * 0.2);
       state.resources.food -= lost;
@@ -151,7 +152,7 @@ export const EVENTS = {
       state.resources.wood = 0;
       const cold = shuffle(state, people).slice(0, Math.max(1, Math.ceil(people.length / 3)));
       for (const p of cold) {
-        p.health = clamp(p.health - 8);
+        p.health = clamp(p.health - (hasKnowledge(state, 'clothing') ? 4 : 8));
         p.morale = clamp(p.morale - 5);
       }
       return { urgent: [`A bitter cold snap set in, and the firewood ran out. ${listNames(cold)} suffered from the cold.`] };

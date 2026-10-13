@@ -2,9 +2,10 @@
 // an action object; applyAction returns a new state and never mutates
 // the old one. This keeps saves simple and leaves room for multiplayer.
 
-import { TASKS, BUILDINGS, PLACES } from './data.js';
+import { TASKS, BUILDINGS, PLACES, KNOWLEDGE } from './data.js';
 import {
   personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
+  taskAvailable, hasKnowledge, knowledgeBlocker,
 } from './state.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
@@ -33,6 +34,7 @@ const handlers = {
     const p = personById(state, personId);
     if (!p || !p.alive) return { error: 'That person is not in the camp.' };
     if (!TASKS[task]) return { error: 'Unknown task.' };
+    if (!taskAvailable(state, task)) return { error: `Your people do not know how to ${TASKS[task].name.toLowerCase()} yet.` };
     p.task = task;
     p.orderReturn = null; // The player's choice overrides any standing order.
     return { message: `${p.name}: ${TASKS[task].name}.` };
@@ -42,6 +44,7 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     if (!TASKS[task]) return { error: 'Unknown task.' };
+    if (!taskAvailable(state, task)) return { error: `Your people do not know how to ${TASKS[task].name.toLowerCase()} yet.` };
     const moved = living(state).filter((p) => p.task === fromTask);
     for (const p of moved) {
       p.task = task;
@@ -55,6 +58,7 @@ const handlers = {
     if (stop) return stop;
     const b = BUILDINGS[buildingId];
     if (!b) return { error: 'Unknown building.' };
+    if (b.requires && !hasKnowledge(state, b.requires)) return { error: `Building a ${b.name.toLowerCase()} needs ${KNOWLEDGE[b.requires].name}.` };
     if (state.project) return { error: 'Another project is already underway. Cancel it first.' };
     if (!b.repeatable && state.buildings[buildingId] > 0) return { error: `You already have a ${b.name.toLowerCase()}.` };
     if (state.resources.wood < b.cost) return { error: `Not enough wood. The ${b.name.toLowerCase()} needs ${b.cost} and you have ${state.resources.wood}.` };
@@ -92,6 +96,16 @@ const handlers = {
     state.report.decisions = [...(state.report.decisions || []), ...result.lines];
     for (const text of result.lines) state.log.push({ turn: state.turn, date: state.report.title, text });
     return { message: result.lines.join(' ') };
+  },
+
+  setStudy(state, { knowledgeId }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (!KNOWLEDGE[knowledgeId]) return { error: 'Unknown discovery.' };
+    const why = knowledgeBlocker(state, knowledgeId);
+    if (why) return { error: why };
+    state.knowledge.current = knowledgeId;
+    return { message: `Your people will study ${KNOWLEDGE[knowledgeId].name.toLowerCase()}.` };
   },
 
   setWorkSite(state, { task, placeId }) {

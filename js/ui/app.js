@@ -5,13 +5,13 @@ import { newGame, applyAction } from '../engine/game.js';
 import {
   living, dateLabel, shelterCapacity, healthWord, moraleWord, seasonIndex,
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
-  isKnown, wolvesAt,
+  isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
 } from '../engine/state.js';
 import {
-  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES,
+  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
-import { expectedWork, siteFor } from '../engine/rules.js';
+import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
 import { describePending } from '../engine/events.js';
 import { storage } from '../storage.js';
 
@@ -28,6 +28,7 @@ const SCREENS = [
   ['people', 'People'],
   ['map', 'Map'],
   ['build', 'Build'],
+  ['knowledge', 'Knowledge'],
   ['advisors', 'Advisors'],
   ['chronicle', 'Chronicle'],
   ['menu', 'Menu'],
@@ -114,7 +115,7 @@ function render() {
     html = state.pendingEvent.type === 'raid' ? raidScreen() : storyScreen();
   }
   else html = ({
-    report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen,
+    report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen, knowledge: knowledgeScreen,
     advisors: advisorsScreen, chronicle: chronicleScreen, menu: menuScreen,
   }[screen] || reportScreen)();
   $main.innerHTML = html;
@@ -205,7 +206,7 @@ function advisorTitleFor(person) {
 }
 
 function taskOptions(selected) {
-  return TASK_ORDER.map((t) => `<option value="${t}"${t === selected ? ' selected' : ''}>${TASKS[t].name}</option>`).join('');
+  return availableTasks(state).map((t) => `<option value="${t}"${t === selected ? ' selected' : ''}>${TASKS[t].name}</option>`).join('');
 }
 
 const ORDER_NOTES = {
@@ -221,6 +222,20 @@ function workSitesSentence() {
     + `Scouts explore beyond ${placeName(state, siteFor(state, 'scout'))}.`;
 }
 
+function farmSentence() {
+  const plots = fieldPlots(state);
+  if (!plots) return 'You know how to farm but have no fields yet. Build one on the Build screen.';
+  const s = seasonIndex(state);
+  const f = state.farm;
+  let now = '';
+  if (s === 0) now = `It is planting season. ${f.planted} planted so far; each farmer plants 2.`;
+  else if (s === 1) now = f.planted ? `${f.planted} plots are growing and need tending; each farmer tends 3.` : 'Nothing was planted this spring.';
+  else if (s === 2) now = f.planted ? `${f.planted} plots are ready to harvest; each farmer harvests 3.` : 'Nothing was planted this year.';
+  else now = 'The fields rest in winter.';
+  const harvest = Math.round(expectedHarvest(state));
+  return `Fields: room for ${plots} plots. ${now}${harvest ? ` Expected harvest this autumn: about ${harvest} food.` : ''}`;
+}
+
 function peopleScreen() {
   const people = living(state);
   const s = seasonIndex(state);
@@ -228,9 +243,10 @@ function peopleScreen() {
     <p>${plural(people.length, 'person', 'people')} in camp. Food needed this season: ${foodNeeded(people.length)}.</p>
     <p id="taskSummary">${esc(taskCounts())}.</p>
     <p>${esc(workSitesSentence())} Change work sites on the Map screen.</p>
+    ${hasKnowledge(state, 'farming') ? `<p>${esc(farmSentence())}</p>` : ''}
     <details>
       <summary>What each task does</summary>
-      <ul>${TASK_ORDER.map((t) => `<li><strong>${TASKS[t].name}:</strong> ${esc(TASKS[t].description)}</li>`).join('')}</ul>
+      <ul>${availableTasks(state).map((t) => `<li><strong>${TASKS[t].name}:</strong> ${esc(TASKS[t].description)}</li>`).join('')}</ul>
     </details>
     <h2>Move a group</h2>
     <p><label for="bulkFrom">Move everyone doing</label>
@@ -317,10 +333,50 @@ function mapScreen() {
   return html;
 }
 
+function knowledgeScreen() {
+  const k = state.knowledge;
+  const studiers = living(state).filter((p) => p.task === 'study');
+  const rate = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p), 0));
+  let html = `<h1>Knowledge</h1>
+    <p>People set to Study on the People screen make discoveries. ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season.</p>
+    <h2>Current study</h2>`;
+  if (k.current) {
+    const item = KNOWLEDGE[k.current];
+    const done = Math.floor(k.progress[k.current] || 0);
+    const seasons = rate ? Math.ceil((item.cost - done) / rate) : null;
+    html += `<p>${esc(item.name)}: ${done} of ${item.cost} points.${seasons ? ` About ${plural(seasons, 'more season', 'more seasons')}.` : ' No one is studying it.'}</p>`;
+  } else {
+    html += '<p>Nothing chosen. Pick a discovery below.</p>';
+  }
+  const open = KNOWLEDGE_ORDER.filter((id) => !knowledgeBlocker(state, id));
+  const locked = KNOWLEDGE_ORDER.filter((id) => !hasKnowledge(state, id) && knowledgeBlocker(state, id));
+  const known = KNOWLEDGE_ORDER.filter((id) => hasKnowledge(state, id));
+  html += '<h2>Ready to study</h2>';
+  if (!open.length) html += '<p>Nothing right now.</p>';
+  html += '<ul class="plain">';
+  for (const id of open) {
+    const item = KNOWLEDGE[id];
+    const done = Math.floor(k.progress[id] || 0);
+    html += `<li class="card"><h3>${esc(item.name)}</h3>
+      <p>${esc(item.effect)}</p>
+      <p>Costs ${item.cost} points.${done ? ` ${done} points already done.` : ''}</p>
+      ${k.current === id ? '<p>Being studied now.</p>' : `<p><button type="button" data-action="setStudy" data-knowledge="${id}">Study ${esc(item.name.toLowerCase())}</button></p>`}
+    </li>`;
+  }
+  html += '</ul>';
+  if (locked.length) {
+    html += `<h2>Not yet possible</h2><ul>${locked.map((id) => `<li>${esc(KNOWLEDGE[id].name)}: ${esc(knowledgeBlocker(state, id))}</li>`).join('')}</ul>`;
+  }
+  if (known.length) {
+    html += `<h2>Known</h2><ul>${known.map((id) => `<li>${esc(KNOWLEDGE[id].name)}: ${esc(KNOWLEDGE[id].effect)}</li>`).join('')}</ul>`;
+  }
+  return html;
+}
+
 function buildScreen() {
   const people = living(state);
   const builders = people.filter((p) => p.task === 'build');
-  const workRate = Math.round(builders.reduce((sum, p) => sum + expectedWork(p), 0));
+  const workRate = Math.round(builders.reduce((sum, p) => sum + expectedWork(p, state), 0));
   let html = `<h1>Build</h1>
     <p>Wood: ${state.resources.wood}. Shelter for ${shelterCapacity(state)}, and ${plural(people.length, 'person', 'people')} in camp.</p>
     <h2>Current project</h2>`;
@@ -336,6 +392,7 @@ function buildScreen() {
   html += '<h2>Buildings</h2><ul class="plain">';
   for (const id of BUILDING_ORDER) {
     const b = BUILDINGS[id];
+    if (b.requires && !hasKnowledge(state, b.requires)) continue;
     const owned = state.buildings[id];
     const status = b.repeatable ? `You have ${owned}.` : owned ? 'Built.' : 'Not built.';
     html += `<li class="card"><h3>${esc(b.name)}</h3>
@@ -367,6 +424,7 @@ function ordersFor(role) {
     return `${checkbox('restWhenHurt', o.restWhenHurt, 'Badly hurt people rest until healed, then go back to their work')}
       ${checkbox('keepHealer', o.keepHealer, 'Keep someone tending the hurt whenever anyone is hurt')}`;
   }
+  if (role !== 'warChief') return '';
   const radio = (value, label) => `<label class="choice"><input type="radio" name="raidPolicy" data-order="raidPolicy" value="${value}"${o.raidPolicy === value ? ' checked' : ''}> ${esc(label)}</label>`;
   return `<fieldset><legend>When raiders come</legend>
     ${radio('ask', 'Ask me every time')}
@@ -385,7 +443,8 @@ function advisorsScreen() {
     if (!person) continue;
     html += `<h2>${esc(info.title)}: ${esc(person.name)}</h2><p class="muted">Watches over ${esc(info.domain)}.</p>`;
     html += adviceList(advice.filter((a) => a.role === role));
-    html += `<h3>${esc(person.name)}'s standing orders</h3>${ordersFor(role)}`;
+    const orders = ordersFor(role);
+    if (orders) html += `<h3>${esc(person.name)}'s standing orders</h3>${orders}`;
   }
   return html;
 }
@@ -429,6 +488,7 @@ function menuScreen() {
     <p>Hurt people work at half strength. Have them rest, and have a healer tend them.</p>
     <p>The Map screen shows the places you know. Choose where hunters, foragers, and woodcutters work, and where scouts explore from. Scouts can find better places and new people. Hunting and foraging grounds wear down with use, so move your workers when a place gets thin.</p>
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
+    <p>Set people to Study and choose a discovery on the Knowledge screen. Discoveries improve hunting, building, storage, and health. Farming is the great one: build fields, plant in spring, tend in summer, and harvest in autumn.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
@@ -562,6 +622,16 @@ function handleAction(action, btn) {
       const msg = act({ type: 'startProject', buildingId: btn.dataset.building });
       if (msg) {
         show('build', { focus: false });
+        announce(msg);
+        const h = $main.querySelector('h2');
+        if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+      }
+      break;
+    }
+    case 'setStudy': {
+      const msg = act({ type: 'setStudy', knowledgeId: btn.dataset.knowledge });
+      if (msg) {
+        show('knowledge', { focus: false });
         announce(msg);
         const h = $main.querySelector('h2');
         if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }

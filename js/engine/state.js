@@ -3,10 +3,11 @@
 
 import {
   FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, BUILDING_ORDER,
-  PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE,
+  PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
+  KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD,
 } from './data.js';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -67,7 +68,9 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     eventHistory: {}, // Event id to the turn it last happened.
-    advisors: { steward: 6, warChief: 7, healer: 4 }, // Fenna, Garrow, Dalia
+    knowledge: { learned: [], progress: {}, current: null },
+    farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
+    advisors: { steward: 6, warChief: 7, healer: 4, scholar: 8 }, // Fenna, Garrow, Dalia, Hesta
     pendingEvent: null,
     report: null,
     log: [],
@@ -81,6 +84,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
       `Twelve survivors have made camp at ${state.campName}, in a sheltered forest valley beside a river.`,
       'They have one tent, a little food, and each other. Assign everyone a task, choose a building project, then end the season.',
       'They know only the riverbank and the oak woods nearby. Scouts can explore farther; the Map screen shows what you know.',
+      'People set to study can make discoveries, like better tools or, one day, farming. See the Knowledge screen.',
     ],
     orders: [],
   };
@@ -109,6 +113,19 @@ export function migrate(data) {
     data.eventHistory = {};
     for (const p of data.people) p.sick = false;
     data.version = 3;
+  }
+  if (data.version === 3) {
+    for (const p of data.people) {
+      if (p.skills.learning === undefined) p.skills.learning = LEARNING_BY_NAME[p.name] ?? 1;
+    }
+    data.knowledge = { learned: [], progress: {}, current: null };
+    data.farm = { planted: 0, tended: 0 };
+    data.buildings.fields = 0;
+    const taken = Object.values(data.advisors);
+    const scholar = data.people.filter((p) => p.alive && !taken.includes(p.id))
+      .sort((a, b) => b.skills.learning - a.skills.learning)[0];
+    data.advisors.scholar = scholar ? scholar.id : null;
+    data.version = 4;
   }
   return data.version === SAVE_VERSION ? data : null;
 }
@@ -157,6 +174,33 @@ export function unexploredNeighbors(state, placeId) {
   return PLACES[placeId].neighbors.filter((n) => !isKnown(state, n));
 }
 
+export function hasKnowledge(state, id) {
+  return Boolean(state.knowledge && state.knowledge.learned.includes(id));
+}
+
+// Why a discovery cannot be studied yet, or null if it can.
+export function knowledgeBlocker(state, id) {
+  const k = KNOWLEDGE[id];
+  if (hasKnowledge(state, id)) return 'Already known.';
+  const missing = (k.after || []).filter((a) => !hasKnowledge(state, a));
+  if (missing.length) return `Needs ${missing.map((a) => KNOWLEDGE[a].name).join(' and ')} first.`;
+  if (k.place && !isKnown(state, k.place)) return `Your people must find ${PLACES[k.place].name} first.`;
+  return null;
+}
+
+export function taskAvailable(state, task) {
+  const t = TASKS[task];
+  return Boolean(t) && (!t.requires || hasKnowledge(state, t.requires));
+}
+
+export function availableTasks(state) {
+  return TASK_ORDER.filter((t) => taskAvailable(state, t));
+}
+
+export function fieldPlots(state) {
+  return (state.buildings.fields || 0) * PLOTS_PER_FIELD;
+}
+
 export function wolvesAt(state, placeId) {
   return (state.conditions || []).some((c) => c.id === 'wolves' && c.place === placeId);
 }
@@ -172,7 +216,10 @@ export function woodNeededForWarmth(seasonIdx, count) {
 }
 
 export function spoilageRate(state) {
-  return state.buildings.storehouse > 0 ? 0.04 : 0.12;
+  let rate = state.buildings.storehouse > 0 ? 0.04 : 0.12;
+  if (hasKnowledge(state, 'smoking')) rate *= 2 / 3;
+  if (hasKnowledge(state, 'pottery')) rate *= 0.5;
+  return rate;
 }
 
 export function healthWord(health) {

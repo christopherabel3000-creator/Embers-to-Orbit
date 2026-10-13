@@ -94,6 +94,24 @@ Advisors always follow orders, but they actively give recommendations and warn t
 - **Auto-resolve.** The war advisor can resolve minor battles such as small raids.
 - **Standing orders in Phase 1** (on the Advisors screen): badly hurt people rest until healed and then return to work; keep someone tending the hurt; keep enough food to last 1 to 4 seasons; foragers hunt in winter and return to foraging in spring; newcomers start at their best task; and a raid policy (ask me, fight if likely to win, or decide for me). Orders run at the start of each season and are listed in the report. A player's own reassignment always overrides an order.
 
+## Knowledge
+
+Discovery starts in the Survival era. People set to the Study task earn study points (2 plus their learning skill each season); the player chooses one discovery at a time on the Knowledge screen, and partial progress is kept if they switch. The scholar, a fourth advisor, watches over study.
+
+| Discovery | Cost | Needs | Effect |
+| --- | --- | --- | --- |
+| Fire-hardened spears | 15 | | +1 food per hunter; defenders fight harder |
+| Smoking and drying | 15 | | Food spoils a third less |
+| Stone tools | 20 | | +1 work per builder, +1 wood per woodcutter |
+| Warm clothing | 15 | | Cold and exposure do much less harm |
+| Herbal medicine | 20 | Herb hillside found | Healing +20 percent; faster fever recovery |
+| Pottery | 25 | Smoking and drying | Spoilage halved again; no more mice in the stores |
+| Farming | 35 | Stone tools; North meadow found | Fields and the Farm task |
+
+**Farming** follows the year. Each field holds 6 plots. In spring each farmer plants 2 plots; in summer each tends 3; in autumn each harvests 3. A tended plot yields 10 food and an untended one 6; grain nobody harvests yields half. There is no farm work in winter. Farming does not wear out the land, and the harvest arrives just before winter.
+
+Reaching the Settlement era (for now, a milestone) needs 16 people, a storehouse, a palisade, and farming.
+
 ## Events
 
 Events keep seasons from feeling the same. After each season there is a 40 percent chance of one event, and the same event cannot repeat within 6 seasons. Raids take priority.
@@ -179,7 +197,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
-1. **Phase 1: Survival era.** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one. Each season the player assigns every survivor a task (hunt, forage, gather wood, build, scout, tend the hurt, rest). Raids are simple in Phase 1: choose defenders and whether to fight or hide, and the result resolves automatically; zone-based battles arrive in Phase 2.
+1. **Phase 1: Survival era.** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one. Each season the player assigns every survivor a task (hunt, forage, gather wood, build, scout, tend the hurt, study, rest, and later farm). Raids are simple in Phase 1: choose defenders and whether to fight or hide, and the result resolves automatically; zone-based battles arrive in Phase 2.
 2. **Phase 2: Settlement era.** Population groups, buildings, research, all five starting regions, the first rival nations, trade, and zone-based combat.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.

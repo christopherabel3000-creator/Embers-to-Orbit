@@ -1,13 +1,17 @@
 // Resolving the end of a season: work, food, warmth, health, events.
 
-import { BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION } from './data.js';
+import {
+  BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, KNOWLEDGE,
+} from './data.js';
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
+  hasKnowledge, fieldPlots,
 } from './state.js';
 import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
-  scoutSuccessChance, siteFor, DEPLETION, RECOVERY,
+  scoutSuccessChance, siteFor, DEPLETION, RECOVERY, studyPoints, farmerCapacity,
+  foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { applyStandingOrders } from './orders.js';
 import { progressConditions, maybeStartEvent } from './events.js';
@@ -51,6 +55,7 @@ export function resolveSeason(state) {
   let wood = 0;
   let work = 0;
   let healPool = 0;
+  let studyPool = 0;
   const injuredWhileHunting = [];
   const scouts = [];
   for (const p of people) {
@@ -70,10 +75,13 @@ export function resolveSeason(state) {
         wood += expectedWood(state, p, 'wood', s) * variance;
         break;
       case 'build':
-        work += expectedWork(p);
+        work += expectedWork(p, state);
         break;
       case 'heal':
         healPool += healingPoints(state, p);
+        break;
+      case 'study':
+        studyPool += studyPoints(p);
         break;
       case 'scout':
         scouts.push(p);
@@ -108,6 +116,59 @@ export function resolveSeason(state) {
     } else if (work > 0) {
       const left = Math.ceil(b.work - state.project.progress);
       events.push(`Builders worked on the ${b.name.toLowerCase()}. ${left} work remaining.`);
+    }
+  }
+
+  // Study: progress toward the chosen discovery.
+  if (studyPool > 0) {
+    const k = state.knowledge;
+    if (!k.current) {
+      events.push('Your people studied, but without a goal their ideas went nowhere. Choose a discovery on the Knowledge screen.');
+    } else {
+      const item = KNOWLEDGE[k.current];
+      k.progress[k.current] = (k.progress[k.current] || 0) + studyPool;
+      if (k.progress[k.current] >= item.cost) {
+        k.learned.push(k.current);
+        delete k.progress[k.current];
+        k.current = null;
+        urgent.push(`Discovery: ${item.name}. ${item.effect}`);
+      } else {
+        events.push(`Study of ${item.name.toLowerCase()} is ${Math.floor((k.progress[k.current] / item.cost) * 100)} percent done.`);
+      }
+    }
+  }
+
+  // Farming follows the year: plant in spring, tend in summer, harvest in autumn.
+  const farmers = people.filter((p) => p.task === 'farm');
+  if (farmers.length || state.farm.planted) {
+    const plots = fieldPlots(state);
+    if (s === 0 && farmers.length) {
+      if (plots === 0) {
+        events.push('Farmers had no fields to plant. Build a field first.');
+      } else {
+        const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER));
+        const planted = Math.min(plots - state.farm.planted, can);
+        state.farm.planted += planted;
+        events.push(`Farmers planted ${planted} ${planted === 1 ? 'plot' : 'plots'} of grain. ${state.farm.planted} of ${plots} plots are sown.`);
+      }
+    } else if (s === 1 && state.farm.planted) {
+      state.farm.tended = Math.min(state.farm.planted, farmerCapacity(people, TEND_PER_FARMER));
+      const share = Math.round((state.farm.tended / state.farm.planted) * 100);
+      events.push(share >= 100
+        ? 'Farmers tended every plot. The grain is growing well.'
+        : `Farmers tended ${share} percent of the plots. Untended grain will yield less.`);
+    } else if (s === 2 && state.farm.planted) {
+      const planted = state.farm.planted;
+      const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
+      const perPlot = foodPerPlot(state.farm.tended / planted);
+      const gained = Math.round(harvested * perPlot + (planted - harvested) * perPlot * 0.5);
+      state.resources.food += gained;
+      events.push(harvested >= planted
+        ? `Harvest: ${gained} food from ${planted} plots.`
+        : `Harvest: ${gained} food. There were too few hands, and some grain rotted in the fields.`);
+      state.farm = { planted: 0, tended: 0 };
+    } else if (s === 3 && farmers.length) {
+      events.push('There was no farm work in winter.');
     }
   }
 
@@ -203,7 +264,7 @@ export function resolveSeason(state) {
       const freezing = shuffle(state, people).slice(0, Math.min(people.length, s === 3 ? shortfall : shortfall * 2));
       for (const p of freezing) {
         cold.add(p.id);
-        hurt(p, 12);
+        hurt(p, hasKnowledge(state, 'clothing') ? 7 : 12);
         p.morale = clamp(p.morale - 6);
       }
       urgent.push(`There was not enough firewood. ${freezing.length} ${freezing.length === 1 ? 'person' : 'people'} suffered from the cold.`);
@@ -214,7 +275,7 @@ export function resolveSeason(state) {
     const exposed = shuffle(state, people).slice(0, people.length - capacity);
     for (const p of exposed) {
       cold.add(p.id);
-      hurt(p, s === 3 ? 30 : 10);
+      hurt(p, (s === 3 ? 30 : 10) * (hasKnowledge(state, 'clothing') ? 0.6 : 1));
       p.morale = clamp(p.morale - 8);
     }
     urgent.push(`${exposed.length} ${exposed.length === 1 ? 'person' : 'people'} slept without shelter in the ${s === 3 ? 'winter cold' : 'autumn chill'}.`);
@@ -271,9 +332,9 @@ export function resolveSeason(state) {
     urgent.push(...fromOrders.urgent);
     ordersDone.push(...fromOrders.orders);
     if (!state.milestoneReached && survivors.length >= MILESTONE_POPULATION
-        && state.buildings.storehouse > 0 && state.buildings.palisade > 0) {
+        && state.buildings.storehouse > 0 && state.buildings.palisade > 0 && hasKnowledge(state, 'farming')) {
       state.milestoneReached = true;
-      urgent.push(`${state.campName} has grown into a true settlement of ${survivors.length} people, safe behind its palisade. The Settlement era will arrive in a future update. You can keep playing.`);
+      urgent.push(`${state.campName} has grown into a true settlement of ${survivors.length} people: farming its own fields, safe behind its palisade. The Settlement era will arrive in a future update. You can keep playing.`);
     }
   }
   if (survivors.length !== startCount && survivors.length > 0) {

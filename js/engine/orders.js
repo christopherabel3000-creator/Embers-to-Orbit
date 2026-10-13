@@ -21,6 +21,7 @@ function bestTaskFor(person, seasonIdx) {
     ['wood', s.building],
     ['heal', s.healing],
     ['scout', s.scouting],
+    ['study', s.learning - 0.5], // A tie goes to more practical work.
   ];
   options.sort((a, b) => b[1] - a[1]);
   return options[0][0];
@@ -99,15 +100,15 @@ export function applyStandingOrders(state) {
     if (sent.length) say('healer', `sent ${listNames(sent)} to rest until healed.`);
   }
 
-  // Steward: foragers hunt in winter and go back to foraging in spring.
+  // Steward: foragers and farmers hunt in winter, then go back in spring.
   if (s === 0) {
     const back = people.filter((p) => returnFrom(p, 'winter', 'hunt'));
-    if (back.length) say('steward', `${listNames(back)} went back to foraging now that spring has come.`);
+    if (back.length) say('steward', `${listNames(back)} went back to the fields and foraging grounds now that spring has come.`);
   }
   if (orders.winterForagers && s === 3) {
-    const foragers = people.filter((p) => p.task === 'forage');
-    for (const p of foragers) moveFor(p, 'hunt', 'winter');
-    if (foragers.length) say('steward', `nothing grows in winter, so ${listNames(foragers)} will hunt until spring.`);
+    const idle = people.filter((p) => p.task === 'forage' || p.task === 'farm');
+    for (const p of idle) moveFor(p, 'hunt', 'winter');
+    if (idle.length) say('steward', `nothing grows in winter, so ${listNames(idle)} will hunt until spring.`);
   }
 
   // Healer: keep someone tending the hurt while anyone is hurt.
@@ -132,7 +133,7 @@ export function applyStandingOrders(state) {
       return f.emptyIn === null || f.emptyIn >= orders.foodReserve;
     };
     if (!lastsLongEnough()) {
-      const rank = { rest: 0, scout: 1, build: 2, wood: 3 };
+      const rank = { rest: 0, scout: 1, study: 2, build: 3, wood: 4 };
       const candidates = people
         .filter((p) => p.task in rank && p.health >= 40 && !(p.orderReturn && p.orderReturn.reason === 'hurt'))
         .sort((a, b) => rank[a.task] - rank[b.task]);

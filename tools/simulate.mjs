@@ -41,7 +41,7 @@ function sensiblePlan(state) {
     take(Math.ceil(n * 0.25), 'foraging', 'forage');
   }
   take(1, 'scouting', 'scout');
-  if (state.project) take(2, 'building', 'build');
+  if (state.buildQueue.length) take(2, 'building', 'build');
   for (const p of free()) plan.set(p.id, allowedTasksFor(state, p).includes('wood') ? 'wood' : allowedTasksFor(state, p)[0]);
   return plan;
 }
@@ -59,7 +59,7 @@ function chooseSites(state) {
 }
 
 function chooseProject(state) {
-  if (state.project) return null;
+  if (state.buildQueue.length) return null;
   const people = living(state).length;
   const wants = [];
   if (people + 1 > shelterCapacity(state)) wants.push('leanTo');
@@ -105,14 +105,14 @@ function play(seed, strategy) {
       state = chooseSites(state);
       state = chooseStudy(state);
       const project = chooseProject(state);
-      if (project) state = act(state, { type: 'startProject', buildingId: project });
+      if (project) state = act(state, { type: 'queueBuilding', buildingId: project });
     }
     if (strategy === 'sensible') {
       state = chooseSites(state);
       state = chooseStudy(state);
       for (const [personId, task] of sensiblePlan(state)) state = act(state, { type: 'assign', personId, task });
       const project = chooseProject(state);
-      if (project) state = act(state, { type: 'startProject', buildingId: project });
+      if (project) state = act(state, { type: 'queueBuilding', buildingId: project });
     }
     state = act(state, { type: 'endTurn' });
   }

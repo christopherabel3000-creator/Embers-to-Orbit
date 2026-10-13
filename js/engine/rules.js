@@ -103,6 +103,16 @@ export function farmerCapacity(people, perFarmer) {
     .reduce((sum, p) => sum + perFarmer * workFactor(p), 0);
 }
 
+// How many farmers the fields can use this season.
+export function farmersNeeded(state) {
+  const s = seasonIndex(state);
+  const plots = fieldPlots(state);
+  if (!plots || s === 3) return 0;
+  if (s === 0) return Math.ceil((plots - state.farm.planted) / PLANT_PER_FARMER);
+  if (s === 1) return Math.ceil(state.farm.planted / TEND_PER_FARMER);
+  return Math.ceil(state.farm.planted / HARVEST_PER_FARMER);
+}
+
 export function foodPerPlot(tendedFraction) {
   return 6 + 4 * tendedFraction;
 }

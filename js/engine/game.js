@@ -10,6 +10,8 @@ import {
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
+import { queueBlocker, refundFor } from './building.js';
+import { startNextStudy } from './study.js';
 import { resolveStoryEvent } from './events.js';
 
 export { newGame } from './state.js';
@@ -77,29 +79,47 @@ const handlers = {
     return { message: changed ? `Everyone is on their best work. ${changed} changed. ${summary}.` : `Everyone was already on their best work. ${summary}.` };
   },
 
-  startProject(state, { buildingId }) {
+  queueBuilding(state, { buildingId }) {
     const stop = blocked(state);
     if (stop) return stop;
+    const why = queueBlocker(state, buildingId);
+    if (why) return { error: why };
+    state.buildQueue.push({ id: buildingId, progress: 0, paid: false });
     const b = BUILDINGS[buildingId];
-    if (!b) return { error: 'Unknown building.' };
-    if (b.requires && !hasKnowledge(state, b.requires)) return { error: `Building a ${b.name.toLowerCase()} needs ${KNOWLEDGE[b.requires].name}.` };
-    if (state.project) return { error: 'Another project is already underway. Cancel it first.' };
-    if (!b.repeatable && state.buildings[buildingId] > 0) return { error: `You already have a ${b.name.toLowerCase()}.` };
-    if (state.resources.wood < b.cost) return { error: `Not enough wood. The ${b.name.toLowerCase()} needs ${b.cost} and you have ${state.resources.wood}.` };
-    state.resources.wood -= b.cost;
-    state.project = { id: buildingId, progress: 0 };
-    return { message: `Started building a ${b.name.toLowerCase()}. ${b.cost} wood used.` };
+    return { message: `Added a ${b.name.toLowerCase()} to the build queue, in place ${state.buildQueue.length}.` };
   },
 
-  cancelProject(state) {
+  // Older name for adding to the queue.
+  startProject(state, action) {
+    return handlers.queueBuilding(state, action);
+  },
+
+  removeBuilding(state, { index = 0 }) {
     const stop = blocked(state);
     if (stop) return stop;
-    if (!state.project) return { error: 'No project to cancel.' };
-    const b = BUILDINGS[state.project.id];
-    const refund = state.project.progress === 0 ? b.cost : Math.floor(b.cost / 2);
+    const item = state.buildQueue[index];
+    if (!item) return { error: 'That building is not in the queue.' };
+    const refund = refundFor(item);
     state.resources.wood += refund;
-    state.project = null;
-    return { message: `Cancelled the ${b.name.toLowerCase()}. ${refund} wood recovered.` };
+    state.buildQueue.splice(index, 1);
+    const b = BUILDINGS[item.id];
+    return { message: `Removed the ${b.name.toLowerCase()} from the queue.${refund ? ` ${refund} wood recovered.` : ''}` };
+  },
+
+  // Older name: removes the first building in the queue.
+  cancelProject(state) {
+    return handlers.removeBuilding(state, { index: 0 });
+  },
+
+  moveBuilding(state, { index, by }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const to = index + by;
+    const q = state.buildQueue;
+    if (!q[index] || to < 0 || to >= q.length) return { error: 'It cannot move that way.' };
+    [q[index], q[to]] = [q[to], q[index]];
+    const b = BUILDINGS[q[to].id];
+    return { message: `The ${b.name.toLowerCase()} is now number ${to + 1} of ${q.length}.` };
   },
 
   resolveRaid(state, { plan, defenderIds = [] }) {
@@ -129,7 +149,32 @@ const handlers = {
     const why = knowledgeBlocker(state, knowledgeId);
     if (why) return { error: why };
     state.knowledge.current = knowledgeId;
+    state.knowledge.queue = state.knowledge.queue.filter((id) => id !== knowledgeId);
     return { message: `Your people will study ${KNOWLEDGE[knowledgeId].name.toLowerCase()}.` };
+  },
+
+  queueStudy(state, { knowledgeId }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const k = state.knowledge;
+    if (!KNOWLEDGE[knowledgeId]) return { error: 'Unknown discovery.' };
+    if (hasKnowledge(state, knowledgeId)) return { error: 'Already known.' };
+    if (k.current === knowledgeId || k.queue.includes(knowledgeId)) return { error: `${KNOWLEDGE[knowledgeId].name} is already planned.` };
+    k.queue.push(knowledgeId);
+    const started = !k.current && startNextStudy(state) === knowledgeId;
+    return { message: started
+      ? `Your people will study ${KNOWLEDGE[knowledgeId].name.toLowerCase()} now.`
+      : `Added ${KNOWLEDGE[knowledgeId].name.toLowerCase()} to the study queue, in place ${k.queue.indexOf(knowledgeId) + 1}.` };
+  },
+
+  unqueueStudy(state, { knowledgeId }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const k = state.knowledge;
+    const i = k.queue.indexOf(knowledgeId);
+    if (i === -1) return { error: 'That is not in the study queue.' };
+    k.queue.splice(i, 1);
+    return { message: `Removed ${KNOWLEDGE[knowledgeId].name.toLowerCase()} from the study queue.` };
   },
 
   setWorkSite(state, { task, placeId }) {

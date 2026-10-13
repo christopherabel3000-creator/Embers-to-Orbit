@@ -2,11 +2,12 @@
 // Each person goes to the task matching their strongest skill, skipping
 // work that makes no sense right now, and the hurt and sick rest.
 
-import { TASKS, WANDERERS, BUILDINGS } from './data.js';
+import { TASKS, WANDERERS } from './data.js';
+import { remainingQueueWork } from './building.js';
 import {
-  living, seasonIndex, allowedTasksFor, fieldPlots, unexploredNeighbors, knownPlaces,
+  living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces,
 } from './state.js';
-import { siteFor, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER } from './rules.js';
+import { siteFor, farmersNeeded } from './rules.js';
 
 // When two tasks use equally strong skills, prefer the earlier one.
 const PRIORITY = ['hunt', 'forage', 'farm', 'build', 'wood', 'heal', 'scout', 'study'];
@@ -22,20 +23,15 @@ function limits(state, people) {
   const scoutingLeft = unexploredNeighbors(state, siteFor(state, 'scout')).length > 0
     || knownPlaces(state).some((id) => unexploredNeighbors(state, id).length > 0)
     || state.wanderersMet < WANDERERS.length;
-  let farmers = 0;
-  if (fieldPlots(state) && s !== 3) {
-    if (s === 0) farmers = Math.ceil((fieldPlots(state) - state.farm.planted) / PLANT_PER_FARMER);
-    if (s === 1) farmers = Math.ceil(state.farm.planted / TEND_PER_FARMER);
-    if (s === 2) farmers = Math.ceil(state.farm.planted / HARVEST_PER_FARMER);
-  }
+  const farmers = farmersNeeded(state);
   return {
     hunt: Infinity,
     forage: s === 3 ? 0 : Infinity,
     farm: farmers,
     wood: Infinity,
     // Enough builders to finish the project in about two seasons.
-    build: state.project
-      ? Math.min(4, Math.max(1, Math.ceil((BUILDINGS[state.project.id].work - state.project.progress) / 12)))
+    build: state.buildQueue.length
+      ? Math.min(6, Math.max(1, Math.ceil(remainingQueueWork(state) / 12)))
       : 0,
     heal: hurt === 0 ? 0 : hurt >= 4 ? 2 : 1,
     scout: scoutingLeft ? 2 : 0,

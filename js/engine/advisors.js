@@ -103,10 +103,13 @@ export function getAdvice(state) {
       add('steward', untilWinter === 0 ? 'urgent' : 'warning', `We need about ${woodNeed} wood to keep the fires burning ${untilWinter === 0 ? 'this winter' : 'through winter'}, and we have ${state.resources.wood}. Put more people on gathering wood.`);
     }
   }
-  if (count('build') > 0 && !state.project) {
-    add('steward', 'warning', `${count('build')} ${count('build') === 1 ? 'person is' : 'people are'} set to build, but no building project is chosen. Choose one on the Build screen.`);
-  } else if (state.project && count('build') === 0) {
-    add('steward', 'note', `No one is working on the ${BUILDINGS[state.project.id].name.toLowerCase()}.`);
+  const next = state.buildQueue[0];
+  if (count('build') > 0 && !next) {
+    add('steward', 'warning', `${count('build')} ${count('build') === 1 ? 'person is' : 'people are'} set to build, but the build queue is empty. Add something on the Build screen.`);
+  } else if (next && count('build') === 0) {
+    add('steward', 'note', `${state.buildQueue.length === 1 ? `The ${BUILDINGS[next.id].name.toLowerCase()} is` : `${state.buildQueue.length} buildings are`} waiting in the build queue, but no one is set to build.`);
+  } else if (next && !next.paid && state.resources.wood < BUILDINGS[next.id].cost) {
+    add('steward', 'warning', `Next in the build queue is the ${BUILDINGS[next.id].name.toLowerCase()}, which needs ${BUILDINGS[next.id].cost} wood to start. We have ${state.resources.wood}.`);
   }
 
   // Steward: worn-out hunting and foraging grounds.

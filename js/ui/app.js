@@ -14,6 +14,9 @@ import {
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
 import { describePending } from '../engine/events.js';
+import {
+  remainingQueueWork, queueBlocker, queuedCount, refundFor,
+} from '../engine/building.js';
 import { seasonsToNextLevel } from '../engine/skills.js';
 import { storage } from '../storage.js';
 
@@ -55,6 +58,18 @@ function listWords(words) {
 
 function plural(n, one, many) {
   return `${n} ${n === 1 ? one : many}`;
+}
+
+// Moves focus to the first matching element, for after a screen redraw.
+function refocus(...selectors) {
+  for (const sel of selectors) {
+    const el = $main.querySelector(sel);
+    if (el) {
+      if (!el.matches('button, select, input, a')) el.setAttribute('tabindex', '-1');
+      el.focus();
+      return;
+    }
+  }
 }
 
 function announce(message) {
@@ -384,7 +399,7 @@ function knowledgeScreen() {
   const studiers = living(state).filter((p) => p.task === 'study');
   const rate = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p), 0));
   let html = `<h1>Knowledge</h1>
-    <p>People set to Study on the People screen make discoveries. ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season.</p>
+    <p>People set to Study on the People screen make discoveries. ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season. Points left over from one discovery go straight into the next one in the queue.</p>
     <h2>Current study</h2>`;
   if (k.current) {
     const item = KNOWLEDGE[k.current];
@@ -394,24 +409,42 @@ function knowledgeScreen() {
   } else {
     html += '<p>Nothing chosen. Pick a discovery below.</p>';
   }
-  const open = KNOWLEDGE_ORDER.filter((id) => !knowledgeBlocker(state, id));
-  const locked = KNOWLEDGE_ORDER.filter((id) => !hasKnowledge(state, id) && knowledgeBlocker(state, id));
+  html += `<h2 id="studyQueueHeading">Study queue (${k.queue.length})</h2>`;
+  if (!k.queue.length) {
+    html += '<p>Empty. Discoveries in the queue start one after another, as soon as each is possible.</p>';
+  } else {
+    html += `<ol class="plain">${k.queue.map((id, i) => {
+      const why = knowledgeBlocker(state, id);
+      return `<li class="card"><p><strong>${i + 1}. ${esc(KNOWLEDGE[id].name)}.</strong> ${KNOWLEDGE[id].cost} points.${why ? ` Waiting: ${esc(why)}` : ''}</p>
+        <p><button type="button" data-action="unqueueStudy" data-knowledge="${id}">Remove ${esc(KNOWLEDGE[id].name.toLowerCase())} from the queue</button></p></li>`;
+    }).join('')}</ol>`;
+  }
+  const planned = (id) => k.current === id || k.queue.includes(id);
+  const open = KNOWLEDGE_ORDER.filter((id) => !knowledgeBlocker(state, id) && !planned(id));
+  const locked = KNOWLEDGE_ORDER.filter((id) => !hasKnowledge(state, id) && knowledgeBlocker(state, id) && !planned(id));
   const known = KNOWLEDGE_ORDER.filter((id) => hasKnowledge(state, id));
   html += '<h2>Ready to study</h2>';
-  if (!open.length) html += '<p>Nothing right now.</p>';
+  if (!open.length) html += '<p>Nothing else right now.</p>';
   html += '<ul class="plain">';
   for (const id of open) {
     const item = KNOWLEDGE[id];
     const done = Math.floor(k.progress[id] || 0);
+    const name = item.name.toLowerCase();
     html += `<li class="card"><h3>${esc(item.name)}</h3>
       <p>${esc(item.effect)}</p>
       <p>Costs ${item.cost} points.${done ? ` ${done} points already done.` : ''}</p>
-      ${k.current === id ? '<p>Being studied now.</p>' : `<p><button type="button" data-action="setStudy" data-knowledge="${id}">Study ${esc(item.name.toLowerCase())}</button></p>`}
+      <div class="actions">
+        <button type="button" data-action="setStudy" data-knowledge="${id}">Study ${esc(name)} now</button>
+        <button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(name)} to the queue</button>
+      </div>
     </li>`;
   }
   html += '</ul>';
   if (locked.length) {
-    html += `<h2>Not yet possible</h2><ul>${locked.map((id) => `<li>${esc(KNOWLEDGE[id].name)}: ${esc(knowledgeBlocker(state, id))}</li>`).join('')}</ul>`;
+    html += `<h2>Not yet possible</h2><ul class="plain">${locked.map((id) => `<li class="card"><h3>${esc(KNOWLEDGE[id].name)}</h3>
+      <p>${esc(KNOWLEDGE[id].effect)}</p>
+      <p>${esc(knowledgeBlocker(state, id))} Costs ${KNOWLEDGE[id].cost} points.</p>
+      <p><button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(KNOWLEDGE[id].name.toLowerCase())} to the queue, to start when possible</button></p></li>`).join('')}</ul>`;
   }
   if (known.length) {
     html += `<h2>Known</h2><ul>${known.map((id) => `<li>${esc(KNOWLEDGE[id].name)}: ${esc(KNOWLEDGE[id].effect)}</li>`).join('')}</ul>`;
@@ -423,17 +456,30 @@ function buildScreen() {
   const people = living(state);
   const builders = people.filter((p) => p.task === 'build');
   const workRate = Math.round(builders.reduce((sum, p) => sum + expectedWork(p, state), 0));
+  const remaining = Math.ceil(remainingQueueWork(state));
+  const q = state.buildQueue;
   let html = `<h1>Build</h1>
     <p>Wood: ${state.resources.wood}. Shelter for ${shelterCapacity(state)}, and ${plural(people.length, 'person', 'people')} in camp.</p>
-    <h2>Current project</h2>`;
-  if (state.project) {
-    const b = BUILDINGS[state.project.id];
-    const done = Math.floor(state.project.progress);
-    html += `<p>${esc(b.name)}: ${done} of ${b.work} work done.</p>
-      <p>${plural(builders.length, 'builder', 'builders')} assigned, about ${workRate} work per season.${builders.length ? ` About ${Math.max(1, Math.ceil((b.work - done) / Math.max(1, workRate)))} more ${Math.ceil((b.work - done) / Math.max(1, workRate)) === 1 ? 'season' : 'seasons'} to finish.` : ' Assign builders on the People screen.'}</p>
-      <p><button type="button" data-action="cancelProject">Cancel the ${esc(b.name.toLowerCase())}</button></p>`;
+    <p>${plural(builders.length, 'builder', 'builders')}, about ${workRate} work per season.${q.length ? ` The queue needs ${remaining} more work${workRate ? `: about ${plural(Math.max(1, Math.ceil(remaining / workRate)), 'season', 'seasons')}` : ''}.` : ''} Work left over from one building goes straight into the next.</p>
+    <h2 id="queueHeading">Build queue (${q.length})</h2>`;
+  if (!q.length) {
+    html += '<p>Empty. Add buildings below. Wood is paid when work on each one begins.</p>';
   } else {
-    html += `<p>None. Choose a building below. Its wood is paid when work begins.</p>`;
+    html += '<ol class="plain">';
+    q.forEach((item, i) => {
+      const b = BUILDINGS[item.id];
+      const name = b.name.toLowerCase();
+      const status = item.paid
+        ? `${Math.floor(item.progress)} of ${b.work} work done.`
+        : `Not started. Needs ${b.cost} wood and ${b.work} work.${state.resources.wood < b.cost && i === 0 ? ' Not enough wood yet.' : ''}`;
+      html += `<li class="card"><p id="queue-item-${i}" tabindex="-1"><strong>${i + 1}. ${esc(b.name)}.</strong> ${esc(status)}</p>
+        <div class="actions">
+          ${i > 0 ? `<button type="button" data-action="moveBuilding" data-index="${i}" data-by="-1">Move ${esc(name)} up</button>` : ''}
+          ${i < q.length - 1 ? `<button type="button" data-action="moveBuilding" data-index="${i}" data-by="1">Move ${esc(name)} down</button>` : ''}
+          <button type="button" data-action="removeBuilding" data-index="${i}">Remove ${esc(name)}${item.paid ? `, recovering ${refundFor(item)} wood` : ''}</button>
+        </div></li>`;
+    });
+    html += '</ol>';
   }
   html += '<h2>Buildings</h2><ul class="plain">';
   for (const id of BUILDING_ORDER) {
@@ -441,13 +487,13 @@ function buildScreen() {
     if (b.requires && !hasKnowledge(state, b.requires)) continue;
     const owned = state.buildings[id];
     const status = b.repeatable ? `You have ${owned}.` : owned ? 'Built.' : 'Not built.';
+    const why = queueBlocker(state, id);
     html += `<li class="card"><h3>${esc(b.name)}</h3>
       <p>${esc(b.description)}</p>
-      <p>${status} Costs ${b.cost} wood and ${b.work} work.</p>`;
-    if (!state.project && (b.repeatable || !owned)) {
-      html += `<p><button type="button" data-action="startProject" data-building="${id}">Build ${esc(b.name.toLowerCase())}</button></p>`;
-    }
-    html += '</li>';
+      <p>${status} Costs ${b.cost} wood and ${b.work} work.</p>
+      ${why ? (owned || queuedCount(state, id) ? '' : `<p>${esc(why)}</p>`) : `<p><button type="button" data-action="queueBuilding" data-building="${id}">Add ${esc(b.name.toLowerCase())} to the queue</button></p>`}
+      ${!b.repeatable && queuedCount(state, id) ? '<p>In the build queue.</p>' : ''}
+    </li>`;
   }
   html += '</ul>';
   return html;
@@ -464,11 +510,13 @@ function ordersFor(role) {
     return `<p><label for="order-food">Make sure our food will last at least</label>
       <select id="order-food" data-order="foodReserve">${options}</select></p>
       ${checkbox('autoAssign', o.autoAssign, 'At the start of each season, put everyone on their best work, as the button on the People screen does. This also rests the hurt and sick, staffs the fields, and handles winter work and newcomers.')}
+      ${checkbox('staffFields', o.staffFields, 'Keep the fields staffed: send people to plant in spring, tend in summer, and harvest in autumn, then send them back to their other work')}
       ${checkbox('winterForagers', o.winterForagers, 'Foragers hunt during winter, then go back to foraging in spring')}
       ${checkbox('placeNewcomers', o.placeNewcomers, 'Put newcomers to work at what they do best')}`;
   }
   if (role === 'healer') {
     return `${o.autoAssign ? '<p>While the steward is putting everyone on their best work each season, that covers resting the hurt and tending the sick.</p>' : ''}${checkbox('restWhenHurt', o.restWhenHurt, 'Badly hurt people rest until healed, then go back to their work')}
+      ${checkbox('autoShelter', o.autoShelter, 'Put a lean-to at the front of the build queue whenever the shelters are nearly full, behind any building already underway')}
       ${checkbox('keepHealer', o.keepHealer, 'Keep someone tending the hurt whenever anyone is hurt')}`;
   }
   if (role !== 'warChief') return '';
@@ -529,7 +577,7 @@ function menuScreen() {
     <h2>New game</h2>
     <div class="actions"><button type="button" data-action="showNewGame">Start a new game</button></div>
     <h2>How to play</h2>
-    <p>Each turn is one season. Assign every person a task on the People screen, choose a building project on the Build screen, then choose End season.</p>
+    <p>Each turn is one season. Assign every person a task on the People screen, add buildings to the queue on the Build screen, then choose End season. Builders work through the queue in order, and work left over from one building goes into the next.</p>
     <p>Everyone eats 2 food each season. Nothing grows in winter and hunting is poor, so store food during summer and autumn. Food also spoils in storage.</p>
     <p>Autumn and winter fires burn wood, and anyone without shelter suffers from the cold. Each lean-to shelters 4 more people.</p>
     <p>People get better at whatever they practice. Each season at a task builds that skill, up to 5. Early levels come quickly; mastery takes years. Fighting off raiders hardens defenders fast.</p>
@@ -667,13 +715,42 @@ function handleAction(action, btn) {
       if (msg) show('report');
       break;
     }
-    case 'startProject': {
-      const msg = act({ type: 'startProject', buildingId: btn.dataset.building });
+    case 'queueBuilding': {
+      const msg = act({ type: 'queueBuilding', buildingId: btn.dataset.building });
       if (msg) {
         show('build', { focus: false });
+        refocus(`[data-action="queueBuilding"][data-building="${btn.dataset.building}"]`, '#queueHeading');
         announce(msg);
-        const h = $main.querySelector('h2');
-        if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+      }
+      break;
+    }
+    case 'moveBuilding': {
+      const index = Number(btn.dataset.index);
+      const by = Number(btn.dataset.by);
+      const msg = act({ type: 'moveBuilding', index, by });
+      if (msg) {
+        show('build', { focus: false });
+        refocus(`#queue-item-${index + by}`);
+        announce(msg);
+      }
+      break;
+    }
+    case 'removeBuilding': {
+      const msg = act({ type: 'removeBuilding', index: Number(btn.dataset.index) });
+      if (msg) {
+        show('build', { focus: false });
+        refocus('#queueHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'queueStudy':
+    case 'unqueueStudy': {
+      const msg = act({ type: action, knowledgeId: btn.dataset.knowledge });
+      if (msg) {
+        show('knowledge', { focus: false });
+        refocus('#studyQueueHeading');
+        announce(msg);
       }
       break;
     }
@@ -681,17 +758,6 @@ function handleAction(action, btn) {
       const msg = act({ type: 'setStudy', knowledgeId: btn.dataset.knowledge });
       if (msg) {
         show('knowledge', { focus: false });
-        announce(msg);
-        const h = $main.querySelector('h2');
-        if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
-      }
-      break;
-    }
-    case 'cancelProject': {
-      if (!window.confirm('Cancel this project? If work has started, only half the wood is recovered.')) break;
-      const msg = act({ type: 'cancelProject' });
-      if (msg) {
-        show('build', { focus: false });
         announce(msg);
         const h = $main.querySelector('h2');
         if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }

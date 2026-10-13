@@ -9,6 +9,8 @@ import {
   hasKnowledge, fieldPlots, shelterNeeded,
 } from './state.js';
 import { advanceLife } from './life.js';
+import { applyBuildWork } from './building.js';
+import { applyStudy } from './study.js';
 import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
   scoutSuccessChance, siteFor, DEPLETION, RECOVERY, studyPoints, farmerCapacity,
@@ -108,18 +110,7 @@ export function resolveSeason(state) {
   }
 
   // 2. Building.
-  if (state.project) {
-    state.project.progress += work;
-    const b = BUILDINGS[state.project.id];
-    if (state.project.progress >= b.work) {
-      state.buildings[state.project.id] += 1;
-      events.push(`The ${b.name.toLowerCase()} is finished. ${b.description}`);
-      state.project = null;
-    } else if (work > 0) {
-      const left = Math.ceil(b.work - state.project.progress);
-      events.push(`Builders worked on the ${b.name.toLowerCase()}. ${left} work remaining.`);
-    }
-  }
+  events.push(...applyBuildWork(state, work));
 
   // Practice: everyone who worked gets a little better at it.
   // Badly hurt or sick people learn at half speed. Winter farmers have no
@@ -139,23 +130,11 @@ export function resolveSeason(state) {
   }
   if (improved.length) events.push(`Practice paid off: ${improved.join('; ')}.`);
 
-  // Study: progress toward the chosen discovery.
+  // Study: points flow into the current discovery, then the next in the queue.
   if (studyPool > 0) {
-    const k = state.knowledge;
-    if (!k.current) {
-      events.push('Your people studied, but without a goal their ideas went nowhere. Choose a discovery on the Knowledge screen.');
-    } else {
-      const item = KNOWLEDGE[k.current];
-      k.progress[k.current] = (k.progress[k.current] || 0) + studyPool;
-      if (k.progress[k.current] >= item.cost) {
-        k.learned.push(k.current);
-        delete k.progress[k.current];
-        k.current = null;
-        urgent.push(`Discovery: ${item.name}. ${item.effect}`);
-      } else {
-        events.push(`Study of ${item.name.toLowerCase()} is ${Math.floor((k.progress[k.current] / item.cost) * 100)} percent done.`);
-      }
-    }
+    const studied = applyStudy(state, studyPool);
+    urgent.push(...studied.urgent);
+    events.push(...studied.events);
   }
 
   // Farming follows the year: plant in spring, tend in summer, harvest in autumn.

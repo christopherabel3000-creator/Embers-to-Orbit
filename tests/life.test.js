@@ -99,7 +99,7 @@ test('version 5 saves are upgraded with ages', () => {
   old.version = 5;
   for (const p of old.people) delete p.age;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 8);
+  assert.equal(s.version, 9);
   assert.equal(s.people.find((p) => p.name === 'Dalia').age, 40);
 });
 

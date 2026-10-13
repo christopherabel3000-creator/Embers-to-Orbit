@@ -32,21 +32,22 @@ test('actions do not change the previous state', () => {
   assert.equal(next.people[0].task, 'rest');
 });
 
-test('starting a project costs wood and needs enough of it', () => {
+test('buildings wait in a queue and pay their wood when work begins', () => {
   let s = newGame({ seed: 1 });
-  s = act(s, { type: 'startProject', buildingId: 'leanTo' });
-  assert.equal(s.resources.wood, 15);
-  const r = applyAction(s, { type: 'startProject', buildingId: 'storehouse' });
-  assert.match(r.error, /already underway/);
-  s = act(s, { type: 'cancelProject' });
-  assert.equal(s.resources.wood, 30);
-  const poor = applyAction(s, { type: 'startProject', buildingId: 'palisade' });
-  assert.match(poor.error, /Not enough wood/);
+  s = act(s, { type: 'queueBuilding', buildingId: 'leanTo' });
+  s = act(s, { type: 'queueBuilding', buildingId: 'storehouse' });
+  assert.equal(s.buildQueue.length, 2);
+  assert.equal(s.resources.wood, 30, 'nothing is paid until work begins');
+  assert.match(applyAction(s, { type: 'queueBuilding', buildingId: 'storehouse' }).error, /already in the queue/);
+  s = act(s, { type: 'moveBuilding', index: 1, by: -1 });
+  assert.equal(s.buildQueue[0].id, 'storehouse');
+  s = act(s, { type: 'removeBuilding', index: 0 });
+  assert.deepEqual(s.buildQueue.map((b) => b.id), ['leanTo']);
 });
 
 test('ending a season advances the calendar and finishes buildings', () => {
   let s = newGame({ seed: 3 });
-  s = act(s, { type: 'startProject', buildingId: 'leanTo' });
+  s = act(s, { type: 'queueBuilding', buildingId: 'leanTo' });
   for (const id of [3, 8, 11]) s = act(s, { type: 'assign', personId: id, task: 'build' });
   s = act(s, { type: 'endTurn' });
   assert.equal(dateLabel(s), 'Summer, Year 1');
@@ -89,7 +90,7 @@ test('saves survive a JSON round trip', () => {
 test('advisors warn about missing projects and shelter', () => {
   const s = newGame({ seed: 1 });
   const advice = getAdvice(s);
-  assert.ok(advice.some((a) => a.role === 'steward' && /no building project/.test(a.text)));
+  assert.ok(advice.some((a) => a.role === 'steward' && /build queue is empty/.test(a.text)));
   assert.ok(advice.some((a) => a.role === 'healer' && /shelter holds 4/.test(a.text)));
   assert.ok(forecastFood(s));
 });

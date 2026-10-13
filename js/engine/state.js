@@ -7,7 +7,7 @@ import {
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
 } from './data.js';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -22,6 +22,8 @@ export const DEFAULT_ORDERS = {
   winterForagers: false,
   placeNewcomers: true,
   autoAssign: false, // Put everyone on their best work each season.
+  staffFields: false, // Move people to and from the fields as the year requires.
+  autoShelter: false, // Queue a lean-to when the shelters are nearly full.
   raidPolicy: 'ask', // 'ask', 'fightIfLikely', or 'auto'.
 };
 
@@ -65,13 +67,13 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     nextPersonId: people.length + 1,
     wanderersMet: 0,
     buildings,
-    project: null,
+    buildQueue: [], // Buildings in order: { id, progress, paid }.
     places: initialPlaces(),
     workSites: { hunt: 'camp', forage: 'camp', wood: 'camp', scout: 'camp' },
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     eventHistory: {}, // Event id to the turn it last happened.
-    knowledge: { learned: [], progress: {}, current: null },
+    knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
     advisors: { steward: 6, warChief: 7, healer: 4, scholar: 8 }, // Fenna, Garrow, Dalia, Hesta
     pendingEvent: null,
@@ -85,7 +87,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     urgent: [],
     events: [
       `Twelve survivors have made camp at ${state.campName}, in a sheltered forest valley beside a river.`,
-      'They have one tent, a little food, and each other. Assign everyone a task, choose a building project, then end the season.',
+      'They have one tent, a little food, and each other. Assign everyone a task, add something to the build queue, then end the season.',
       'They know only the riverbank and the oak woods nearby. Scouts can explore farther; the Map screen shows what you know.',
       'People set to study can make discoveries, like better tools or, one day, farming. See the Knowledge screen.',
     ],
@@ -152,6 +154,12 @@ export function migrate(data) {
     const dalia = data.people.find((p) => p.name === 'Dalia' && p.id === 4);
     if (dalia) dalia.age = Math.max(40, dalia.age - 7);
     data.version = 8;
+  }
+  if (data.version === 8) {
+    data.buildQueue = data.project ? [{ id: data.project.id, progress: data.project.progress, paid: true }] : [];
+    delete data.project;
+    data.knowledge.queue = [];
+    data.version = 9;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

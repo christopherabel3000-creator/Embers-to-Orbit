@@ -1,10 +1,12 @@
 // Standing orders: rules the player sets once, which advisors carry out at
 // the start of every season. The player can still change anything after.
 
-import { TASKS } from './data.js';
-import { living, seasonIndex, canFight, allowedTasksFor } from './state.js';
+import { TASKS, SHELTER_PER_LEAN_TO } from './data.js';
+import {
+  living, seasonIndex, canFight, allowedTasksFor, hasKnowledge, shelterNeeded, shelterCapacity,
+} from './state.js';
 import { advisorPerson, ADVISOR_ROLES, forecastFood, raidOdds } from './advisors.js';
-import { expectedFood } from './rules.js';
+import { expectedFood, farmersNeeded } from './rules.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 
@@ -140,6 +142,43 @@ export function applyStandingOrders(state) {
       }
     }
 
+    // Steward: move people to and from the fields as the year requires.
+    if (orders.staffFields && hasKnowledge(state, 'farming')) {
+      const need = farmersNeeded(state);
+      const farmers = people.filter((p) => p.task === 'farm');
+      const work = ['planting', 'tending the grain', 'the harvest'][s] || '';
+      if (farmers.length > need) {
+        const extra = [...farmers]
+          .sort((a, b) => Number(b.orderReturn?.reason === 'fields') - Number(a.orderReturn?.reason === 'fields'))
+          .slice(0, farmers.length - need);
+        for (const p of extra) {
+          if (returnFrom(p, 'fields', 'farm')) continue;
+          const fallback = s === 3 ? 'hunt' : 'forage';
+          p.task = allowedTasksFor(state, p).includes(fallback) ? fallback : 'rest';
+        }
+        say('steward', `${listNames(extra)} ${extra.length === 1 ? 'is' : 'are'} not needed in the fields this season and went back to other work.`);
+      } else if (farmers.length < need) {
+        const from = { forage: 0, rest: 1, wood: 2, scout: 3 };
+        const candidates = people
+          .filter((p) => p.task in from && p.health >= 40 && !p.sick && allowedTasksFor(state, p).includes('farm')
+            && !(p.orderReturn && p.orderReturn.reason === 'hurt'))
+          .sort((a, b) => b.skills.foraging - a.skills.foraging || from[a.task] - from[b.task])
+          .slice(0, need - farmers.length);
+        for (const p of candidates) moveFor(p, 'farm', 'fields');
+        if (candidates.length) say('steward', `sent ${listNames(candidates)} to the fields for ${work}.`);
+      }
+    }
+  }
+
+  // Healer: keep a lean-to in the build queue when the shelters are nearly full.
+  if (orders.autoShelter) {
+    const coming = state.buildQueue.filter((item) => item.id === 'leanTo').length * SHELTER_PER_LEAN_TO;
+    if (shelterNeeded(people) + 2 > shelterCapacity(state) + coming) {
+      // Ahead of everything not yet started, but behind work already underway.
+      const at = state.buildQueue.findIndex((item) => !item.paid);
+      state.buildQueue.splice(at === -1 ? state.buildQueue.length : at, 0, { id: 'leanTo', progress: 0, paid: false });
+      say('healer', 'the shelters are nearly full, so a lean-to went to the front of the build queue.');
+    }
   }
 
   // Steward: make sure food will last the chosen number of seasons.

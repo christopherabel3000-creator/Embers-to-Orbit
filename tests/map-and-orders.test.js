@@ -58,7 +58,7 @@ test('version 1 saves are upgraded', () => {
   delete old.orders;
   old.discoveries = ['huntingGrounds', 'raiderTracks'];
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 6);
+  assert.equal(s.version, 7);
   assert.deepEqual(s.conditions, []);
   assert.ok(isKnown(s, 'deerTrails') && isKnown(s, 'raiderTrail'));
   assert.equal(s.orders.raidPolicy, 'ask');

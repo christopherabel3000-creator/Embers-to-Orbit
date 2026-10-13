@@ -74,13 +74,13 @@ export const STARTING_SHELTER = 4;
 export const SHELTER_PER_LEAN_TO = 4;
 
 // Hand-crafted founding survivors. Skills run from 0 to 5.
-export const AGE_BY_NAME = { Aric: 34, Brenna: 29, Corvin: 31, Dalia: 61, Esker: 22, Fenna: 38, Garrow: 45, Hesta: 36, Iven: 17, Jora: 27, Kael: 33, Lisbet: 24, Maren: 40, Noll: 35, Orla: 26, Pell: 19, Rhosyn: 30, Senna: 25, Tobin: 44, Ula: 58 };
+export const AGE_BY_NAME = { Aric: 34, Brenna: 29, Corvin: 31, Dalia: 47, Esker: 22, Fenna: 38, Garrow: 45, Hesta: 36, Iven: 17, Jora: 27, Kael: 33, Lisbet: 24, Maren: 40, Noll: 35, Orla: 26, Pell: 19, Rhosyn: 30, Senna: 25, Tobin: 44, Ula: 58 };
 export const LEARNING_BY_NAME = { Aric: 1, Brenna: 2, Corvin: 0, Dalia: 4, Esker: 2, Fenna: 3, Garrow: 1, Hesta: 3, Iven: 3, Jora: 1, Kael: 0, Lisbet: 2, Maren: 1, Noll: 1, Orla: 0, Pell: 3, Rhosyn: 2, Senna: 1, Tobin: 2, Ula: 1 };
 export const FOUNDERS = [
   { name: 'Aric', age: 34, note: 'A quiet tracker who has hunted these woods before.', skills: { hunting: 4, foraging: 1, building: 1, healing: 0, scouting: 3, learning: 1 } },
   { name: 'Brenna', age: 29, note: 'Knows every edible root and berry.', skills: { hunting: 0, foraging: 5, building: 1, healing: 2, scouting: 1, learning: 2 } },
   { name: 'Corvin', age: 31, note: 'Broad-shouldered and good with an axe.', skills: { hunting: 2, foraging: 0, building: 4, healing: 0, scouting: 0, learning: 0 } },
-  { name: 'Dalia', age: 61, note: 'An old herbalist with steady hands.', skills: { hunting: 0, foraging: 2, building: 0, healing: 5, scouting: 0, learning: 4 } },
+  { name: 'Dalia', age: 47, note: 'A seasoned herbalist with steady hands.', skills: { hunting: 0, foraging: 2, building: 0, healing: 5, scouting: 0, learning: 4 } },
   { name: 'Esker', age: 22, note: 'Restless and sharp-eyed, always over the next ridge.', skills: { hunting: 2, foraging: 1, building: 0, healing: 0, scouting: 4, learning: 2 } },
   { name: 'Fenna', age: 38, note: 'A practical organizer who keeps count of everything.', skills: { hunting: 0, foraging: 3, building: 2, healing: 1, scouting: 1, learning: 3 } },
   { name: 'Garrow', age: 45, note: 'A former soldier, scarred and fearless.', skills: { hunting: 3, foraging: 0, building: 2, healing: 0, scouting: 1, learning: 1 } },

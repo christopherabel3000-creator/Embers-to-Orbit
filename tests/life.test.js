@@ -99,6 +99,14 @@ test('version 5 saves are upgraded with ages', () => {
   old.version = 5;
   for (const p of old.people) delete p.age;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 6);
-  assert.equal(s.people.find((p) => p.name === 'Dalia').age, 61);
+  assert.equal(s.version, 7);
+  assert.equal(s.people.find((p) => p.name === 'Dalia').age, 47);
+});
+
+test('version 6 saves give Dalia her new starting age', () => {
+  const old = newGame({ seed: 2 });
+  old.version = 6;
+  old.people.find((p) => p.name === 'Dalia').age = 63; // Two years into an old save.
+  const s = migrate(JSON.parse(JSON.stringify(old)));
+  assert.equal(s.people.find((p) => p.name === 'Dalia').age, 49);
 });

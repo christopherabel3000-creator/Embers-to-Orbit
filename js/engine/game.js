@@ -13,6 +13,9 @@ import { bestWorkPlan } from './assign.js';
 import { queueBlocker, refundFor } from './building.js';
 import { startNextStudy } from './study.js';
 import { applyDiplomacy } from './neighbors.js';
+import {
+  createBattle, deploy, resolveRound, finishBattle, autoBattle, summarize,
+} from './battle.js';
 import { resolveStoryEvent } from './events.js';
 
 export { newGame } from './state.js';
@@ -154,6 +157,54 @@ const handlers = {
     return { message: `Your people will study ${KNOWLEDGE[knowledgeId].name.toLowerCase()}.` };
   },
 
+  // ----- Battles -----
+  battleDeploy(state, { assignments }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = state.pendingEvent;
+    if (!ev || ev.type !== 'raid') return { error: 'There is no battle to fight.' };
+    if (!ev.battle) ev.battle = createBattle(state, ev);
+    if (ev.battle.phase !== 'deploy') return { error: 'The battle has already begun.' };
+    const placed = deploy(state, ev.battle, assignments || {});
+    if (placed.error) return placed;
+    return { message: 'Your fighters are in position. Give your orders for the first round.' };
+  },
+
+  battleOrders(state, { orders }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = state.pendingEvent;
+    const battle = ev && ev.battle;
+    if (!battle || battle.phase !== 'fight') return { error: 'There is no battle underway.' };
+    const { lines, outcome } = resolveRound(state, battle, orders || {});
+    if (!outcome) return { message: lines.join(' ') };
+    const final = [...summarize(state, battle), ...finishBattle(state, battle, outcome)];
+    recordBattle(state, final);
+    return { message: [...lines, ...final].join(' ') };
+  },
+
+  battleAuto(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = state.pendingEvent;
+    if (!ev || ev.type !== 'raid') return { error: 'There is no battle to fight.' };
+    const result = autoBattle(state, ev);
+    if (result.error) return result;
+    recordBattle(state, result.lines);
+    return { message: result.lines.join(' ') };
+  },
+
+  battleRetreat(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = state.pendingEvent;
+    const battle = ev && ev.battle;
+    if (!battle || battle.phase !== 'fight') return { error: 'There is no battle underway.' };
+    const final = [...summarize(state, battle), ...finishBattle(state, battle, 'retreat')];
+    recordBattle(state, final);
+    return { message: final.join(' ') };
+  },
+
   queueStudy(state, { knowledgeId }) {
     const stop = blocked(state);
     if (stop) return stop;
@@ -226,6 +277,11 @@ const handlers = {
     return { message: `Season ended. It is now ${state.report.title}.` };
   },
 };
+
+function recordBattle(state, lines) {
+  state.report.urgent.push(...lines);
+  for (const text of lines) state.log.push({ turn: state.turn, date: state.report.title, text });
+}
 
 // Convenience for tests and the advisors: food needed by everyone now.
 export function currentFoodNeed(state) {

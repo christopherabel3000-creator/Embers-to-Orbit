@@ -178,6 +178,17 @@ Battles happen on a battlefield split into zones, and both sides make tactical d
 2. **Each round:** both sides secretly give each formation an order (hold, advance, flank, charge, volley, fall back). Orders resolve at the same time.
 3. **Morale:** units break and flee long before they are destroyed. Retreating early to save an army is a valid choice.
 
+**Built so far (Survival era)**
+
+- **Zones:** left flank, center, right flank, plus a reserve. At your camp, the palisade (if built) covers every zone and the treeline covers the left flank. At Skarn hold, the Skarn hold walls on a rocky hill.
+- **Deployment:** choose a formation (even line, strong center, strong left or right, a fifth in reserve, or match the enemy) and adjust each fighter's position, including keeping someone behind. Or let the war chief command, or hide.
+- **Rounds (up to 4):** each group gets an order: hold (takes less harm; behind the palisade it also strikes hard), attack (hits harder, takes full harm), swing round to hit the enemy center (from a flank, hits hard but leaves that flank open), or fall back to the reserve. The reserve can join any zone. Orders resolve at the same time as the enemy's.
+- **Empty zones:** raiders who meet no one in a zone reach the stores and carry off food and wood. When attacking Skarn hold, pushing through two zones they leave empty wins.
+- **Breaking:** a group that loses more than 60 percent of its strength breaks and flees; the enemy gives up when it is down to 35 percent of its fighters, and after 4 rounds they pull back with what they took.
+- **Wounds and deaths** fall on the people who fought. Every fighter gains two seasons of hunting practice.
+- **The war chief** suggests orders each round and can finish the battle at any time; their estimate of the odds comes from quietly fighting the battle many times in their head.
+- **Attacking Skarn hold** (from the Neighbors screen, once your scouts have found it): 8 warriors plus 1 per year defend it. Victory brings their stores, two years of truce, and enough respect for a lasting peace. Defeat brings revenge raids.
+
 **Modern era additions**
 
 - **Air and sea layers** sit above the ground zones. Air superiority gives ground forces a major edge.
@@ -223,7 +234,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
-1. **Phase 1: Survival era.** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one. Each season the player assigns every survivor a task (hunt, forage, gather wood, build, scout, tend the hurt, study, rest, and later farm). Raids are simple in Phase 1: choose defenders and whether to fight or hide, and the result resolves automatically; zone-based battles arrive in Phase 2.
+1. **Phase 1: Survival era.** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one. Each season the player assigns every survivor a task (hunt, forage, gather wood, build, scout, tend the hurt, study, rest, and later farm). Raids are fought as zone-based tactical battles (see Combat), with the option to let the war chief command or to hide.
 2. **Phase 2: Settlement era.** Population groups, buildings, research, all five starting regions, the first rival nations, trade, and zone-based combat.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.

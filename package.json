@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "simulate": "node tools/simulate.mjs",
+    "battles": "node tools/battles.mjs",
     "serve": "python3 -m http.server 8000"
   }
 }

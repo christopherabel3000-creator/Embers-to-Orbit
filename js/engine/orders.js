@@ -67,8 +67,8 @@ export function applyStandingOrders(state) {
     const able = living(state).filter(canFight);
     const odds = raidOdds(state, able, ev.warned, ev.raiders);
     let plan = null;
-    if (orders.raidPolicy === 'fightIfLikely' && odds.ratio >= 1.3) plan = 'fight';
-    if (orders.raidPolicy === 'auto') plan = odds.ratio >= 1 && able.length ? 'fight' : 'hide';
+    if (orders.raidPolicy === 'fightIfLikely' && odds.chance >= 0.75) plan = 'fight';
+    if (orders.raidPolicy === 'auto') plan = odds.chance >= 0.5 && able.length ? 'fight' : 'hide';
     if (plan) {
       const result = resolveRaidPlan(state, plan, able.map((p) => p.id));
       if (!result.error) {

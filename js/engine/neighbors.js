@@ -2,7 +2,15 @@
 // how the Skarn shape raids. One diplomatic act per neighbor per season.
 
 import { NEIGHBORS, NEIGHBOR_ORDER } from './data.js';
-import { hasKnowledge } from './state.js';
+import {
+  hasKnowledge, isKnown, living, canFight, year,
+} from './state.js';
+import { createBattle } from './battle.js';
+
+// Warriors defending Skarn hold. Their numbers grow with the years.
+export function skarnGarrison(state) {
+  return 8 + year(state);
+}
 
 export function neighbor(state, id) {
   return state.neighbors[id];
@@ -82,6 +90,10 @@ export function diplomacyOptions(state, id) {
     add('learnFarming', 'Ask them to teach your people farming', n.relation >= 40, 'They would only share their ways with close friends. Relations must be at least 40.');
   }
   if (id === 'skarn' && !n.peace) {
+    const fighters = living(state).filter(canFight).length;
+    add('attack', `Lead an attack on Skarn hold. About ${skarnGarrison(state)} warriors defend it, behind their walls. Costs 10 food for the march.`,
+      isKnown(state, 'skarnHold') && fighters >= 4 && r.food >= 10,
+      !isKnown(state, 'skarnHold') ? 'Your scouts have not found Skarn hold.' : fighters < 4 ? 'You need at least 4 people fit to fight.' : 'You need 10 food for the march.');
     add('tribute', 'Pay 20 food in tribute for a year without raids', r.food >= 20, 'You need 20 food.');
     add('peace', 'Propose a lasting peace', n.relation >= 10, 'They would laugh at you. Relations must be at least 10.');
   }
@@ -133,6 +145,11 @@ export function applyDiplomacy(state, id, key) {
       n.truceUntil = state.turn + 4;
       changeRelation(state, id, 5);
       return { message: 'The Skarn took your 20 food and promised a year without raids.' };
+    case 'attack':
+      r.food -= 10;
+      state.pendingEvent = { type: 'raid', side: 'attack', raiders: skarnGarrison(state), warned: true, from: 'skarn' };
+      state.pendingEvent.battle = createBattle(state, state.pendingEvent);
+      return { message: 'Your fighters are gathering for the march on Skarn hold. Choose who goes and where they stand.' };
     case 'peace':
       n.peace = true;
       changeRelation(state, id, 10);

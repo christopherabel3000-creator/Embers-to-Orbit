@@ -16,6 +16,9 @@ import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/r
 import { describePending } from '../engine/events.js';
 import { diplomacyOptions } from '../engine/neighbors.js';
 import {
+  battleView, formationPlan, FORMATIONS, ORDER_NAMES,
+} from '../engine/battle.js';
+import {
   remainingQueueWork, queueBlocker, queuedCount, refundFor,
 } from '../engine/building.js';
 import { seasonsToNextLevel } from '../engine/skills.js';
@@ -624,7 +627,7 @@ function menuScreen() {
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
     <p>Set people to Study and choose a discovery on the Knowledge screen. Discoveries improve hunting, building, storage, and health. Farming is the great one: build fields, plant in spring, tend in summer, and harvest in autumn.</p>
     <p>Other peoples live around the valley. Scouts may find their homes, and some will find you. On the Neighbors screen you can send gifts, trade, and make deals, once per people each season. The raiders who trouble your camp are a people too, and they can be bargained with.</p>
-    <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off.</p>
+    <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off. You can let your war chief fight, hide, or command the battle yourself. The field has a left flank, a center, and a right flank, plus a reserve. Place your fighters, then each round give every group an order: hold (safer, especially behind a palisade or in the treeline), attack (hits harder, takes more harm), swing round to hit the enemy center, or fall back to the reserve. The reserve can join any zone. Any zone you leave empty lets raiders reach the stores. Groups that lose too much strength break and flee; the enemy gives up when enough of them have fallen. You can also march on Skarn hold from the Neighbors screen: break through two zones they leave empty, or beat them down, to win.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }
@@ -643,57 +646,100 @@ function storyScreen() {
   return html;
 }
 
+const POSITION_NAMES = {
+  left: 'Left flank', center: 'Center', right: 'Right flank', reserve: 'Reserve', out: 'Stay behind',
+};
+
 function raidScreen() {
+  const view = battleView(state);
+  return view.phase === 'deploy' ? deployScreen(view) : battleRoundScreen(view);
+}
+
+function deployScreen(view) {
   const ev = state.pendingEvent;
-  const people = living(state);
-  const able = people.filter(canFight);
-  const odds = raidOdds(state, able, ev.warned, ev.raiders);
+  const attack = view.side === 'attack';
   const chief = advisorPerson(state, 'warChief');
-  const who = ev.from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed raiders';
-  let html = `<h1>Raiders!</h1>
-    <p class="urgent">${ev.warned
-      ? `Scouts spotted about ${ev.raiders} ${who} heading for ${esc(state.campName)}. There is time to prepare.`
-      : `About ${ev.raiders} ${who} are at the edge of ${esc(state.campName)}, and they caught you by surprise. Defenders will fight at a disadvantage.`}</p>
-    ${state.buildings.palisade ? '<p>Your palisade will help the defenders.</p>' : ''}
-    <form id="raidForm">
-      <fieldset>
-        <legend>Your response</legend>
-        <label class="choice"><input type="radio" name="plan" value="fight" checked> Stand and fight</label>
-        <label class="choice"><input type="radio" name="plan" value="hide"> Hide what you can and flee into the trees. Nobody gets hurt, but the raiders take some food and wood.</label>
-      </fieldset>
-      <fieldset id="defenders">
-        <legend>Defenders, if you fight</legend>
-        <div class="actions">
-          <button type="button" data-action="selectAllDefenders">Select all able</button>
-          <button type="button" data-action="clearDefenders">Clear</button>
-        </div>`;
-  for (const p of people.filter((x) => x.age >= 12)) {
-    const fit = canFight(p);
-    html += `<label class="choice"><input type="checkbox" name="defender" value="${p.id}"${fit ? ' checked' : ''}>
-      ${esc(p.name)}, hunting ${p.skills.hunting}, ${healthWord(p.health)}${p.sick ? ', sick' : ''}</label>`;
+  const chiefName = chief ? chief.name : 'your war chief';
+  const odds = raidOdds(state, living(state).filter(canFight), ev.warned, ev.raiders);
+  const total = view.enemyTotal;
+  let html = attack
+    ? `<h1>March on Skarn hold</h1>
+      <p>About ${total} Skarn warriors hold the walls. Choose who goes and where they stand.</p>`
+    : `<h1>Raiders!</h1>
+      <p class="urgent">${ev.warned
+        ? `Scouts spotted ${total} ${esc(view.foe)} heading for ${esc(state.campName)}. There is time to prepare.`
+        : `About ${total} ${esc(view.foe)} are at the edge of ${esc(state.campName)}, and they caught you by surprise.`}</p>`;
+  html += `<h2>The enemy</h2><ul>${view.enemyLines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+  if (view.terrain.length) html += `<h2>The ground</h2><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+  html += `<h2>War chief's advice</h2>
+    <p>${chief ? `${esc(chief.name)} says: ` : ''}if everyone able fights, we are ${odds.word}. Best formation: ${esc(FORMATIONS[view.suggestedFormation].toLowerCase())}.</p>
+    <h2>Quick choices</h2>
+    <div class="actions">
+      <button type="button" class="primary" data-action="battleAuto">Let ${esc(chiefName)} command the battle</button>
+      <button type="button" data-action="${attack ? 'callOff' : 'hide'}">${attack ? 'Call off the attack' : 'Hide what you can and flee into the trees. Nobody gets hurt, but the raiders take some food and wood.'}</button>
+    </div>
+    <h2>Command it yourself</h2>
+    <form id="deployForm">
+      <p><label for="formation">Formation</label>
+        <select id="formation">${Object.entries(FORMATIONS).map(([id, label]) => `<option value="${id}"${id === view.suggestedFormation ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></p>
+      <p><button type="button" data-action="applyFormation">Arrange fighters in this formation</button></p>
+      <fieldset><legend>Positions</legend>`;
+  for (const f of view.fighters) {
+    const where = view.plan[f.id] || 'out';
+    html += `<p><label for="pos-${f.id}">${esc(f.name)}, hunting ${f.hunting}, ${healthWord(f.health)}${f.sick ? ', sick' : ''}</label>
+      <select id="pos-${f.id}" data-position="${f.id}">${Object.entries(POSITION_NAMES).map(([z, label]) => `<option value="${z}"${z === where ? ' selected' : ''}>${label}</option>`).join('')}</select></p>`;
   }
   html += `</fieldset>
-      <h2>War chief's estimate</h2>
-      <p id="raidOdds" aria-live="polite">${chief ? `${esc(chief.name)} says: ` : ''}with ${plural(able.length, 'defender', 'defenders')}, we are ${odds.word}.</p>
-      <div class="actions"><button type="submit" class="primary">Confirm</button></div>
+      <p id="deploySummary" aria-live="polite">${esc(positionSummary(view.plan))}</p>
+      <div class="actions"><button type="submit" class="primary">Take positions</button></div>
     </form>`;
   return html;
 }
 
-function updateRaidOdds() {
-  const form = document.getElementById('raidForm');
-  if (!form || !state.pendingEvent) return;
-  const ids = [...form.querySelectorAll('input[name="defender"]:checked')].map((i) => Number(i.value));
-  const defenders = ids.map((id) => personById(state, id));
+function positionSummary(plan) {
+  const counts = { left: 0, center: 0, right: 0, reserve: 0 };
+  for (const z of Object.values(plan)) if (z in counts) counts[z] += 1;
+  return `Left flank ${counts.left}, center ${counts.center}, right flank ${counts.right}, reserve ${counts.reserve}.`;
+}
+
+function readPositions() {
+  const plan = {};
+  for (const sel of $main.querySelectorAll('select[data-position]')) plan[sel.dataset.position] = sel.value;
+  return plan;
+}
+
+function battleRoundScreen(view) {
   const chief = advisorPerson(state, 'warChief');
-  const prefix = chief ? `${chief.name} says: ` : '';
-  const out = document.getElementById('raidOdds');
-  if (!defenders.length) {
-    out.textContent = `${prefix}with no defenders, we cannot fight.`;
-    return;
+  const chiefName = chief ? chief.name : 'your war chief';
+  let html = `<h1>Battle, round ${view.round} of ${view.maxRounds}</h1>
+    <p>${view.enemyTotal} ${esc(view.foe)} still on the field.${view.loot.food || view.loot.wood ? ` They have carried off ${view.loot.food} food and ${view.loot.wood} wood so far.` : ''}</p>`;
+  if (view.lastRound.length) html += `<h2>Last round</h2><ul>${view.lastRound.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+  html += '<h2>The field</h2>';
+  for (const z of view.zones) {
+    html += `<h3>${esc(capitalize(z.name))}</h3>
+      <p>${z.people.length ? `Yours: ${esc(listWords(z.people))}, ${esc(z.odds)}.` : 'None of yours.'} Enemy: ${z.enemy || 'none'}.</p>`;
   }
-  const odds = raidOdds(state, defenders, state.pendingEvent.warned, state.pendingEvent.raiders);
-  out.textContent = `${prefix}with ${plural(defenders.length, 'defender', 'defenders')}, we are ${odds.word}.`;
+  html += `<h3>Reserve</h3><p>${view.reserve.length ? esc(listWords(view.reserve)) : 'Empty.'}</p>`;
+  if (view.terrain.length) html += `<details><summary>The ground</summary><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
+  html += `<h2>War chief's advice</h2><p>${esc(chiefName)} suggests: ${esc(view.adviceText || 'hold steady')}.</p>
+    <form id="ordersForm"><fieldset><legend>Orders for this round</legend>`;
+  for (const z of view.zones.filter((x) => x.orders.length)) {
+    html += `<p><label for="order-${z.zone}">${esc(capitalize(z.name))}, ${plural(z.people.length, 'fighter', 'fighters')}</label>
+      <select id="order-${z.zone}" data-zone="${z.zone}">${z.orders.map((o) => `<option value="${o}"${view.advice[z.zone] === o ? ' selected' : ''}>${esc(ORDER_NAMES[o])}</option>`).join('')}</select></p>`;
+  }
+  if (view.reserve.length) {
+    const opts = [['stay', 'Stay in reserve'], ...view.zones.map((z) => [z.zone, `Join the ${z.name}`])];
+    html += `<p><label for="order-reserve">Reserve, ${plural(view.reserve.length, 'fighter', 'fighters')}</label>
+      <select id="order-reserve" data-zone="reserve">${opts.map(([v, l]) => `<option value="${v}"${view.advice.reserve === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></p>`;
+  }
+  html += `</fieldset>
+      <div class="actions">
+        <button type="submit" class="primary">Give orders</button>
+        <button type="button" data-action="battleAuto">Let ${esc(chiefName)} finish the battle</button>
+        <button type="button" data-action="battleRetreat">Retreat and abandon the fight</button>
+      </div>
+    </form>`;
+  return html;
 }
 
 // ---------- events ----------
@@ -837,13 +883,28 @@ function handleAction(action, btn) {
       }
       break;
     }
-    case 'selectAllDefenders':
-    case 'clearDefenders': {
-      for (const box of $main.querySelectorAll('input[name="defender"]')) {
-        const p = personById(state, Number(box.value));
-        box.checked = action === 'selectAllDefenders' ? canFight(p) : false;
-      }
-      updateRaidOdds();
+    case 'battleAuto': {
+      const msg = act({ type: 'battleAuto' });
+      if (msg) show('report');
+      break;
+    }
+    case 'hide':
+    case 'callOff': {
+      const msg = act({ type: 'resolveRaid', plan: 'hide' });
+      if (msg) show('report');
+      break;
+    }
+    case 'battleRetreat': {
+      if (!window.confirm('Abandon the fight? The raiders will take what they want.')) break;
+      const msg = act({ type: 'battleRetreat' });
+      if (msg) show('report');
+      break;
+    }
+    case 'applyFormation': {
+      const plan = formationPlan(state, state.pendingEvent.battle, document.getElementById('formation').value);
+      for (const sel of $main.querySelectorAll('select[data-position]')) sel.value = plan[sel.dataset.position] || 'out';
+      document.getElementById('deploySummary').textContent = positionSummary(readPositions());
+      announce(`Fighters arranged. ${positionSummary(readPositions())}`);
       break;
     }
     default:
@@ -878,8 +939,8 @@ $main.addEventListener('change', (e) => {
     act({ type: 'setOrder', id: order.dataset.order, value });
     return;
   }
-  if (e.target.name === 'defender') {
-    updateRaidOdds();
+  if (e.target.matches('select[data-position]')) {
+    document.getElementById('deploySummary').textContent = positionSummary(readPositions());
     return;
   }
   if (e.target.id === 'importInput' && e.target.files[0]) {
@@ -910,10 +971,15 @@ $main.addEventListener('submit', (e) => {
     if (msg) show('report');
     return;
   }
-  if (e.target.id === 'raidForm') {
-    const plan = e.target.querySelector('input[name="plan"]:checked').value;
-    const defenderIds = [...e.target.querySelectorAll('input[name="defender"]:checked')].map((i) => Number(i.value));
-    const msg = act({ type: 'resolveRaid', plan, defenderIds });
+  if (e.target.id === 'deployForm') {
+    const msg = act({ type: 'battleDeploy', assignments: readPositions() });
+    if (msg) show('report');
+    return;
+  }
+  if (e.target.id === 'ordersForm') {
+    const orders = {};
+    for (const sel of e.target.querySelectorAll('select[data-zone]')) orders[sel.dataset.zone] = sel.value;
+    const msg = act({ type: 'battleOrders', orders });
     if (msg) show('report');
   }
 });

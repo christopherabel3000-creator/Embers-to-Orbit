@@ -14,6 +14,7 @@ import {
 } from './rules.js';
 import { birthOutlook, parents } from './population.js';
 import { skarnAtPeace } from './neighbors.js';
+import { estimateBattle } from './battle.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -60,11 +61,15 @@ export function forecastFood(state) {
   return { emptyIn: null, endStock: Math.round(stock) };
 }
 
+// The war chief's estimate for a raid, by fighting it out in their head.
 export function raidOdds(state, defenders, warned, raiders) {
-  const ratio = defenseStrength(state, defenders, warned) / raidAttackStrength(raiders);
-  if (ratio >= 1.3) return { word: 'likely to win', ratio };
-  if (ratio >= 0.95) return { word: 'an even fight', ratio };
-  return { word: 'likely to lose', ratio };
+  const ev = state.pendingEvent && state.pendingEvent.type === 'raid'
+    ? state.pendingEvent
+    : { type: 'raid', raiders, warned, from: 'skarn', side: 'defend' };
+  const chance = estimateBattle(state, ev, defenders.map((p) => p.id), 16);
+  if (chance >= 0.75) return { word: 'likely to win', chance };
+  if (chance >= 0.45) return { word: 'an even fight', chance };
+  return { word: 'likely to lose', chance };
 }
 
 function seasonsUntilWinter(state) {

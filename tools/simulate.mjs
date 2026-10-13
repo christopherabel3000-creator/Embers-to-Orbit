@@ -96,7 +96,7 @@ function play(seed, strategy) {
     if (state.pendingEvent) {
       const fighters = living(state).filter((p) => p.health >= 40);
       const odds = raidOdds(state, fighters, state.pendingEvent.warned, state.pendingEvent.raiders);
-      state = strategy === 'sensible' && odds.ratio >= 1
+      state = strategy === 'sensible' && odds.chance >= 0.5
         ? act(state, { type: 'resolveRaid', plan: 'fight', defenderIds: fighters.map((p) => p.id) })
         : act(state, { type: 'resolveRaid', plan: 'hide' });
       if (state.gameOver) break;

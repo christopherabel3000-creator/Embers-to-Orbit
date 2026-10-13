@@ -21,6 +21,7 @@ Plain HTML, CSS, and JavaScript modules. No build step.
 - `npm run serve` serves the game at http://localhost:8000 (modules don't load from a `file://` path).
 - `npm test` runs the engine tests.
 - `npm run simulate` plays hundreds of automatic games to check balance.
+- `npm run battles` fights hundreds of battles to check combat balance.
 
 Code layout:
 

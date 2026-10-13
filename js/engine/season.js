@@ -11,6 +11,7 @@ import {
 import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
 import { applyStudy } from './study.js';
+import { createBattle } from './battle.js';
 import {
   meet, driftRelations, raidModifier, skarnAtPeace,
 } from './neighbors.js';
@@ -379,6 +380,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     || (scoutsOut && chance(state, 0.6));
   state.raidThreat = false;
   state.pendingEvent = { type: 'raid', raiders, warned, from };
+  state.pendingEvent.battle = createBattle(state, state.pendingEvent);
   const who = from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed strangers';
   urgent.unshift(warned
     ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp. Decide how to respond before anything else.`

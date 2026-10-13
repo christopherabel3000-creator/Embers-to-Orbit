@@ -153,12 +153,14 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 - **Actions as data.** Every player decision (build, recruit, battle orders) is a recorded action applied to the state. This suits turn-based multiplayer, where players submit orders each season.
 - **Saves.** Saved in the browser at first, with export and import of save files so a campaign can move between phone and computer. Cloud saves can come later.
 - **Multiplayer later.** Likely async turn-based play through an online backend such as Firebase. Not built in the first phases, but the design must not block it.
+- **Plain HTML, CSS, and JavaScript**, no build tools. Published through GitHub Pages so it can be played on iPhone from a link.
+- **Store releases later.** Packaged with Capacitor for the App Store and Google Play, and with Electron or Tauri for Steam. To keep this possible: the game is fully offline (no outside servers or CDNs), uses relative paths, and saves only through one swappable save module.
 
 ## Build roadmap
 
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
-1. **Phase 1: Survival era.** One starting region, named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one.
+1. **Phase 1: Survival era.** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving. Tested with VoiceOver from day one. Each season the player assigns every survivor a task (hunt, forage, gather wood, build, scout, tend the hurt, rest). Raids are simple in Phase 1: choose defenders and whether to fight or hide, and the result resolves automatically; zone-based battles arrive in Phase 2.
 2. **Phase 2: Settlement era.** Population groups, buildings, research, all five starting regions, the first rival nations, trade, and zone-based combat.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
@@ -173,5 +175,5 @@ The game is built in layers, and each phase should be playable and fun on its ow
 - [ ] Exact resource list per era
 - [ ] Shape of the research tree
 - [ ] Audio: which sound cues, if any, in Phase 1
-- [ ] Which starting region Phase 1 uses (forest is the likely default)
+- [x] Phase 1 starting region: forest valley
 - [ ] Multiplayer modes: head-to-head, co-op, async with friends

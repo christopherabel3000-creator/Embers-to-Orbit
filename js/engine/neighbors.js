@@ -6,6 +6,7 @@ import {
   hasKnowledge, isKnown, living, canFight, year,
 } from './state.js';
 import { createBattle } from './battle.js';
+import { recordDeed, hasTradition, effectiveBaseline } from './legacy.js';
 
 // Warriors defending Skarn hold. Their numbers grow with the years.
 export function skarnGarrison(state) {
@@ -34,10 +35,14 @@ export function meet(state, id, { contact = true } = {}) {
 export function driftRelations(state) {
   for (const id of NEIGHBOR_ORDER) {
     const n = state.neighbors[id];
-    const base = NEIGHBORS[id].baseline;
+    const base = effectiveBaseline(state, id); // Their nature, shifted by your reputation.
     if (n.relation > base) n.relation -= 1;
     else if (n.relation < base) n.relation += 1;
   }
+}
+
+function giftValue(state, id) {
+  return NEIGHBORS[id].giftValue * (hasTradition(state, 'generous') ? 1.5 : 1);
 }
 
 export function skarnAtPeace(state) {
@@ -63,7 +68,8 @@ export function raidModifier(state) {
 
 function tradeAmount(state, id, kind) {
   const base = NEIGHBORS[id].trades[kind];
-  return Math.max(8, Math.round(base + state.neighbors[id].relation / 10));
+  const ways = hasTradition(state, 'trading') ? 3 : 0;
+  return Math.max(8, Math.round(base + state.neighbors[id].relation / 10)) + ways;
 }
 
 // Everything the player could try with a neighbor this season. Each option
@@ -114,17 +120,20 @@ export function applyDiplomacy(state, id, key) {
   switch (key) {
     case 'giftFood':
       r.food -= 10;
-      changeRelation(state, id, def.giftValue);
+      changeRelation(state, id, giftValue(state, id));
+      recordDeed(state, 'gifts');
       return { message: `Your envoys carried 10 food to ${them}. They were pleased.` };
     case 'giftWood':
       r.wood -= 10;
-      changeRelation(state, id, def.giftValue);
+      changeRelation(state, id, giftValue(state, id));
+      recordDeed(state, 'gifts');
       return { message: `Your envoys carried 10 wood to ${them}. They were pleased.` };
     case 'woodForFood': {
       const get = tradeAmount(state, id, 'woodForFood');
       r.wood -= 20;
       r.food += get;
       changeRelation(state, id, 2);
+      recordDeed(state, 'trades');
       return { message: `You traded 20 wood to ${them} for ${get} food.` };
     }
     case 'foodForWood': {
@@ -132,6 +141,7 @@ export function applyDiplomacy(state, id, key) {
       r.food -= 20;
       r.wood += get;
       changeRelation(state, id, 2);
+      recordDeed(state, 'trades');
       return { message: `You traded 20 food to ${them} for ${get} wood.` };
     }
     case 'learnFarming':

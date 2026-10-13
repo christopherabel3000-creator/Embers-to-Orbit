@@ -15,6 +15,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Build queue with leftover work carrying over; study queue; orders to staff the fields and to queue lean-tos.
 - Neighbors: the Velari, Tellani, and Skarn, with first contact, relations, diplomacy, and events.
 - Tactical battles: zones, formations, simultaneous orders, terrain, morale, and an attack on Skarn hold.
+- Traditions (nine) and reputation (four parts) grown from the camp's deeds.
 
 ## Next in the Survival era
 
@@ -29,6 +30,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 
 - [ ] Research tree.
 - [ ] Population moves from named individuals to groups by profession.
-- [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, attacking the Skarn, trade goods beyond food and wood, reputation shared across peoples, a standing order to pay tribute.
+- [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.
+- [ ] More traditions over the eras, and traditions that can fade if neglected.
 - [ ] Battles, deeper: commanders, unit types (archers, spearmen), weather and seasons on the battlefield, and balance as raids grow (raider numbers rise by 2 a year with no cap).
 - [ ] The other four starting regions, each with its own local map.

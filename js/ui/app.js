@@ -16,6 +16,9 @@ import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/r
 import { describePending } from '../engine/events.js';
 import { diplomacyOptions } from '../engine/neighbors.js';
 import {
+  TRADITIONS, traditionProgress, reputationSummary, attitudeLines,
+} from '../engine/legacy.js';
+import {
   battleView, formationPlan, FORMATIONS, ORDER_NAMES,
 } from '../engine/battle.js';
 import {
@@ -402,7 +405,7 @@ function mapScreen() {
 function knowledgeScreen() {
   const k = state.knowledge;
   const studiers = living(state).filter((p) => p.task === 'study');
-  const rate = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p), 0));
+  const rate = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p, state), 0));
   let html = `<h1>Knowledge</h1>
     <p>People set to Study on the People screen make discoveries. ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season. Points left over from one discovery go straight into the next one in the queue.</p>
     <h2>Current study</h2>`;
@@ -464,7 +467,8 @@ function neighborsScreen() {
   if (!met.length) {
     return `${html}<p>Your people know of no one else yet. Scouts exploring far from camp may find other peoples, and others may find you.</p>`;
   }
-  html += `<p>Each season you can send envoys to each people once${speaker ? `, led by ${esc(speaker.name)}, your speaker` : ''}. Relations run from hostile to close friends, and slowly drift back toward each people's nature.</p>`;
+  html += `<p>${esc(reputationSummary(state))}</p>`;
+  html += `<p>Each season you can send envoys to each people once${speaker ? `, led by ${esc(speaker.name)}, your speaker` : ''}. Relations run from hostile to close friends, and slowly drift toward each people's nature, shifted by your reputation.</p>`;
   for (const id of met) {
     const def = NEIGHBORS[id];
     const n = state.neighbors[id];
@@ -476,6 +480,7 @@ function neighborsScreen() {
     else if (id === 'skarn' && n.truceUntil > state.turn) status = ` A truce holds for ${plural(n.truceUntil - state.turn, 'more season', 'more seasons')}.`;
     html += `<h2 id="neighbor-${id}">${esc(def.title)}</h2>
       <p>Relations: ${relationWord(n.relation)} (${n.relation}).${status}</p>
+      ${attitudeLines(state, id).map((l) => `<p>${esc(l)}</p>`).join('')}
       <p>${esc(capitalize(def.temperament))}. ${esc(def.description)}</p>
       <p>Home: ${esc(placeName(state, def.home))}${isKnown(state, def.home) ? '' : ', a place your scouts have not found'}. They want ${esc(def.wants)}, and offer ${esc(def.offers)}.</p>
       <h3>Envoys this season</h3>`;
@@ -585,7 +590,20 @@ function advisorsScreen() {
 }
 
 function chronicleScreen() {
-  let html = '<h1>Chronicle</h1>';
+  let html = '<h1>Chronicle</h1><p>Your people\'s story: the traditions they have grown into, how others see them, and what has happened.</p>';
+  const earned = state.traditions || [];
+  html += '<h2>Traditions</h2>';
+  if (earned.length) {
+    html += `<ul>${earned.map((id) => `<li><strong>${esc(TRADITIONS[id].name)}.</strong> ${esc(TRADITIONS[id].story)} ${esc(TRADITIONS[id].effect)}</li>`).join('')}</ul>`;
+  } else {
+    html += '<p>None yet. Traditions grow from what your people do again and again.</p>';
+  }
+  const forming = traditionProgress(state);
+  if (forming.length) {
+    html += `<h2>Taking shape</h2><ul>${forming.map((t) => `<li>${esc(t.name)}: ${t.have} of ${t.need} ${esc(t.deed)}.</li>`).join('')}</ul>`;
+  }
+  html += `<h2>Reputation</h2><p>${esc(reputationSummary(state))}</p>`;
+  html += '<h2>Seasons past</h2>';
   if (!state.log.length) return `${html}<p>Nothing has happened yet. End your first season to begin the chronicle.</p>`;
   html += '<p>The most recent seasons come first.</p>';
   const groups = [];
@@ -599,7 +617,7 @@ function chronicleScreen() {
     g.lines.push(entry.text);
   }
   for (const g of groups) {
-    html += `<h2>${esc(g.date)}</h2><ul>${[...g.lines].reverse().map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    html += `<h3>${esc(g.date)}</h3><ul>${[...g.lines].reverse().map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   }
   return html;
 }
@@ -627,6 +645,7 @@ function menuScreen() {
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
     <p>Set people to Study and choose a discovery on the Knowledge screen. Discoveries improve hunting, building, storage, and health. Farming is the great one: build fields, plant in spring, tend in summer, and harvest in autumn.</p>
     <p>Other peoples live around the valley. Scouts may find their homes, and some will find you. On the Neighbors screen you can send gifts, trade, and make deals, once per people each season. The raiders who trouble your camp are a people too, and they can be bargained with.</p>
+    <p>Your people grow traditions from what they do again and again: win battles, hunt, bring in harvests, welcome strangers, give gifts, trade, study, build, or slip away from raiders. Each tradition gives a lasting benefit. The Chronicle screen shows the traditions you have and the ones taking shape. What you do also earns a reputation, and each neighboring people likes some parts of it and dislikes others, which slowly shifts how they feel about you.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off. You can let your war chief fight, hide, or command the battle yourself. The field has a left flank, a center, and a right flank, plus a reserve. Place your fighters, then each round give every group an order: hold (safer, especially behind a palisade or in the treeline), attack (hits harder, takes more harm), swing round to hit the enemy center, or fall back to the reserve. The reserve can join any zone. Any zone you leave empty lets raiders reach the stores. Groups that lose too much strength break and flee; the enemy gives up when enough of them have fallen. You can also march on Skarn hold from the Neighbors screen: break through two zones they leave empty, or beat them down, to win.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;

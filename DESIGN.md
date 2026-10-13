@@ -138,6 +138,24 @@ Three hand-crafted peoples live around the forest valley. Each has a home on the
 - **The Skarn and raids.** Once known, the Skarn's mood sets how often raids come: hostile 1.5 times as often, friendly much less. Tribute or peace stops them; only small bands of outlaws remain. Defeating their raids angers them. Their riders may demand tribute; refusing or defying them brings raiders soon.
 - **Neighbor events.** The Velari may ask for food after a blight; friendly Velari or Tellani may send a young person to join the camp; the Skarn may demand tribute.
 
+## Traditions and reputation (built)
+
+The camp keeps count of its deeds: battles won, seasons of hunting, harvests, strangers taken in or turned away, gifts and help given, trades, discoveries, buildings finished, raids hidden from, and attacks launched. Nothing is chosen from a menu.
+
+| Tradition | Grows from | Effect |
+| --- | --- | --- |
+| Warrior tradition | 3 battles won | Fighters are stronger in every battle |
+| Hunting lore | 80 seasons of hunting (one per hunter per season) | +1 food per hunter |
+| Rhythm of the seasons | 3 harvests | +1 food per field plot |
+| Open hearth | 3 strangers taken in by choice | Wanderers come more often and settle in happier |
+| Generous hands | 5 gifts or acts of help | Gifts win half again as much goodwill |
+| Trading ways | 5 trades | +3 food or wood on every trade |
+| Love of learning | 4 discoveries | +1 study point per studier |
+| Master builders | 8 buildings finished | +1 work per builder |
+| Hidden ways | 3 raids hidden from | Hiding from raiders loses half as much |
+
+**Reputation** has four parts, each 0 to 30: fierce fighters (battles won and attacks), generous friends (gifts), welcoming to strangers (taken in minus turned away), and honest traders (trades). Each people weighs them differently: the Velari like generosity and welcome and dislike fierceness; the Tellani like honest trading and some generosity; the Skarn respect fierceness and see generosity as softness. Relations drift toward each people's nature plus these shifts. The Chronicle screen shows traditions, those taking shape, and your reputation; the Neighbors screen shows how each people sees you.
+
 ## Events
 
 Events keep seasons from feeling the same. After each season there is a 40 percent chance of one event, and the same event cannot repeat within 6 seasons. Raids take priority.

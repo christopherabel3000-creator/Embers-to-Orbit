@@ -2,6 +2,7 @@
 // resolution (which adds randomness) and the advisors (who forecast).
 
 import { PLACES } from './data.js';
+import { hasTradition } from './legacy.js';
 import {
   isKnown, wolvesAt, hasKnowledge, living, seasonIndex, fieldPlots,
 } from './state.js';
@@ -61,6 +62,7 @@ export function expectedFood(state, person, task, seasonIdx) {
     const site = siteFor(state, 'hunt');
     amount = (2 + s.hunting) * HUNT_SEASON[seasonIdx] + bonus(site, 'hunt');
     if (hasKnowledge(state, 'spears')) amount += 1;
+    if (hasTradition(state, 'hunting')) amount += 1;
     amount *= abundanceFactor(state, site, 'hunt') * distanceFactor(site);
     if (wolvesAt(state, site)) amount *= 0.7; // Wolves scare off and take the game.
   } else if (task === 'forage') {
@@ -83,12 +85,14 @@ export function expectedWood(state, person, task, seasonIdx) {
 
 export function expectedWork(person, state = null) {
   const tools = state && hasKnowledge(state, 'stoneTools') ? 1 : 0;
-  return (2 + person.skills.building + tools) * workFactor(person);
+  const masters = state && hasTradition(state, 'builders') ? 1 : 0;
+  return (2 + person.skills.building + tools + masters) * workFactor(person);
 }
 
 // Study points a person adds toward the current discovery each season.
-export function studyPoints(person) {
-  return (2 + person.skills.learning) * workFactor(person);
+export function studyPoints(person, state = null) {
+  const love = state && hasTradition(state, 'learning') ? 1 : 0;
+  return (2 + person.skills.learning + love) * workFactor(person);
 }
 
 // ----- Farming -----
@@ -113,8 +117,8 @@ export function farmersNeeded(state) {
   return Math.ceil(state.farm.planted / HARVEST_PER_FARMER);
 }
 
-export function foodPerPlot(tendedFraction) {
-  return 6 + 4 * tendedFraction;
+export function foodPerPlot(tendedFraction, state = null) {
+  return 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0);
 }
 
 // Food the coming autumn harvest should bring, with current farmers.
@@ -128,7 +132,7 @@ export function expectedHarvest(state) {
   let tended = state.farm.tended;
   if (s <= 1) tended = Math.min(planted, farmerCapacity(people, TEND_PER_FARMER));
   const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
-  const perPlot = foodPerPlot(tended / planted);
+  const perPlot = foodPerPlot(tended / planted, state);
   return harvested * perPlot + (planted - harvested) * perPlot * 0.5;
 }
 

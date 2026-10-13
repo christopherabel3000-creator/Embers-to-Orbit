@@ -2,6 +2,7 @@
 
 import { living } from './state.js';
 import { refreshAdvisors } from './advisors.js';
+import { recordDeed, hasTradition } from './legacy.js';
 import {
   createBattle, formationPlan, warChiefFormation, autoBattle,
 } from './battle.js';
@@ -28,7 +29,9 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
     lines.push(ev.warned
       ? 'Your people hid what they could and slipped into the trees until the raiders left.'
       : 'Caught by surprise, your people grabbed what they could and fled into the trees.');
-    lines.push(ev.warned ? loseShare(0.2, 0.15) : loseShare(0.35, 0.25));
+    const half = hasTradition(state, 'hidden') ? 0.5 : 1;
+    lines.push(ev.warned ? loseShare(0.2 * half, 0.15 * half) : loseShare(0.35 * half, 0.25 * half));
+    recordDeed(state, 'hid');
     for (const p of all) p.morale = Math.max(0, p.morale - 6);
   } else if (plan === 'fight') {
     // The war chief fights the battle with the chosen defenders.

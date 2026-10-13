@@ -12,6 +12,7 @@ import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
 import { chance, pick, randomInt } from './rng.js';
 import { shuffle, listNames, clamp } from './util.js';
 import { meet, changeRelation, skarnAtPeace } from './neighbors.js';
+import { recordDeed, hasTradition } from './legacy.js';
 
 const EVENT_CHANCE = 0.4;
 const COOLDOWN = 6; // Seasons before the same event can happen again.
@@ -200,15 +201,18 @@ export const EVENTS = {
         p.morale = 55;
         p.sick = true;
         state.people.push(p);
+        recordDeed(state, 'welcomed');
         for (const x of everyone) x.morale = clamp(x.morale + 2);
         return [`${t.name} joined the camp, still burning with fever, and is resting.`];
       }
       if (choice === 'feed') {
         state.resources.food = Math.max(0, state.resources.food - 6);
         for (const x of everyone) x.morale = clamp(x.morale + 3);
+        recordDeed(state, 'gifts');
         return [`You gave ${t.name} food for the road. Your people were glad to help.`];
       }
       for (const x of everyone) x.morale = clamp(x.morale - 5);
+      recordDeed(state, 'turnedAway');
       return [`You turned ${t.name} away. The camp was quiet that night.`];
     },
   },
@@ -357,8 +361,9 @@ export const EVENTS = {
     view(state) {
       const known = state.neighbors.tellani.known;
       const rel = state.neighbors.tellani.relation;
-      const food = Math.max(8, Math.round(15 + rel / 10));
-      const wood = Math.max(8, Math.round(20 + rel / 10));
+      const ways = hasTradition(state, 'trading') ? 3 : 0;
+      const food = Math.max(8, Math.round(15 + rel / 10)) + ways;
+      const wood = Math.max(8, Math.round(20 + rel / 10)) + ways;
       const options = [];
       if (state.resources.wood >= 20) options.push({ id: 'woodForFood', label: `Trade 20 wood for ${food} food.` });
       if (state.resources.food >= 15) options.push({ id: 'foodForWood', label: `Trade 15 food for ${wood} wood.` });
@@ -382,11 +387,13 @@ export const EVENTS = {
         r.wood -= 20;
         r.food += view.food;
         changeRelation(state, 'tellani', 2);
+        recordDeed(state, 'trades');
         lines.push(`You traded 20 wood for ${view.food} food.`);
       } else if (choice === 'foodForWood' && r.food >= 15) {
         r.food -= 15;
         r.wood += view.wood;
         changeRelation(state, 'tellani', 2);
+        recordDeed(state, 'trades');
         lines.push(`You traded 15 food for ${view.wood} wood.`);
       } else {
         lines.push('The traders shrugged and rowed on downriver.');
@@ -448,6 +455,7 @@ export const EVENTS = {
       if (choice === 'gift') {
         const what = id === 'tellani' ? 'wood' : 'food';
         state.resources[what] = Math.max(0, state.resources[what] - 10);
+        recordDeed(state, 'gifts');
         changeRelation(state, id, id === 'skarn' ? 8 : 15);
         return [`You offered 10 ${what} to ${def.name}. ${id === 'skarn' ? 'The Skarn took it without thanks, but lowered their spears.' : 'They accepted it gladly.'} You can deal with them on the Neighbors screen.`];
       }
@@ -490,11 +498,13 @@ export const EVENTS = {
       if (choice === 'all' && state.resources.food >= 20) {
         state.resources.food -= 20;
         changeRelation(state, 'velari', 18);
+        recordDeed(state, 'gifts', 2);
         return ['You sent 20 food to the Velari. Their elder wept with gratitude.'];
       }
       if (choice === 'some' && state.resources.food >= 10) {
         state.resources.food -= 10;
         changeRelation(state, 'velari', 8);
+        recordDeed(state, 'gifts');
         return ['You sent 10 food to the Velari. They thanked you for what you could spare.'];
       }
       changeRelation(state, 'velari', -10);
@@ -529,6 +539,7 @@ export const EVENTS = {
       p.isNew = true;
       state.people.push(p);
       changeRelation(state, ev.from, 5);
+      recordDeed(state, 'welcomed');
       return [`${t.name} joined the camp.`];
     },
   },

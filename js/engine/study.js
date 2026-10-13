@@ -3,6 +3,7 @@
 
 import { KNOWLEDGE } from './data.js';
 import { knowledgeBlocker } from './state.js';
+import { recordDeed } from './legacy.js';
 
 // Starts the first queued discovery that is ready. Returns its id or null.
 export function startNextStudy(state) {
@@ -32,6 +33,7 @@ export function applyStudy(state, points) {
     left -= used;
     if (k.progress[k.current] >= item.cost - 1e-9) {
       k.learned.push(k.current);
+      recordDeed(state, 'discoveries');
       delete k.progress[k.current];
       k.current = null;
       out.urgent.push(`Discovery: ${item.name}. ${item.effect}`);

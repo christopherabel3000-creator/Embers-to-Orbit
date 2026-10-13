@@ -5,6 +5,7 @@
 import { BUILDINGS, KNOWLEDGE } from './data.js';
 import { hasKnowledge } from './state.js';
 import { plural } from './util.js';
+import { recordDeed } from './legacy.js';
 
 export function queuedCount(state, id) {
   return state.buildQueue.filter((item) => item.id === id).length;
@@ -55,6 +56,7 @@ export function applyBuildWork(state, work) {
     if (item.progress >= b.work - 1e-9) {
       state.buildings[item.id] += 1;
       state.buildQueue.shift();
+      recordDeed(state, 'built');
       finished.push(b);
     }
   }

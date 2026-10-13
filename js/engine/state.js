@@ -7,8 +7,9 @@ import {
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
   NEIGHBORS, NEIGHBOR_ORDER,
 } from './data.js';
+import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -93,6 +94,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
     neighbors: initialNeighbors(),
+    deeds: emptyDeeds(), // What the camp has done: the root of traditions and reputation.
+    traditions: [],
     advisors: { steward: 6, warChief: 7, healer: 4, scholar: 8, speaker: 9 }, // Fenna, Garrow, Dalia, Hesta, Iven
     pendingEvent: null,
     report: null,
@@ -189,6 +192,13 @@ export function migrate(data) {
       .sort((a, b) => b.skills.learning - a.skills.learning)[0];
     data.advisors.speaker = speaker ? speaker.id : null;
     data.version = 10;
+  }
+  if (data.version === 10) {
+    data.deeds = emptyDeeds();
+    data.deeds.discoveries = data.knowledge.learned.length;
+    data.deeds.built = Object.values(data.buildings).reduce((sum, n) => sum + n, 0);
+    data.traditions = [];
+    data.version = 11;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

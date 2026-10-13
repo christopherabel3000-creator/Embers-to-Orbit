@@ -110,6 +110,6 @@ test('version 9 saves gain neighbors and a speaker', () => {
   delete old.advisors.speaker;
   delete old.places.velariFields;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 10);
+  assert.equal(s.version, 11);
   assert.ok(s.neighbors.velari && s.advisors.speaker && s.places.velariFields);
 });

@@ -21,6 +21,7 @@ import {
   foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { applyStandingOrders } from './orders.js';
+import { recordDeed, checkTraditions, hasTradition } from './legacy.js';
 import { gainExperience } from './skills.js';
 import { progressConditions, maybeStartEvent } from './events.js';
 import { nextRandom, randomBetween, randomInt, chance, pick } from './rng.js';
@@ -89,7 +90,7 @@ export function resolveSeason(state) {
         healPool += healingPoints(state, p);
         break;
       case 'study':
-        studyPool += studyPoints(p);
+        studyPool += studyPoints(p, state);
         break;
       case 'scout':
         scouts.push(p);
@@ -107,6 +108,7 @@ export function resolveSeason(state) {
   state.resources.food += food;
   state.resources.wood += wood;
   const hunters = people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
+  recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
   if (hunters > 0 || food > 0) events.push(`Hunters and foragers brought in ${food} food.`);
   if (wood > 0) events.push(`Woodcutters gathered ${wood} wood.`);
   for (const p of injuredWhileHunting) {
@@ -163,9 +165,10 @@ export function resolveSeason(state) {
     } else if (s === 2 && state.farm.planted) {
       const planted = state.farm.planted;
       const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
-      const perPlot = foodPerPlot(state.farm.tended / planted);
+      const perPlot = foodPerPlot(state.farm.tended / planted, state);
       const gained = Math.round(harvested * perPlot + (planted - harvested) * perPlot * 0.5);
       state.resources.food += gained;
+      if (gained > 0) recordDeed(state, 'harvests');
       events.push(harvested >= planted
         ? `Harvest: ${gained} food from ${planted} plots.`
         : `Harvest: ${gained} food. There were too few hands, and some grain rotted in the fields.`);
@@ -183,7 +186,10 @@ export function resolveSeason(state) {
       continue;
     }
     const options = [...unexploredNeighbors(state, scoutBase)];
-    if (state.wanderersMet < WANDERERS.length) options.push('wanderer');
+    if (state.wanderersMet < WANDERERS.length) {
+      options.push('wanderer');
+      if (hasTradition(state, 'hearth')) options.push('wanderer'); // Word of your welcome spreads.
+    }
     if (options.length === 0) {
       events.push(`${scout.name} scouted beyond ${placeName(state, scoutBase)}, but every path from there is already explored. Send scouts out from another place.`);
       continue;
@@ -193,7 +199,7 @@ export function resolveSeason(state) {
       const template = WANDERERS[state.wanderersMet];
       state.wanderersMet += 1;
       const newcomer = makePerson(template, state.nextPersonId++, 'rest');
-      newcomer.morale = 50;
+      newcomer.morale = hasTradition(state, 'hearth') ? 65 : 50;
       newcomer.isNew = true;
       state.people.push(newcomer);
       events.push(`${scout.name} met ${newcomer.name}, ${template.note.charAt(0).toLowerCase()}${template.note.slice(1)} ${newcomer.name} has joined the camp.`);
@@ -348,6 +354,7 @@ export function resolveSeason(state) {
     const fromOrders = applyStandingOrders(state);
     urgent.push(...fromOrders.urgent);
     ordersDone.push(...fromOrders.orders);
+    urgent.push(...checkTraditions(state));
     if (!state.milestoneReached && survivors.length >= MILESTONE_POPULATION
         && state.buildings.storehouse > 0 && state.buildings.palisade > 0 && hasKnowledge(state, 'farming')) {
       state.milestoneReached = true;

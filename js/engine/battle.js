@@ -9,6 +9,7 @@ import { gainExperience } from './skills.js';
 import { refreshAdvisors } from './advisors.js';
 import { meet, changeRelation } from './neighbors.js';
 import { listNames, clamp, plural } from './util.js';
+import { recordDeed, hasTradition } from './legacy.js';
 
 export const ZONES = ['left', 'center', 'right'];
 export const ZONE_NAMES = { left: 'left flank', center: 'center', right: 'right flank', reserve: 'reserve' };
@@ -30,7 +31,8 @@ const WOUND_EVERY = 6; // About one wound for this much damage.
 
 export function fighterStrength(state, p) {
   const spears = hasKnowledge(state, 'spears') ? 1.5 : 0;
-  return (4 + p.skills.hunting * 1.5 + spears) * Math.max(0.3, p.health / 100);
+  const warriors = hasTradition(state, 'warrior') ? 1.5 : 0;
+  return (4 + p.skills.hunting * 1.5 + spears + warriors) * Math.max(0.3, p.health / 100);
 }
 
 function groupStrength(state, ids) {
@@ -408,6 +410,8 @@ export function finishBattle(state, battle, outcome) {
     return [f, w];
   };
 
+  if (outcome === 'victory') recordDeed(state, 'battlesWon');
+  if (battle.side === 'attack') recordDeed(state, 'attacks');
   if (battle.side === 'defend') {
     if (outcome === 'victory') {
       lines.push(`The ${foe} broke and fled. ${state.campName} is safe.`);

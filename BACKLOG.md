@@ -30,14 +30,15 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 ## Done in Phase 2 (Settlement era)
 
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
+- Part 3, the valley peoples as nations: growth, territory and claims, treaties (trade pact, open lands, alliance), trust and memory, ally calls, Skarn war bands from real warriors, skirmishers, and great hosts.
 - Part 2, stone and crafts: quarrying and the Grey cliffs, crafting goods, goods trades and gifts, a research tree in five branches (12 new discoveries, one either-or choice), and six village buildings.
 
 ## Toward Phase 2 (Settlement era)
 
-- [ ] Part 3: the Velari, Tellani, and Skarn grow into rival nations: their own population and strength, territory, treaties, and promises remembered.
 - [ ] Part 4: founding a second settlement ends the era and opens the Nation era.
-- [ ] Balance: a village run on the default priorities grows to about 70 people in 20 years, stores well over a thousand food, and raids stop being a threat. Part 3's rival nations should bring the challenge back. Goods also pile up if the player never trades; more uses for goods (upkeep, festivals, hiring) may help.
+- [ ] Balance: a village run on the default priorities grows to about 70 people in 20 years and stores well over a thousand food. Part 3 made the Skarn a growing power with skirmishers and great hosts, but a village behind a palisade still wins nearly every battle. Options: battles that scale less in the defenders' favor, sieges that cut off work outside the walls, harder starting regions. Goods also pile up if the player never trades; more uses for goods (upkeep, festivals, hiring) may help.
 - [ ] More either-or choices in the research tree, and laws or customs the village can adopt.
+- [ ] Nations, deeper: relations between the nations themselves, nations proposing treaties and making demands, the council moving work away from foreign land, and the Velari and Tellani contesting land with each other.
 
 - [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.
 - [ ] More traditions over the eras, and traditions that can fade if neglected.

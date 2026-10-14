@@ -11,7 +11,7 @@ import {
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
-  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES,
+  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -33,6 +33,9 @@ import {
 import {
   villageBlocker, groups, notablePeople, GROUP_NAMES,
 } from '../engine/village.js';
+import {
+  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord,
+} from '../engine/nations.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -425,6 +428,11 @@ function mapScreen() {
   }
   html += `<p><label for="site-scout">Scouts explore beyond</label>
     <select id="site-scout" data-site="scout">${known.map((id) => `<option value="${id}"${siteFor(state, 'scout') === id ? ' selected' : ''}>${esc(siteOptionText(id, 'scout'))}</option>`).join('')}</select></p>`;
+  if (nationsActive(state)) {
+    const held = landsOf(state, 'player').filter((p) => p !== 'camp');
+    html += `<h2 id="landsHeading">Your lands</h2>
+      <p>Besides ${esc(state.campName)}, your village holds ${held.length ? esc(listWords(held.map((p) => placeName(state, p)))) : 'no other places'}: ${held.length} of the ${claimLimit(state)} it can hold. More people let you hold more. You can claim a place that borders your land and that no one else holds. Working on another people's land angers them, unless you have an open lands pact.</p>`;
+  }
   html += '<h2>Places you know</h2><ul class="plain">';
   for (const id of known) {
     const place = PLACES[id];
@@ -440,12 +448,20 @@ function mapScreen() {
     if (siteFor(state, 'hunt') === id) workingHere.push('hunters');
     if (siteFor(state, 'forage') === id) workingHere.push('foragers');
     if (siteFor(state, 'wood') === id) workingHere.push('woodcutters');
-    html += `<li class="card"><h3>${esc(placeName(state, id))}</h3>
+    if (taskAvailable(state, 'quarry') && siteFor(state, 'quarry') === id) workingHere.push('quarriers');
+    const who = nationsActive(state) ? owner(state, id) : null;
+    const ownerLine = !nationsActive(state) ? ''
+      : who === 'player' ? '<p>Yours.</p>'
+        : who ? `<p>Belongs to ${esc(NEIGHBORS[who].name)}.</p>` : '<p>Unclaimed.</p>';
+    const canClaim = nationsActive(state) && !who && !claimBlocker(state, id);
+    html += `<li class="card"><h3 id="place-${id}">${esc(placeName(state, id))}</h3>
+      ${ownerLine}
       <p>${esc(place.description)}${place.distance >= 3 ? ' It is far from camp, so work here goes a little slower.' : ''}</p>
       ${conditions.length ? `<p>${conditions.join(' ')}</p>` : ''}
       <p>Paths lead to ${esc(listWords(linkParts) || 'nowhere new')}.</p>
       ${workingHere.length ? `<p>Your ${esc(listWords(workingHere))} work here.</p>` : ''}
       ${siteFor(state, 'scout') === id ? '<p>Your scouts explore from here.</p>' : ''}
+      ${canClaim ? `<p><button type="button" data-action="claimPlace" data-place="${id}">Claim ${esc(placeName(state, id))}</button></p>` : ''}
     </li>`;
   }
   html += '</ul>';
@@ -519,6 +535,16 @@ function knowledgeScreen() {
   return html;
 }
 
+function nationSection(id) {
+  const nat = state.neighbors[id].nation;
+  const treaties = TREATY_ORDER.filter((k) => nat.treaties[k]).map((k) => TREATIES[k].name.toLowerCase());
+  const memory = [...nat.memory].reverse().slice(0, 5);
+  return `<h3>Their nation</h3>
+    <p>${esc(nationSummary(state, id))}</p>
+    <p>Trust: ${esc(trustWord(nat.trust))} (${nat.trust}).${treaties.length ? ` Treaties in force: ${esc(listWords(treaties))}.` : ' No treaties.'}</p>
+    ${memory.length ? `<p>They remember that you:</p><ul>${memory.map((m) => `<li>${esc(m.text)}${m.kind === 'broken' ? ' (a broken promise)' : ''}.</li>`).join('')}</ul>` : ''}`;
+}
+
 function neighborsScreen() {
   const met = metNeighbors(state);
   const speaker = advisorPerson(state, 'speaker');
@@ -542,6 +568,7 @@ function neighborsScreen() {
       ${attitudeLines(state, id).map((l) => `<p>${esc(l)}</p>`).join('')}
       <p>${esc(capitalize(def.temperament))}. ${esc(def.description)}</p>
       <p>Home: ${esc(placeName(state, def.home))}${isKnown(state, def.home) ? '' : ', a place your scouts have not found'}. They want ${esc(def.wants)}, and offer ${esc(def.offers)}.</p>
+      ${n.nation ? nationSection(id) : ''}
       <h3>Envoys this season</h3>`;
     if (n.lastEnvoy === state.turn) html += '<p>Your envoys have already visited them this season.</p>';
     else if (!ready.length) html += '<p>Nothing you can offer them right now.</p>';
@@ -795,6 +822,7 @@ function menuScreen() {
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off. You can let your war chief fight, hide, or command the battle yourself. The field has a left flank, a center, and a right flank, plus a reserve. Place your fighters, then each round give every group an order: hold (safer, especially behind a palisade or in the treeline), attack (hits harder, takes more harm), swing round to hit the enemy center, or fall back to the reserve. The reserve can join any zone. Any zone you leave empty lets raiders reach the stores. Groups that lose too much strength break and flee; the enemy gives up when enough of them have fallen. You can also march on Skarn hold from the Neighbors screen: break through two zones they leave empty, or beat them down, to win.</p>
     <p>Once your camp has 16 people, a storehouse, a palisade, and farming, it can become a village, whenever you choose. In a village your advisors form a council that sets everyone's work each season. You guide it with priorities on the Village screen, and keep running the build and study queues, trade, feasts, and the food reserve. Villages can train guards, build huts, and draw settlers when well fed and roomy.</p>
     <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
+    <p>Once you are a village, the Velari, Tellani, and Skarn grow into nations. Each spring they grow, and they claim land outward from their homes. You can claim places too, on the Map screen. Working another people's land angers them unless you share it with an open lands pact. On the Neighbors screen you can propose treaties: a trade pact, open lands, or an alliance, whose warriors help you against raiders, and who will ask you for help in turn. Each nation remembers your promises, kept and broken, and trusts you accordingly. Skarn war bands come from the warriors they actually have, so every raider you defeat weakens them.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }
@@ -992,6 +1020,15 @@ function handleAction(action, btn) {
       if (msg) {
         show('build', { focus: false });
         refocus('#queueHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'claimPlace': {
+      const msg = act({ type: 'claimPlace', placeId: btn.dataset.place });
+      if (msg) {
+        show('map', { focus: false });
+        refocus(`#place-${btn.dataset.place}`, '#landsHeading');
         announce(msg);
       }
       break;

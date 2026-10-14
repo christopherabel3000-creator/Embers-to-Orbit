@@ -421,6 +421,16 @@ export function finishBattle(state, battle, outcome) {
   };
 
   if (outcome === 'victory') recordDeed(state, 'battlesWon');
+  // Skarn who fall are lost to their nation.
+  if (battle.from !== 'outlaws' && state.neighbors.skarn.nation) {
+    const left = Object.values(battle.enemy).reduce((sum, n) => sum + n, 0);
+    const fallen = Math.max(0, battle.enemyStart - left);
+    const sk = state.neighbors.skarn.nation;
+    sk.warriors = Math.max(0, sk.warriors - fallen);
+    sk.population = Math.max(sk.warriors, sk.population - Math.ceil(fallen / 2));
+    if (battle.side === 'defend' && outcome !== 'victory') sk.wealth += 40; // Plunder feeds them.
+    if (fallen) lines.push(`The Skarn lost ${fallen} warriors. They now have about ${sk.warriors}.`);
+  }
   if (battle.side === 'attack') recordDeed(state, 'attacks');
   if (battle.side === 'defend') {
     if (outcome === 'victory') {

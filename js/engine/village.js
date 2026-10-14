@@ -9,6 +9,7 @@ import {
   living, inVillage, makePerson, foodNeeded, shelterNeeded, shelterCapacity, lifeStage, hasKnowledge,
 } from './state.js';
 import { bestWorkPlan } from './assign.js';
+import { startNations } from './nations.js';
 import { refreshAdvisors } from './advisors.js';
 import { hasTradition } from './legacy.js';
 import { chance, randomInt, pick } from './rng.js';
@@ -44,6 +45,7 @@ export function foundVillage(state) {
   if (why) return { error: why };
   state.era = 'village';
   state.villageFounded = state.turn;
+  startNations(state);
   state.orders.autoAssign = true;
   for (const p of living(state)) p.morale = clamp(p.morale + 10);
   const plan = bestWorkPlan(state);
@@ -52,7 +54,7 @@ export function foundVillage(state) {
     p.orderReturn = null;
   }
   refreshAdvisors(state);
-  const line = `${state.campName} is a village now. The elders gathered by the fire and agreed: from this season on, the council will set everyone's work, guided by the priorities you choose. Huts and guards are now possible.`;
+  const line = `${state.campName} is a village now. The elders gathered by the fire and agreed: from this season on, the council will set everyone's work, guided by the priorities you choose. Huts and guards are now possible. The peoples of the valley have noticed too: they are growing into nations, and will claim land of their own.`;
   state.log.push({ turn: state.turn, date: state.report.title, text: line });
   state.report.decisions = [...(state.report.decisions || []), line];
   return { message: `${state.campName} is a village now. The council will assign everyone's work each season. Set its priorities on the Village screen.` };

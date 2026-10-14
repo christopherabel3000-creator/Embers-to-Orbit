@@ -29,6 +29,7 @@ Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceO
 - **The Chronicle** of the campaign, a turn report each season, autosave, and save export and import.
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 - **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
+- **The valley peoples as nations:** population, warriors, and land that grow each spring; territory and claims on the map; treaties; trust and remembered promises; Skarn war bands, skirmishers, and great hosts drawn from their real strength.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
 
@@ -99,7 +100,7 @@ The game unfolds in eras. Each era layers new systems on top of the old ones, so
 
 Era advancement is driven by research and growth, not a fixed timer, and the player chooses when to take each step. The Settlement era begins when the player chooses to become a village, any time after the camp has 16 people, a storehouse, a palisade, and farming. It ends, and the Nation era begins, when the village founds a second settlement.
 
-## The Settlement era (parts 1 and 2 built)
+## The Settlement era (parts 1 to 3 built)
 
 Decisions made with Christopher, October 2026:
 
@@ -152,7 +153,28 @@ Decisions made with Christopher, October 2026:
 | Meeting hall | 40 wood, 40 stone, 20 goods | 24 | Spirits settle at 62 instead of 55; quarrels much rarer |
 | Stone wall | 20 wood, 80 stone | 30 | Needs the palisade. Defenders who hold take 35 percent of the harm instead of 45, and strike harder |
 
-**Still to build:** part 3, the valley peoples growing into rival nations (population, strength, territory, treaties, remembered promises); part 4, founding a second settlement, which ends the era.
+**Built so far (part 3: the valley peoples as nations)**
+
+When the camp becomes a village, the Velari, Tellani, and Skarn become nations. Each has a population, warriors, and stores, and owns its home on the map.
+
+| Nation | People at the start | Growth each spring | Under arms | Lands they reach for, in order |
+| --- | --- | --- | --- | --- |
+| Velari | 30 plus 2 a year | 5 percent | 12 percent | Herb hillside, Abandoned camp, North meadow |
+| Tellani | 24 plus 1 a year | 4 percent | 10 percent | Beaver ponds, Berry thicket, Riverbank |
+| Skarn | 40 plus 3 a year | 8 percent | 45 percent | Raider trail, Deer trails, Oak woods |
+
+- **Growth.** Every spring each nation grows by its rate, plus one person for every 60 in its stores (plunder and trade draw newcomers). Warriors move toward their share of the population by up to a third a year, so losses are made good within a few years. As the village grows past four fifths of the Skarn's size, hill clans join the Skarn, a quarter of the difference each year.
+- **Territory.** Every place can be owned. The village starts with its camp; each nation with its home. A nation claims its next place each spring once it has 15 people for each place it holds beyond its home, skipping places the village holds. The village can claim a known, unowned place that borders its land, up to 2 places plus 1 for every 10 people. Claiming a place a nation wanted costs some of their goodwill and trust. Working a place another people owns (hunting, foraging, wood, or quarrying) costs 2 relation a season with them, unless there is an open lands pact; the speaker warns of it.
+- **Treaties**, proposed on the Neighbors screen, one envoy a season: a **trade pact** (relations 20, trust 40: trades a quarter better, and their attitude settles 5 higher), **open lands** (relations 15, trust 30: each may work the other's land), and an **alliance** (relations 50, trust 60). Only the Velari and Tellani will make treaties; with the Skarn, there are still tribute, truce, and peace. Ending a treaty is allowed, but costs some goodwill and trust.
+- **Trust and memory.** Each nation's trust runs from 0 to 100, starting at 50, and shifts the attitude its relations drift toward (by up to 10 either way). Every year a treaty is kept adds 2. Each nation remembers what you did, shown on the Neighbors screen: agreeing to treaties, coming to their aid, refusing it, breaking a truce.
+- **Alliances work both ways.** When the Skarn raid the village, each ally sends about a third of its warriors, who turn back that many raiders. When the Skarn attack an ally, the ally calls for help (a choice): sending up to 4 fighters and 10 food protects them, weakens the Skarn, and earns trust; refusing breaks a promise (25 trust), and an ally whose trust falls below 40 ends the alliance. Without an ally to help, the Skarn raid the weaker of the other two peoples about one spring in three.
+- **The Skarn as a real power.** Their war bands are half to four fifths of their warriors, plus any drawn by full stores, and every Skarn warrior killed is lost to them. They only march on the village when the band is at least as large as its fighters (seven tenths without a palisade, more than that with a stone wall); otherwise they wait and grow, so a weakened Skarn raids less. Their attack on Skarn hold now faces seven tenths of their warriors. Attacking during a truce breaks a promise (30 trust).
+- **Skirmishers.** Since the Skarn rarely storm a walled village, their skirmishers fall on people working away from camp: one or two are hurt, and work there brings in half for the season. The chance grows with Skarn warriors and falls with every guard on watch, and each guard has a chance (15 percent each, up to 75 percent) of driving them off and killing one or two.
+- **Great hosts.** Once Skarn warriors reach seven tenths of the village's fighters, they may gather a great host, announced a season ahead. It marches with nine tenths of their warriors, unless peace is made first; allies turn some back.
+
+**Balance so far:** in simulated villages run on default priorities, with no diplomacy, the Skarn grow to 30 to 50 warriors, gather about four great hosts in 15 years, and send skirmishers about once every two years, which guards mostly drive off. A village behind a palisade still wins its battles, so the threat bites hardest on villages without walls or guards, on work out in the open, and on allies.
+
+**Still to build:** part 4, founding a second settlement, which ends the era.
 
 ## Population and resources
 
@@ -360,7 +382,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, keyboard shortcuts, and audio cues (see BACKLOG.md).
-2. **Phase 2: Settlement era (in progress).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings. Still to build: the valley peoples as rival nations with deeper trade and diplomacy, a second settlement to end the era, the other four starting regions, and unit types in battle.
+2. **Phase 2: Settlement era (in progress).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power. Still to build: a second settlement to end the era, the other four starting regions, and unit types in battle.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.

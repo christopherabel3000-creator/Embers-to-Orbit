@@ -8,6 +8,7 @@ import {
   taskAvailable, hasKnowledge, knowledgeBlocker, knowledgeClosed, allowedTasksFor, lifeStage, inVillage,
 } from './state.js';
 import { foundVillage, setPriority } from './village.js';
+import { claimPlace } from './nations.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
@@ -93,6 +94,12 @@ const handlers = {
   foundVillage(state) {
     if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
     return foundVillage(state);
+  },
+
+  claimPlace(state, { placeId }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return claimPlace(state, placeId);
   },
 
   setPriority(state, { area, level }) {

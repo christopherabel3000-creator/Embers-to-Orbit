@@ -2,7 +2,7 @@
 // Advisors never act on their own; they only warn and suggest.
 
 import {
-  BUILDINGS, SEASONS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, OVERFLOW_ROT, LEAN_TIMES,
+  NEIGHBORS, BUILDINGS, SEASONS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, OVERFLOW_ROT, LEAN_TIMES,
 } from './data.js';
 import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
@@ -208,6 +208,24 @@ export function getAdvice(state) {
   }
   if (!hasKnowledge(state, 'farming') && k.current !== 'farming' && !knowledgeBlocker(state, 'farming')) {
     add('scholar', 'note', 'The wild grain in the North meadow could be planted. We are ready to study farming.');
+  }
+
+  // Speaker and war chief: the nations of the valley.
+  if (state.neighbors.skarn.nation) {
+    for (const task of ['hunt', 'forage', 'wood', 'quarry']) {
+      const site = state.workSites[task];
+      const who = state.places[site] && state.places[site].owner;
+      if (!who || who === 'player' || !count(task)) continue;
+      if (state.neighbors[who].nation.treaties.openLands) continue;
+      add('speaker', 'warning', `Our ${task === 'hunt' ? 'hunters' : task === 'forage' ? 'foragers' : task === 'wood' ? 'woodcutters' : 'quarriers'} work ${placeName(state, site)}, which belongs to ${NEIGHBORS[who].name}. Every season they work there, ${NEIGHBORS[who].name} grow angrier. Move the work site on the Map screen, or propose open lands.`);
+    }
+    const sk = state.neighbors.skarn;
+    if (sk.known && !skarnAtPeace(state)) {
+      const able = people.filter(canFight).length;
+      const nat = sk.nation;
+      if (nat.warriors >= able) add('warChief', 'warning', `The Skarn have about ${nat.warriors} warriors, and we have ${able} people fit to fight. Their war bands are half to most of that. Guards, a wall, allies, or peace would help.`);
+      else add('warChief', 'note', `The Skarn have about ${nat.warriors} warriors. Their war bands are half to most of that.`);
+    }
   }
 
   // Healer: fever.

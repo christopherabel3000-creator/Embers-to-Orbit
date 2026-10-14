@@ -12,6 +12,7 @@ import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
 import { chance, pick, randomInt } from './rng.js';
 import { shuffle, listNames, clamp } from './util.js';
 import { meet, changeRelation, skarnAtPeace } from './neighbors.js';
+import { remember, resolveSkarnRaid, nation } from './nations.js';
 import { recordDeed, hasTradition } from './legacy.js';
 
 const EVENT_CHANCE = 0.4;
@@ -478,6 +479,57 @@ export const EVENTS = {
     },
   },
 
+  // An ally under attack by the Skarn calls for help. Only started by the
+  // nations' year, never at random.
+  allyCall: {
+    choice: true,
+    weight: () => 0,
+    view(state, ev) {
+      const who = NEIGHBORS[ev.target];
+      const fighters = allyCallFighters(state);
+      const sk = nation(state, 'skarn');
+      const options = [];
+      if (fighters.length >= 3 && state.resources.food >= 10) {
+        options.push({ id: 'send', label: `Send ${fighters.length} fighters (${listNames(fighters)}) and 10 food for the march. Some may come home hurt.` });
+      }
+      options.push({ id: 'refuse', label: 'Refuse. Your own village comes first. They will remember it.' });
+      return {
+        title: `${who.title} call for help`,
+        text: `A runner arrives from ${who.name}, out of breath: about ${sk ? sk.warriors : 'many'} Skarn warriors are raiding them. As your allies, they ask you to send fighters at once.`,
+        options,
+        advice: [
+          ['speaker', `We swore an alliance with ${who.name}. If we refuse, they may end it, and others will hear that our word is worth little.`],
+          ['warChief', fighters.length >= 3 ? `I would send ${listNames(fighters)}. They are our best, and the rest can hold the village.` : 'We have too few fit fighters to send anyone.'],
+        ],
+      };
+    },
+    resolve(state, ev, choice) {
+      const id = ev.target;
+      const who = NEIGHBORS[id];
+      const fighters = allyCallFighters(state);
+      if (choice === 'send' && fighters.length >= 3 && state.resources.food >= 10) {
+        state.resources.food -= 10;
+        const hurt = fighters.filter(() => chance(state, 0.3));
+        for (const p of hurt) p.health = clamp(p.health - randomInt(state, 20, 35));
+        resolveSkarnRaid(state, id, true);
+        changeRelation(state, id, 10);
+        changeRelation(state, 'skarn', -8);
+        remember(state, id, `came to their aid against the Skarn in Year ${Math.floor(state.turn / 4) + 1}`, 12);
+        recordDeed(state, 'gifts');
+        return [`Your fighters marched to help ${who.name} and drove the Skarn off.${hurt.length ? ` ${listNames(hurt)} came home hurt.` : ' All came home whole.'} ${who.title} will not forget it.`];
+      }
+      resolveSkarnRaid(state, id, false);
+      changeRelation(state, id, -15);
+      remember(state, id, `refused to help when the Skarn attacked them in Year ${Math.floor(state.turn / 4) + 1}`, -25);
+      const nat = nation(state, id);
+      if (nat && nat.trust < 40 && nat.treaties.alliance) {
+        nat.treaties.alliance = false;
+        return [`You refused. ${who.title} fought the Skarn alone and suffered for it. They have ended the alliance.`];
+      }
+      return [`You refused. ${who.title} fought the Skarn alone and suffered for it. They will remember.`];
+    },
+  },
+
   velariHunger: {
     choice: true,
     weight: (state) => (state.neighbors.velari.known && state.neighbors.velari.relation > -20 ? 0.6 : 0),
@@ -609,6 +661,13 @@ export const EVENTS = {
     },
   },
 };
+
+// The best fighters to send to an ally: up to 4, keeping some at home.
+function allyCallFighters(state) {
+  const able = living(state).filter((p) => p.age >= 16 && p.health >= 60 && !p.sick)
+    .sort((a, b) => b.skills.hunting - a.skills.hunting);
+  return able.slice(0, Math.min(4, Math.floor(able.length / 3)));
+}
 
 function recruitSources(state) {
   return Object.keys(NEIGHBOR_RECRUITS).filter((id) => {

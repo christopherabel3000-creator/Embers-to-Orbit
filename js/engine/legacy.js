@@ -175,7 +175,10 @@ export function reputationEffects(state, neighborId) {
 
 // The attitude a people drifts toward: their nature plus your reputation.
 export function effectiveBaseline(state, neighborId) {
-  return NEIGHBORS[neighborId].baseline
+  // Once they are a nation, trust and a trade pact shift it too.
+  const nat = state.neighbors && state.neighbors[neighborId] && state.neighbors[neighborId].nation;
+  const trust = nat ? Math.round((nat.trust - 50) / 5) + (nat.treaties.trade ? 5 : 0) : 0;
+  return NEIGHBORS[neighborId].baseline + trust
     + reputationEffects(state, neighborId).reduce((sum, e) => sum + e.shift, 0);
 }
 

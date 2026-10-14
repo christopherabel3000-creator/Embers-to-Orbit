@@ -7,9 +7,15 @@ import {
 } from './state.js';
 import { createBattle } from './battle.js';
 import { recordDeed, hasTradition, effectiveBaseline } from './legacy.js';
+import { TREATIES, TREATY_ORDER } from './data.js';
+import {
+  treatyBlocker, makeTreaty, endTreaty, remember,
+} from './nations.js';
 
 // Warriors defending Skarn hold. Their numbers grow with the years.
 export function skarnGarrison(state) {
+  const nat = state.neighbors.skarn.nation;
+  if (nat) return Math.max(6, Math.round(nat.warriors * 0.7)); // Most of their warriors stay home to defend it.
   return 8 + year(state);
 }
 
@@ -69,8 +75,10 @@ export function raidModifier(state) {
 function tradeAmount(state, id, kind) {
   const base = NEIGHBORS[id].trades[kind];
   const ways = hasTradition(state, 'trading') ? 3 : 0;
-  const amount = Math.max(8, Math.round(base + state.neighbors[id].relation / 10)) + ways;
-  return state.buildings.market > 0 ? Math.round(amount * 1.5) : amount; // A market day draws better deals.
+  let amount = Math.max(8, Math.round(base + state.neighbors[id].relation / 10)) + ways;
+  if (state.buildings.market > 0) amount *= 1.5; // A market day draws better deals.
+  if (state.neighbors[id].nation && state.neighbors[id].nation.treaties.trade) amount *= 1.25;
+  return Math.round(amount);
 }
 
 // Who will take your goods: the Tellani once you can weave; everyone who
@@ -117,6 +125,19 @@ export function diplomacyOptions(state, id) {
   if (id === 'velari' && !hasKnowledge(state, 'farming')) {
     add('learnFarming', 'Ask them to teach your people farming', n.relation >= 40, 'They would only share their ways with close friends. Relations must be at least 40.');
   }
+  // Treaties, once they are a nation.
+  if (n.nation) {
+    for (const key of TREATY_ORDER) {
+      const t = TREATIES[key];
+      if (!t.with.includes(id)) continue;
+      if (n.nation.treaties[key]) {
+        add(`end-${key}`, `End ${t.phrase.replace(/^an? /, 'the ')}`, true, null);
+      } else {
+        const why = treatyBlocker(state, id, key);
+        add(`treaty-${key}`, `Propose ${t.phrase}: ${t.effect.replace(/\.$/, '')}`, !why, why);
+      }
+    }
+  }
   if (id === 'skarn' && !n.peace) {
     const fighters = living(state).filter(canFight).length;
     add('attack', `Lead an attack on Skarn hold. About ${skarnGarrison(state)} warriors defend it, behind their walls. Costs 10 food for the march.`,
@@ -133,6 +154,13 @@ export function applyDiplomacy(state, id, key) {
   const def = NEIGHBORS[id];
   const n = state.neighbors[id];
   if (!def || !n || !n.known) return { error: 'You have not met that people.' };
+  if (key.startsWith('treaty-') || key.startsWith('end-')) {
+    const option = diplomacyOptions(state, id).find((o) => o.key === key);
+    if (!option) return { error: 'That is not possible with them.' };
+    if (!option.ok) return { error: option.why };
+    n.lastEnvoy = state.turn;
+    return key.startsWith('treaty-') ? makeTreaty(state, id, key.slice(7)) : endTreaty(state, id, key.slice(4));
+  }
   const option = diplomacyOptions(state, id).find((o) => o.key === key);
   if (!option) return { error: 'That is not possible with them.' };
   if (!option.ok) return { error: option.why };
@@ -194,6 +222,12 @@ export function applyDiplomacy(state, id, key) {
       return { message: 'The Skarn took your 20 food and promised a year without raids.' };
     case 'attack':
       r.food -= 10;
+      if (n.truceUntil > state.turn) {
+        // Marching during a truce breaks your word.
+        n.truceUntil = -1;
+        changeRelation(state, id, -15);
+        if (n.nation) remember(state, id, `broke the truce and attacked them in Year ${year(state)}`, -30);
+      }
       state.pendingEvent = { type: 'raid', side: 'attack', raiders: skarnGarrison(state), warned: true, from: 'skarn' };
       state.pendingEvent.battle = createBattle(state, state.pendingEvent);
       return { message: 'Your fighters are gathering for the march on Skarn hold. Choose who goes and where they stand.' };

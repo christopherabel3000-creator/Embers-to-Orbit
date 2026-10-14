@@ -9,6 +9,11 @@ import {
   hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage,
 } from './state.js';
 import { maybeSettlers } from './village.js';
+import {
+  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, skarnDaring,
+  maybeHarry,
+} from './nations.js';
+import { NEIGHBORS } from './data.js';
 import { overflowRot } from './stores.js';
 import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
@@ -54,6 +59,7 @@ function hurt(person, amount) {
 }
 
 export function resolveSeason(state) {
+  if (inVillage(state) && !state.neighbors.skarn.nation) startNations(state); // Older village saves.
   const urgent = [];
   const events = [];
   const ordersDone = [];
@@ -72,8 +78,10 @@ export function resolveSeason(state) {
   let studyPool = 0;
   const injuredWhileHunting = [];
   const scouts = [];
+  // Skirmishers make work at a harried place worth half.
+  const harriedTask = (task) => state.harried && state.workSites[task] === state.harried ? 0.5 : 1;
   for (const p of people) {
-    const variance = randomBetween(state, 0.7, 1.3);
+    const variance = randomBetween(state, 0.7, 1.3) * harriedTask(p.task);
     switch (p.task) {
       case 'hunt':
         food += expectedFood(state, p, 'hunt', s) * variance;
@@ -387,11 +395,15 @@ export function resolveSeason(state) {
     urgent.push(...life.urgent);
     events.push(...life.events);
     events.push(...maybeSettlers(state));
+    events.push(...borderFriction(state));
+    const valley = valleyYear(state);
+    (state.pendingEvent && state.pendingEvent.id === 'allyCall' ? urgent : events).push(...valley);
     if (living(state).length === 0) {
       state.gameOver = true;
       urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
+    urgent.push(...maybeHarry(state));
     const happened = maybeStartEvent(state);
     urgent.push(...happened.urgent);
     events.push(...happened.events);
@@ -418,7 +430,22 @@ export function resolveSeason(state) {
 }
 
 function maybeStartRaid(state, scoutsOut, urgent) {
-  if (state.turn < 2) return;
+  if (state.turn < 2 || state.pendingEvent) return;
+  // A great host gathered last season marches now, unless peace was made.
+  if (state.skarnHost && state.turn >= state.skarnHost) {
+    state.skarnHost = null;
+    if (!skarnAtPeace(state) && state.neighbors.skarn.nation) {
+      let raiders = Math.max(6, Math.round(state.neighbors.skarn.nation.warriors * 0.9));
+      const helpers = alliedHelpers(state);
+      const stopped = Math.min(helpers, raiders - 4);
+      raiders -= Math.max(0, stopped);
+      state.pendingEvent = { type: 'raid', raiders, warned: true, from: 'skarn', host: true };
+      state.pendingEvent.battle = createBattle(state, state.pendingEvent);
+      urgent.unshift(`The Skarn host has come: about ${raiders} warriors at the edge of ${state.campName}.${stopped > 0 ? ` Your allies turned back ${stopped} more.` : ''} Decide how to respond before anything else.`);
+      return;
+    }
+    urgent.push('The Skarn host broke up and went home: they will not march against a people at peace with them.');
+  }
   const y = year(state);
   let p = 0.1 + 0.02 * Math.min(y, 10);
   // Full stores draw raiders: word gets around.
@@ -427,19 +454,33 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   p *= raidModifier(state);
   p *= Math.max(0.6, 1 - 0.04 * guardsOnWatch(state)); // Guards keep some raiders away.
   if (hasKnowledge(state, 'chieftain')) p *= 0.85; // A strong chief is feared.
+  if (nationsActive(state) && !skarnAtPeace(state)) p *= skarnRaidFactor(state); // A weakened Skarn raids less.
   if (!chance(state, Math.min(state.raidThreat ? 0.8 : 0.35, p))) return;
   // With peace or a truce, the only raiders are small bands of outlaws.
   const from = skarnAtPeace(state) ? 'outlaws' : 'skarn';
   const lure = wealthLure(state);
-  let raiders = randomInt(state, 4, 7) + raidGrowth(y) + lure;
-  if (from === 'outlaws') raiders = Math.max(3, Math.ceil(raiders / 2));
+  // Once the Skarn are a nation, their war band comes from their warriors.
+  let raiders = nationsActive(state) && from === 'skarn'
+    ? skarnBand(state) + lure
+    : randomInt(state, 4, 7) + raidGrowth(y) + lure;
+  // A Skarn nation only sends a band it thinks can win; otherwise it waits.
+  if (nationsActive(state) && from === 'skarn' && raiders < skarnDaring(state)) return;
+  if (from === 'outlaws') raiders = Math.max(3, Math.ceil((randomInt(state, 4, 7) + raidGrowth(y)) / 2));
+  // Allies send warriors, who meet some of the raiders on the way.
+  let allyNote = '';
+  const helpers = from === 'skarn' && nationsActive(state) ? alliedHelpers(state) : 0;
+  if (helpers > 0) {
+    const stopped = Math.min(helpers, raiders - 2);
+    raiders -= stopped;
+    allyNote = ` Your allies, ${allies(state).map((id) => NEIGHBORS[id].name).join(' and ')}, sent ${helpers} warriors, who turned back ${stopped} of them.`;
+  }
   const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail') || guardsOnWatch(state) >= 2
     || (scoutsOut && chance(state, 0.6));
   state.raidThreat = false;
   state.pendingEvent = { type: 'raid', raiders, warned, from };
   state.pendingEvent.battle = createBattle(state, state.pendingEvent);
   const who = from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed strangers';
-  const drawn = lure >= 2 ? ' Word of your full stores has drawn more of them.' : '';
+  const drawn = (lure >= 2 ? ' Word of your full stores has drawn more of them.' : '') + allyNote;
   urgent.unshift(warned
     ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp.${drawn} Decide how to respond before anything else.`
     : `Raiders are at the edge of camp! About ${raiders} ${who} caught you by surprise.${drawn} Decide how to respond before anything else.`);

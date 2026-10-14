@@ -486,6 +486,41 @@ export const PRIORITY_AREAS = {
 };
 export const PRIORITY_LEVELS = ['low', 'normal', 'high'];
 
+// How each valley people grows into a nation once your camp is a village.
+// growth: share added to their population each spring. warriors: share of
+// their people under arms. expansion: the places they claim, in order.
+export const NATIONS = {
+  velari: {
+    start: (y) => 30 + 2 * y, growth: 0.05, warriors: 0.12,
+    expansion: ['herbHillside', 'abandonedCamp', 'meadow'],
+  },
+  tellani: {
+    start: (y) => 24 + y, growth: 0.04, warriors: 0.1,
+    expansion: ['beaverPonds', 'berryThicket', 'riverbank'],
+  },
+  skarn: {
+    start: (y) => 40 + 3 * y, growth: 0.08, warriors: 0.45,
+    expansion: ['raiderTrail', 'deerTrails', 'oakWoods'],
+  },
+};
+
+// Treaties a village can make with a nation.
+export const TREATIES = {
+  trade: {
+    name: 'Trade pact', phrase: 'a trade pact', with: ['velari', 'tellani'], relation: 20, trust: 40,
+    effect: 'Every trade with them brings a quarter more, and both peoples grow warmer toward each other.',
+  },
+  openLands: {
+    name: 'Open lands', phrase: 'an open lands pact', with: ['velari', 'tellani'], relation: 15, trust: 30,
+    effect: 'Each people may hunt, gather, and cut wood on the other\'s land without offense.',
+  },
+  alliance: {
+    name: 'Alliance', phrase: 'an alliance', with: ['velari', 'tellani'], relation: 50, trust: 60,
+    effect: 'They send warriors to stand with you when raiders come. In return they will call on you when the Skarn attack them.',
+  },
+};
+export const TREATY_ORDER = Object.keys(TREATIES);
+
 // Names for settlers drawn to the village from beyond the valley.
 export const SETTLER_NAMES = [
   'Ansel', 'Brisa', 'Calder', 'Doran', 'Edda', 'Fallon', 'Gideon', 'Halla', 'Idris', 'Jessamy',

@@ -32,7 +32,8 @@ test('every instant event applies cleanly', () => {
 });
 
 test('every choice event offers options and resolves each one', () => {
-  for (const [id, ev] of Object.entries(EVENTS).filter(([, e]) => e.choice)) {
+  // The ally's call is only started by the nations' year; it has its own test.
+  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall')) {
     const base = richState();
     if (id === 'firstContact') base.neighbors.skarn.contactPending = true;
     else assert.ok(ev.weight(base) > 0, `${id} should be possible`);

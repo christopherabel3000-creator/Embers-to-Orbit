@@ -9,7 +9,9 @@ import { ransom, ransomGoods, sallyEvent } from '../../engine/siege.js';
 import {
   living, foodNeeded, storageCapacity, leanTimesNow, inVillage, taskAvailable,
 } from '../../engine/state.js';
-import { feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD } from '../../engine/stores.js';
+import {
+  feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD, feastLift, fullFeastLift, feastsInARow, feastExpected,
+} from '../../engine/stores.js';
 import { villageBlocker } from '../../engine/village.js';
 import { state, esc, plural, adviceList } from '../core.js';
 
@@ -43,7 +45,7 @@ export function reportScreen() {
     const word = chance >= 0.75 ? 'likely to win' : chance >= 0.45 ? 'an even fight' : 'likely to lose';
     const cost = ransom(state);
     html += `<h2 id="siegeHeading">Siege</h2>
-      <p>About ${state.siege.raiders} Skarn surround ${esc(state.campName)}. They have supplies for about ${plural(state.siege.supplies, 'more season', 'more seasons')}, and lose some to hunger each season. While they stay, no one can work outside the walls.</p>
+      <p>About ${state.siege.raiders} Skarn surround ${esc(state.campName)}. They have supplies for about ${plural(state.siege.supplies, 'more season', 'more seasons')}, and lose some to hunger each season. While they stay, no one can work outside the walls, and each season they burn a third of what is sown (and any harvest standing in the fields), drive off the herds of a pasture, and strip the land around the village.</p>
       <p>Sallying out means fighting them in the open, with no walls, against besiegers dug in behind stakes and ditches. The war chief thinks that would be ${word}.</p>
       <div class="actions">
         <button type="button" data-action="sallyOut">Sally out and fight them</button>
@@ -68,6 +70,16 @@ export function reportScreen() {
   return html;
 }
 
+// In a village, feasts are a custom: what the next one would do.
+function feastCustomText() {
+  const lift = feastLift(state);
+  const row = feastsInARow(state);
+  const now = lift < fullFeastLift(state)
+    ? `After ${plural(row, 'feast', 'feasts')} in a row, the next would lift spirits by ${lift}, where a first feast lifts them by ${fullFeastLift(state)}.`
+    : `The next feast would lift spirits by ${lift}.`;
+  return `In a village, a yearly feast becomes a custom: each feast in a year in a row lifts spirits less, and once your people expect one, a year without a feast lowers their spirits. ${now}${feastExpected(state) ? ' Your people expect their yearly feast.' : ''}`;
+}
+
 // The food stores, lean times, and feasts.
 function storesSection() {
   const people = living(state);
@@ -87,6 +99,7 @@ function storesSection() {
   const cost = feastCost(state);
   const why = feastBlocker(state);
   html += `<h3>Feast</h3><p>A feast costs ${cost} food, 3 for each person. It lifts everyone's spirits, and people in high spirits work better. Families grow closer, so a child is more likely. You can hold one feast a year, and invite a neighboring people for ${FEAST_GUEST_FOOD} food more to win their goodwill.</p>`;
+  if (inVillage(state)) html += `<p>${esc(feastCustomText())}</p>`;
   if (why) {
     html += `<p id="feastStatus">${esc(why)}</p>`;
   } else {

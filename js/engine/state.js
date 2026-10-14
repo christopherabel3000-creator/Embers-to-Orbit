@@ -10,7 +10,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -105,6 +105,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     lastFeast: -99, // The turn of the last feast. One a year.
+    feastStreak: 0, // Feasts held in a row, a year or so apart: in a village, a custom.
     era: 'camp', // 'camp' (Survival era), 'village' (Settlement era), then 'nation' with a second settlement.
     villageFounded: null, // The turn the camp became a village.
     priorities: { ...DEFAULT_PRIORITIES }, // What the village council pushes for.
@@ -310,6 +311,10 @@ export function migrate(data) {
     data.foreignWorkOk = {};
     if (data.report && !data.report.routine) data.report.routine = [];
     data.version = 25;
+  }
+  if (data.version === 25) {
+    data.feastStreak = 0;
+    data.version = 26;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

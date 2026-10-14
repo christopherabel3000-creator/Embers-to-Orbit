@@ -5,8 +5,8 @@ What the simulator says about the game's balance. [DESIGN.md](DESIGN.md) says ho
 ## Running the checks
 
 - `npm run simulate` plays 200 five-year campaigns with each of three strategies. `node tools/simulate.mjs [games] [years] [strategies]` changes the count, the length, and the strategies (comma-separated).
-- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds a second settlement when ready, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five; it uses no diplomacy unless asked.
-- Settings for the village strategy, as environment variables: `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
+- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds a second settlement when ready, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
+- Settings for the village strategy, as environment variables: `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
 - `npm run battles` fights hundreds of battles to check combat odds.
 
 ## Where things stand (October 14, 2026)
@@ -21,16 +21,31 @@ Five-year campaigns, 200 of each:
 
 Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 village`):
 
-- **Growth:** about 55 people at year 20; the camp becomes a village in about year 5.6, and 194 of 200 reach the Nation era, in about year 16. None are wiped out.
-- **Stores:** about 560 food in store (115 rotted over the campaign), 23 stone, and about 810 goods.
-- **The Skarn:** about 39 warriors among 107 people at year 20, with about 21 hill clansmen. About 3 sieges (5.6 seasons under siege in all), 0.9 great hosts, and 10 skirmishes per campaign.
-- **Losses:** about 3 people killed in battle by year 20; the villages lose about 0.1 fights per campaign.
-- **Spirits:** workers average 78, with 71 percent in high spirits; about 17 feasts in 20 years.
-- **Still too easy:** villages almost never lose a fight, spirits stay high because harvest feasts cost little once stores are large, and goods pile up (see Uses for goods below). BACKLOG.md lists ideas.
+- **Growth:** about 66 people at year 20; the camp becomes a village in about year 5.6, and 178 of 200 reach the Nation era, in about year 16. None are wiped out.
+- **Stores:** about 695 food in store (149 rotted over the campaign), 21 stone, and about 440 goods, after hiring about 7 masters and 6 bands of sell-swords.
+- **The Skarn:** about 46 warriors among 117 people at year 20, with about 21 hill clansmen. About 2.3 sieges (4 seasons under siege in all), 0.8 great hosts, and 11 skirmishes per campaign. Besiegers burn about 7 sown plots and drive off 1 herd per decade.
+- **Losses:** about 2 people killed in battle by year 20; the villages lose no fights. About 0.24 seasons of hunger per campaign.
+- **Spirits:** workers average 70, with 48 percent in high spirits over the campaign (55 percent in years 11 to 20); about 16 feasts in 20 years.
+- **Still too easy:** villages almost never lose a fight, and goods pile up even when spent. BACKLOG.md lists ideas.
 
 ## Notes by system
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
+
+### The late game, second pass (October 14, 2026)
+
+Twenty-year villages, measured in three steps. High spirits are for years 11 to 20.
+
+| Step | People at year 20 | Food | Goods | High spirits, years 11–20 |
+| --- | --- | --- | --- | --- |
+| Before | 55 | 563 | 809 | 92% |
+| The simulated village spends its goods | 69 | 785 | 581 | 93% |
+| Feasts become a custom | 64 | 700 | 452 | 55% |
+| Besiegers ravage the land | 66 | 695 | 442 | 55% |
+
+- **Goods.** A village that hires a master and sell-swords every year it can, and pays the clans when it has plenty, still ends with about 440 goods. Spending made it stronger, too: about 14 more people, and fewer sieges (2.1 instead of 3), since sell-swords harry besiegers and turn back raiders.
+- **Feasts.** With a feast every winter, nine in ten workers stayed in high spirits in years 11 to 20. As a custom, it is about half; with no feasts at all, about one in five. Feasts still matter, but they no longer carry spirits on their own.
+- **Sieges.** Besiegers burned about 7 sown plots and drove off 1 herd per decade; seasons of hunger rose to 0.24 per campaign, from 0.10 before besiegers ravaged, and 178 villages reached the Nation era, down from 188 before feasts and sieges changed. Sallying at even odds when a crop is sown changed almost nothing: siege odds are usually clearly good or clearly bad, and the villages still lost no fights. Making battles losable needs the battle ideas in BACKLOG.md.
 
 ### The season report (October 2026)
 
@@ -56,7 +71,7 @@ After it, in villages run on default priorities, with no diplomacy and no gifts 
 
 ### Uses for goods (October 2026)
 
-When comforts and arms for the guards were added, villages that kept both had about 200 goods after 20 years, down from about 550, leaving room for hiring, caravans, and the shrine; a village that does all of these must keep more people crafting. The food stores setting, added later, sends spare hands to crafts, and goods now pile up again: about 810 after 20 years. A use for goods that grows with the village is still open.
+See also The late game, second pass, above. When comforts and arms for the guards were added, villages that kept both had about 200 goods after 20 years, down from about 550, leaving room for hiring, caravans, and the shrine; a village that does all of these must keep more people crafting. The food stores setting, added later, sends spare hands to crafts, and goods now pile up again: about 810 after 20 years. A use for goods that grows with the village is still open.
 
 ### Laws (October 2026)
 

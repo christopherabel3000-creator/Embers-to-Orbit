@@ -1,14 +1,15 @@
 // Sieges. A Skarn nation too weak to storm a walled village, but strong
 // enough to hem it in, surrounds it instead. While the siege lasts no one
-// works outside the walls; the besiegers starve a little each season and
-// leave when their supplies run out. The player can wait, pay them, or
-// sally out and fight them in the open.
+// works outside the walls, and the besiegers ravage the village's land;
+// they starve a little each season and leave when their supplies run out.
+// The player can wait, pay them, or sally out and fight them in the open.
 
 import { living, canFight, inVillage } from './state.js';
 import { alliedHelpers, skarnLosses, helpersText } from './nations.js';
 import { changeRelation } from './neighbors.js';
 import { createBattle, fighterStrength, foeStrengthFor } from './battle.js';
 import { randomInt } from './rng.js';
+import { listWords } from './util.js';
 
 // Work that cannot be done while the village is besieged.
 export const OUTSIDE_TASKS = ['hunt', 'forage', 'farm', 'wood', 'quarry', 'scout'];
@@ -55,7 +56,39 @@ export function skarnApproach(state, band) {
 
 export function startSiege(state, raiders) {
   state.siege = { raiders, supplies: randomInt(state, 3, 5), started: state.turn };
-  return `The Skarn have surrounded ${state.campName} with about ${raiders} warriors. They will not storm the walls, but while they stay no one can hunt, forage, farm, cut wood or stone, or scout, and nothing comes home from your other settlements. You can wait them out, pay them to leave, or sally out and fight them in the open. See the Report screen.`;
+  return `The Skarn have surrounded ${state.campName} with about ${raiders} warriors. They will not storm the walls, but while they stay no one can hunt, forage, farm, cut wood or stone, or scout, nothing comes home from your other settlements, and each season they ravage your land: burning sown fields, driving off herds, and stripping the land around the village. You can wait them out, pay them to leave, or sally out and fight them in the open. See the Report screen.`;
+}
+
+// Each season they stay, the besiegers live off the village's land: they
+// burn a third of the sown plots (and take a harvest standing in the fields
+// whole), drive off the herds of one pasture, and hunt and strip the land
+// the village holds. Runs before the season's farming. Returns report lines.
+export const RAVAGE_FIELDS = 1 / 3;
+export const RAVAGE_LAND = 25; // Game and wild food lost on each place the village holds.
+
+export function ravage(state, seasonIdx) {
+  if (!state.siege) return [];
+  const done = [];
+  const planted = state.farm.planted;
+  if (planted > 0) {
+    const burned = seasonIdx === 2 ? planted : Math.max(1, Math.ceil(planted * RAVAGE_FIELDS));
+    state.farm.planted -= burned;
+    state.farm.tended = Math.min(state.farm.tended, state.farm.planted);
+    done.push(seasonIdx === 2
+      ? `took the harvest standing in your fields: all ${burned} of your sown plots`
+      : `burned ${burned} of your sown plots`);
+  }
+  if (state.buildings.pasture > 0) {
+    state.buildings.pasture -= 1;
+    done.push('drove off the herds of one pasture');
+  }
+  for (const place of Object.values(state.places)) {
+    if (place.owner !== 'player') continue;
+    place.abundance.hunt = Math.max(0, place.abundance.hunt - RAVAGE_LAND);
+    place.abundance.forage = Math.max(0, place.abundance.forage - RAVAGE_LAND);
+  }
+  done.push('hunted and stripped the land around the village');
+  return [`The besiegers ravaged your land: they ${listWords(done)}.`];
 }
 
 export function ransom(state) {

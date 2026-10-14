@@ -7,7 +7,7 @@ import {
 } from '../js/engine/battle.js';
 import {
   skarnApproach, startSiege, siegeSeason, ransom, OUTSIDE_TASKS,
-  villageDefense, bandPower, coverWeight, STORM_RATIO, SIEGE_RATIO,
+  villageDefense, bandPower, coverWeight, STORM_RATIO, SIEGE_RATIO, ravage, RAVAGE_LAND,
 } from '../js/engine/siege.js';
 import { villagePlan } from '../js/engine/assign.js';
 import { nation } from '../js/engine/nations.js';
@@ -163,4 +163,38 @@ test('version 17 saves are not under siege', () => {
   const s = migrate(JSON.parse(JSON.stringify(old)));
   assert.equal(s.version, SAVE_VERSION);
   assert.equal(s.siege, null);
+});
+
+test('besiegers burn a third of the sown plots, drive off a herd, and strip the land', () => {
+  const s = village();
+  startSiege(s, 12);
+  s.farm = { planted: 12, tended: 12 };
+  s.buildings.pasture = 2;
+  s.places.camp.abundance.hunt = 80;
+  s.places.camp.abundance.forage = 80;
+  const lines = ravage(s, 1); // Summer.
+  assert.equal(s.farm.planted, 8);
+  assert.equal(s.farm.tended, 8);
+  assert.equal(s.buildings.pasture, 1);
+  assert.equal(s.places.camp.abundance.hunt, 80 - RAVAGE_LAND);
+  assert.match(lines[0], /^The besiegers ravaged your land: they burned 4 of your sown plots, drove off the herds of one pasture and hunted and stripped the land around the village\.$/);
+});
+
+test('in autumn the besiegers take the whole harvest standing in the fields', () => {
+  let s = village();
+  startSiege(s, 12);
+  s.farm = { planted: 10, tended: 10 };
+  s.turn = 6; // Autumn.
+  const food = s.resources.food;
+  s = act(s, { type: 'endTurn' });
+  assert.ok(s.report.urgent.some((l) => /took the harvest standing in your fields: all 10 of your sown plots/.test(l)), s.report.urgent.join(' | '));
+  assert.ok(!s.report.events.some((l) => /^Harvest/.test(l)), 'no harvest');
+  assert.ok(s.resources.food < food);
+});
+
+test('without a siege, nothing is ravaged', () => {
+  const s = village();
+  s.farm = { planted: 6, tended: 0 };
+  assert.deepEqual(ravage(s, 0), []);
+  assert.equal(s.farm.planted, 6);
 });

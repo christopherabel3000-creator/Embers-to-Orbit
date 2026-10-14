@@ -30,6 +30,7 @@ Set aside: desktop keyboard shortcuts. Not needed for now; a screen reader's own
 
 ## Done in Phase 2 (Settlement era)
 
+- Late game, second pass: feasts become a custom in a village (less lift each year in a row, a disappointment when skipped), and besiegers ravage the land each season. The simulated village now spends its goods and sallies sooner when a crop is at stake.
 - Tidier code: one file per screen, shared helpers in one place, and simulation results moved from DESIGN.md into BALANCE.md.
 - A quieter season report: news first, then the season's routine work in a few short lines under its own heading; the Chronicle keeps only the news.
 - The council moves work off land another people claims (unless the player chose that land), and the Map screen's work site choices say whose land a place is.
@@ -48,7 +49,7 @@ Set aside: desktop keyboard shortcuts. Not needed for now; a screen reader's own
 
 ## Still open in Phase 2 (Settlement era)
 
-- [ ] Balance, still open: harvest feasts cost little once stores are large, so spirits stay high in a big village; feasts could cost more per person as a village grows, or draw clans like stores do. Simulated villages still win every battle they choose to fight. Ideas: weather and season in battle, spearmen and shield walls as a choice, ambushes on the road, a standing order to send gifts to the clans, and the Velari and Tellani hiring clansmen of their own.
+- [ ] Balance, still open: simulated villages still win every battle they choose to fight, and goods still pile up (about 440 by year 20, even when the village hires masters and sell-swords every year). See BALANCE.md. Ideas: weather and season in battle, spearmen and shield walls as a choice, ambushes on the road, a standing order to send gifts to the clans, and the Velari and Tellani hiring clansmen of their own.
 - [ ] The simulator's village only queues a building when it can already pay for it, one at a time, so it rarely uses the extra builders that full food stores free up. A smarter simulated builder would show what the food stores setting does for building.
 - [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
 - [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices.

@@ -12,7 +12,7 @@ import { maybeSettlers } from './village.js';
 import { lawSettle } from './laws.js';
 import { spendGoods } from './goods.js';
 import {
-  besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege,
+  besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege, ravage,
 } from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
 import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
@@ -22,7 +22,7 @@ import { crowdingSettle } from './village.js';
 import {
   nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, skarnRaidFactor, helpersText, maybeHarry,
 } from './nations.js';
-import { overflowRot } from './stores.js';
+import { overflowRot, feastCustomSeason } from './stores.js';
 import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
 import { applyStudy } from './study.js';
@@ -194,6 +194,8 @@ export function resolveSeason(state) {
   }
 
   // Farming follows the year: plant in spring, tend in summer, harvest in autumn.
+  // Besiegers burn the fields first.
+  if (sieged) urgent.push(...ravage(state, s));
   const farmers = sieged ? [] : people.filter((p) => p.task === 'farm');
   const farmWork = []; // Planting and tending as planned: routine.
   if (farmers.length || state.farm.planted) {
@@ -387,6 +389,7 @@ export function resolveSeason(state) {
 
   // 11. Advance the calendar.
   state.turn += 1;
+  events.push(...feastCustomSeason(state)); // A village that expected a feast and had none.
   const survivors = living(state);
   refreshAdvisors(state);
   driftRelations(state);

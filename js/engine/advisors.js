@@ -11,7 +11,9 @@ import {
   knowledgeBlocker, fieldPlots, metNeighbors, storageCapacity, hasCondition, leanTimesNow, inVillage,
   foodStoreTarget, foodStocked,
 } from './state.js';
-import { feastBlocker, feastCost } from './stores.js';
+import {
+  feastBlocker, feastCost, feastExpected, FEAST_IN_A_ROW, FEAST_MISSED,
+} from './stores.js';
 import { shortfall, costWords } from './building.js';
 import { HIGH_SPIRITS } from './rules.js';
 import {
@@ -127,6 +129,9 @@ export function getAdvice(state) {
   } else if (!feastBlocker(state) && food - feastCost(state) >= foodNeeded(people) * 4) {
     const spirits = people.reduce((sum, p) => sum + p.morale, 0) / people.length;
     if (spirits < HIGH_SPIRITS) add('steward', 'note', `We have food to spare for a feast, which would cost ${feastCost(state)}. It would lift everyone's spirits, and people in high spirits work better.`);
+  }
+  if (feastExpected(state) && state.turn - state.lastFeast === FEAST_IN_A_ROW) {
+    add('steward', 'warning', `Our people expect their yearly feast. If none is held this season, spirits will fall by ${FEAST_MISSED}, and the next feast will lift them fully again. ${feastBlocker(state) || `A feast would cost ${feastCost(state)} food.`}`);
   }
   if (s === 3 && count('forage') > 0) {
     add('steward', 'warning', `${count('forage')} ${count('forage') === 1 ? 'person is' : 'people are'} set to forage, but nothing grows in winter. They would be more useful hunting or gathering wood.`);

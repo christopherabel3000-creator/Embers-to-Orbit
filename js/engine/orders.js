@@ -10,7 +10,9 @@ import { advisorPerson, ADVISOR_ROLES, forecastFood, raidOdds } from './advisors
 import { expectedFood, farmersNeeded } from './rules.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
-import { feastBlocker, feastCost, holdFeast } from './stores.js';
+import {
+  feastBlocker, feastCost, holdFeast, feastLift, fullFeastLift,
+} from './stores.js';
 import { moveOffForeignLand } from './nations.js';
 import { listNames } from './util.js';
 
@@ -198,8 +200,9 @@ export function applyStandingOrders(state) {
   if (orders.harvestFeast && s === 3 && !feastBlocker(state)) {
     const cost = feastCost(state);
     if (state.resources.food - cost >= foodNeeded(people) * HARVEST_FEAST_RESERVE) {
+      const lift = feastLift(state);
       holdFeast(state);
-      say('steward', `the harvest is in, so we held a feast with ${cost} food to spare. Spirits are high.`);
+      say('steward', `the harvest is in, so we held a feast with ${cost} food to spare. Spirits are high.${lift < fullFeastLift(state) ? ` It is a custom now, so it lifted them by ${lift}, where a first feast lifts them by ${fullFeastLift(state)}.` : ''}`);
     }
   }
 

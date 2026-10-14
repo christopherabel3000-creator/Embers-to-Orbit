@@ -30,6 +30,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 - **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
 - **The valley peoples as nations:** population, warriors, and land that grow each spring; territory and claims on the map; treaties; trust and remembered promises; Skarn war bands, skirmishers, and great hosts drawn from their real strength.
+- **Village events:** eleven events of the village's own, mostly choices, including heroes the Chronicle remembers.
 - **Laws:** four laws a village can make once it knows Oral law, each with two options that trade one benefit for a cost and shift how the neighbors see you.
 - **A second settlement** under a governor, which sends home food, wood, or stone, and whose founding begins the Nation era.
 
@@ -176,6 +177,24 @@ When the camp becomes a village, the Velari, Tellani, and Skarn become nations. 
 - **Great hosts.** Once Skarn warriors reach seven tenths of the village's fighters, they may gather a great host, announced a season ahead. It marches with nine tenths of their warriors, unless peace is made first; allies turn some back.
 
 **Balance so far:** in simulated villages run on default priorities, with no diplomacy, that sally out whenever the war chief likes the odds, the Skarn grow to about the village's size (around 70 people at year 20) but are bled to about 20 warriors by lost battles; they lay about six sieges and gather one or two great hosts in 15 village years, and send skirmishers about every two years. Simulated villages break most sieges with a sally in their first season. As the Skarn keep pace with the village in people, a village that loses battles, or leaves its walls thin, faces far larger bands.
+
+**Village events (built)**
+
+Once the camp is a village, events come a little more often (a 55 percent chance each season instead of 40), and eleven events of its own join the others. Most are choices on their own screen, with advisors' views.
+
+| Event | When | Choices |
+| --- | --- | --- |
+| Rivalry | The two largest working groups each have 3 or more adults | Side with one (they gain 8 spirits, the other loses 12), split the difference (both lose 3), or let the council judge (free with a meeting hall, otherwise 5 goods; everyone gains 3) |
+| A hero of the village | Someone has a skill of 4 or more | Their deed fits their best skill. Raise a cairn (10 stone, everyone gains 8), a feast in their name (2 food a person, everyone gains 10, counts as a feast), or quiet thanks (they gain 15). Either way they gain a level in that skill and are remembered on the Chronicle; their death is mourned by name |
+| Fire in the village | At least 2 huts or lean-tos | Everyone fights it (2 or 3 are burned; usually every home is saved), pull down two homes to stop it, or save the stores and lose one home and a tenth of the food |
+| Sickness in the herds | Pastures | Cull (lose one pasture), have a healer of skill 3 or more tend them (three in four recover), or leave it to fate (half the time, lose up to two pastures) |
+| A traveling craftsman | Any time | Pay 15 goods or 30 food: up to 3 builders, crafters, quarriers, or woodcutters gain a building level, and current study gains 15 points |
+| A council member disagrees | The war chief when the Skarn are strong and defense is not high; the scholar while studying and learning is not high; the steward with 3 or more buildings waiting and building not high | Agree (priority set to high), compromise (low to normal), or overrule (the advisor loses 15 spirits, everyone 2) |
+| Festival day | Summer or autumn | Celebrate with 10 goods (everyone gains 10) or 2 food a person (everyone gains 8), or skip it (everyone loses 4) |
+| A wedding between peoples | The Velari or Tellani at relations 20 or more | Welcome (a newcomer joins; relations and trust rise) or forbid (relations fall) |
+| Herders on your land | A neighbor's land borders land you hold | Share (relations rise), drive them off (relations and trust fall), or ask 15 food (they pay if relations are not hostile) |
+| Refugees at the gate | The Skarn have 10 or more warriors, and the gates are not closed | Take all 3 to 5, take two, or turn them away; trust with their people rises or falls to match |
+| Old ruins | 8 or more places known (not a choice) | 20 points toward the current study, or 10 goods |
 
 **Laws (built)**
 

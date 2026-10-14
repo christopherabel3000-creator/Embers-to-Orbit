@@ -9,7 +9,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -105,6 +105,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
+    heroes: [], // { id, name, deed, year }: people the village remembers for a great deed.
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -257,6 +258,10 @@ export function migrate(data) {
   if (data.version === 17) {
     data.siege = null;
     data.version = 18;
+  }
+  if (data.version === 18) {
+    data.heroes = [];
+    data.version = 19;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

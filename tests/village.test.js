@@ -6,7 +6,7 @@ import {
   living, migrate, makePerson, shelterCapacity, inVillage, taskAvailable,
 } from '../js/engine/state.js';
 import {
-  villageBlocker, groups, notablePeople, settlerChance, maybeSettlers,
+  villageBlocker, groups, notablePeople, settlerChance, maybeSettlers, GROUP_NAMES,
 } from '../js/engine/village.js';
 import { councilTargets, villagePlan } from '../js/engine/assign.js';
 import { queueBlocker } from '../js/engine/building.js';
@@ -126,11 +126,13 @@ test('a thriving village draws settlers, but not when food or shelter is short',
   assert.equal(settlerChance(readyCamp()), 0, 'camps do not draw settlers');
 });
 
-test('the village shows its people as groups, and keeps its notable people named', () => {
+test('the village shows its people as groups, and keeps its notable people named', async () => {
   const s = act(readyCamp(), { type: 'foundVillage' });
   const g = groups(s);
   assert.equal(g.reduce((sum, x) => sum + x.count, 0), living(s).length);
   assert.ok(g.every((x) => x.name && x.count > 0));
+  const { TASK_ORDER } = await import('../js/engine/data.js');
+  for (const task of TASK_ORDER) assert.ok(GROUP_NAMES[task], `every task has a group name: ${task}`);
   const notable = notablePeople(s);
   assert.ok(notable.some((p) => p.id === s.advisors.steward));
   assert.ok(notable.some((p) => p.name === 'Brenna'), 'a master forager');

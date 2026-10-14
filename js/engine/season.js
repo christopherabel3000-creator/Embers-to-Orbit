@@ -371,7 +371,8 @@ export function resolveSeason(state) {
   const dead = people.filter((p) => p.health <= 0);
   for (const p of dead) {
     p.alive = false;
-    urgent.unshift(`${p.name} has died.`);
+    const hero = (state.heroes || []).find((h) => h.id === p.id);
+    urgent.unshift(hero ? `${p.name}, a hero of the village, has died. Everyone remembers how ${p.name} ${hero.deed}.` : `${p.name} has died.`);
   }
   if (dead.length) {
     for (const p of living(state)) p.morale = clamp(p.morale - 12 * dead.length);

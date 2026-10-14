@@ -5,7 +5,7 @@
 import { WANDERERS, PLACES, NEIGHBORS, NEIGHBOR_RECRUITS, NEIGHBOR_ORDER } from './data.js';
 import {
   living, seasonIndex, shelterCapacity, placeName, knownPlaces, makePerson,
-  personById, wolvesAt, hasKnowledge, shelterNeeded, isKnown, hasCondition,
+  personById, wolvesAt, hasKnowledge, shelterNeeded, isKnown, hasCondition, inVillage,
 } from './state.js';
 import { siteFor } from './rules.js';
 import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
@@ -14,9 +14,11 @@ import { shuffle, listNames, clamp } from './util.js';
 import { meet, changeRelation, skarnAtPeace } from './neighbors.js';
 import { remember, resolveSkarnRaid, nation } from './nations.js';
 import { lawIs } from './laws.js';
+import { VILLAGE_EVENTS } from './villageEvents.js';
 import { recordDeed, hasTradition } from './legacy.js';
 
 const EVENT_CHANCE = 0.4;
+const VILLAGE_EVENT_CHANCE = 0.55;
 const COOLDOWN = 6; // Seasons before the same event can happen again.
 const WOLF_SEASONS = 4;
 
@@ -672,6 +674,9 @@ function allyCallFighters(state) {
   return able.slice(0, Math.min(4, Math.floor(able.length / 3)));
 }
 
+// Village events join the rest.
+Object.assign(EVENTS, VILLAGE_EVENTS);
+
 function recruitSources(state) {
   return Object.keys(NEIGHBOR_RECRUITS).filter((id) => {
     const n = state.neighbors[id];
@@ -742,7 +747,8 @@ export function maybeStartEvent(state) {
     out.urgent.push(`${ev.view(state, state.pendingEvent).title}: a decision is waiting for you.`);
     return out;
   }
-  if (!chance(state, EVENT_CHANCE)) return out;
+  // A village is a busier place: events come a little more often.
+  if (!chance(state, inVillage(state) ? VILLAGE_EVENT_CHANCE : EVENT_CHANCE)) return out;
   const history = state.eventHistory || (state.eventHistory = {});
   const options = Object.entries(EVENTS)
     .filter(([id]) => history[id] === undefined || state.turn - history[id] >= COOLDOWN)

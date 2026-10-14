@@ -22,6 +22,8 @@ export const GROUP_NAMES = {
   forage: 'Foragers',
   farm: 'Farmers',
   wood: 'Woodcutters',
+  quarry: 'Quarriers',
+  craft: 'Crafters',
   build: 'Builders',
   scout: 'Scouts',
   guard: 'Guards',
@@ -87,9 +89,11 @@ export function groups(state) {
 }
 
 // Named people the village keeps track of: the council, and masters of a skill.
+// The council, masters of a skill, and the village's heroes.
 export function notablePeople(state) {
   const council = new Set(Object.values(state.advisors));
-  return living(state).filter((p) => council.has(p.id) || SKILLS.some((k) => p.skills[k] >= 5));
+  const heroes = new Set((state.heroes || []).map((h) => h.id));
+  return living(state).filter((p) => council.has(p.id) || heroes.has(p.id) || SKILLS.some((k) => p.skills[k] >= 5));
 }
 
 // ----- Settlers -----
@@ -115,19 +119,26 @@ function settlerName(state) {
   return `${pick(state, SETTLER_NAMES)} the ${['Younger', 'Elder', 'Second'][randomInt(state, 0, 2)]}`;
 }
 
-function makeSettler(state) {
+// A newcomer to the village with one strong skill. Returns the person.
+export function newcomer(state, note = null) {
   const main = pick(state, SKILLS);
   const skills = {};
   for (const k of SKILLS) skills[k] = k === main ? randomInt(state, 2, 4) : randomInt(state, 0, 2);
-  const settler = makePerson({
-    name: settlerName(state), note: pick(state, SETTLER_NOTES), age: randomInt(state, 16, 34), skills,
+  const person = makePerson({
+    name: settlerName(state), note: note || pick(state, SETTLER_NOTES), age: randomInt(state, 16, 34), skills,
   }, state.nextPersonId++, 'rest');
-  settler.morale = 60;
-  settler.isNew = true;
-  state.people.push(settler);
+  person.morale = 60;
+  person.isNew = true;
+  state.people.push(person);
+  return person;
+}
+
+function makeSettler(state) {
+  const settler = newcomer(state);
   state.settlersMet = (state.settlersMet || 0) + 1;
   return settler;
 }
+
 
 // Each season a thriving village may draw settlers. Returns report lines.
 export function maybeSettlers(state) {

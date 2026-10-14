@@ -729,6 +729,13 @@ function chronicleScreen() {
   let html = '<h1>Chronicle</h1><p>Your people\'s story: the traditions they have grown into, how others see them, and what has happened.</p>';
   html += `<p>Your people live in ${esc(ERA_NAMES[state.era || 'camp'])}.</p>`;
   const earned = state.traditions || [];
+  const heroes = state.heroes || [];
+  if (heroes.length) {
+    html += `<h2>Heroes</h2><ul>${heroes.map((h) => {
+      const p = personById(state, h.id);
+      return `<li>${esc(h.name)}, who ${esc(h.deed)}, in Year ${h.year}.${p && p.alive ? '' : ' Remembered.'}</li>`;
+    }).join('')}</ul>`;
+  }
   html += '<h2>Traditions</h2>';
   if (earned.length) {
     html += `<ul>${earned.map((id) => `<li><strong>${esc(TRADITIONS[id].name)}.</strong> ${esc(TRADITIONS[id].story)} ${esc(TRADITIONS[id].effect)}</li>`).join('')}</ul>`;
@@ -935,6 +942,7 @@ function menuScreen() {
     <p>Once your camp has 16 people, a storehouse, a palisade, and farming, it can become a village, whenever you choose. In a village your advisors form a council that sets everyone's work each season. You guide it with priorities on the Village screen, and keep running the build and study queues, trade, feasts, and the food reserve. Villages can train guards, build huts, and draw settlers when well fed and roomy.</p>
     <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
     <p>Once you are a village, the Velari, Tellani, and Skarn grow into nations. Each spring they grow, and they claim land outward from their homes. You can claim places too, on the Map screen. Working another people's land angers them unless you share it with an open lands pact. On the Neighbors screen you can propose treaties: a trade pact, open lands, or an alliance, whose warriors help you against raiders, and who will ask you for help in turn. Each nation remembers your promises, kept and broken, and trusts you accordingly. Skarn war bands come from the warriors they actually have, so every raider you defeat weakens them.</p>
+    <p>A village has its own events: rivalries between groups, heroes whose deeds are remembered on the Chronicle, fires, sick herds, travelers, festivals, weddings and refugees from other peoples, herders on your land, and council members who disagree with your priorities. Most are choices.</p>
     <p>Once your village knows Oral law, it can make four laws on the Village screen: how food is shared, whether strangers may settle, how people serve, and how wrongs are judged. Each choice has a cost as well as a benefit, some please or offend your neighbors, and each law can change once a year.</p>
     <p>Once the Skarn are a nation, a quarter of their warriors are archers, whose arrows come over walls; archers are weak up close, so charge them. Your own people with hunting 3 or more shoot as archers once you know Bows. Warriors who charge an undermanned stretch of palisade or wall may break through it, and fighters there lose its cover. When the Skarn cannot storm your walls but can hem you in, they lay siege: no one can work outside, and you live on your stores. Wait for their supplies to run out, pay them, or sally out and fight them in the open.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>

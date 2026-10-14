@@ -137,6 +137,16 @@ function play(seed, strategy) {
         if (state.settlements.length) nationYears.push(Math.ceil((state.turn + 1) / 4));
       }
     }
+    // LAWS="food=byWork,service=militia" tries a set of laws once possible.
+    if (process.env.LAWS && strategy === 'village') {
+      for (const pair of process.env.LAWS.split(',')) {
+        const [law, option] = pair.split('=');
+        if (state.laws && state.laws[law] !== option) {
+          const r = applyAction(state, { type: 'setLaw', law, option });
+          if (!r.error) state = r.state;
+        }
+      }
+    }
     if (strategy === 'village' && !villageBlocker(state)) {
       state = act(state, { type: 'foundVillage' });
       villages++;

@@ -9,6 +9,7 @@ import {
 } from './state.js';
 import { foundVillage, setPriority } from './village.js';
 import { claimPlace } from './nations.js';
+import { setLaw } from './laws.js';
 import { foundSettlement, setPolicy } from './settlements.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
@@ -108,6 +109,12 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return setPolicy(state, action);
+  },
+
+  setLaw(state, { law, option = null }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setLaw(state, law, option || null);
   },
 
   claimPlace(state, { placeId }) {

@@ -10,6 +10,7 @@ import {
 import { changeRelation, skarnAtPeace } from './neighbors.js';
 import { chance, randomInt } from './rng.js';
 import { clamp } from './util.js';
+import { lawIs } from './laws.js';
 
 const WORK_TASKS = ['hunt', 'forage', 'wood', 'quarry'];
 
@@ -216,7 +217,8 @@ export function skarnRaidFactor(state) {
 export function harryChance(state) {
   if (!nationsActive(state) || skarnAtPeace(state) || !state.neighbors.skarn.known) return 0;
   const guards = living(state).filter((p) => p.task === 'guard' && p.health >= 40).length;
-  return Math.min(0.5, nation(state, 'skarn').warriors / (40 + 10 * guards));
+  const watched = lawIs(state, 'strangers', 'closed') ? 0.5 : 1; // Closed gates: strangers are watched.
+  return Math.min(0.5, nation(state, 'skarn').warriors / (40 + 10 * guards)) * watched;
 }
 
 // Runs at the start of a season. Returns report lines.

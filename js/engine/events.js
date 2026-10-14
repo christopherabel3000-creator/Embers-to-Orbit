@@ -13,6 +13,7 @@ import { chance, pick, randomInt } from './rng.js';
 import { shuffle, listNames, clamp } from './util.js';
 import { meet, changeRelation, skarnAtPeace } from './neighbors.js';
 import { remember, resolveSkarnRaid, nation } from './nations.js';
+import { lawIs } from './laws.js';
 import { recordDeed, hasTradition } from './legacy.js';
 
 const EVENT_CHANCE = 0.4;
@@ -127,7 +128,8 @@ export const EVENTS = {
     },
   },
   feverOutbreak: {
-    weight: (state) => (sickPeople(state).length ? 0 : (seasonIndex(state) === 3 ? 1.2 : 0.7)),
+    // Open gates let fever in more easily.
+    weight: (state) => (sickPeople(state).length ? 0 : (seasonIndex(state) === 3 ? 1.2 : 0.7) * (lawIs(state, 'strangers', 'open') ? 1.5 : lawIs(state, 'strangers', 'closed') ? 0.5 : 1)),
     apply(state) {
       const victim = pick(state, living(state));
       victim.sick = true;
@@ -268,7 +270,8 @@ export const EVENTS = {
 
   quarrel: {
     choice: true,
-    weight: (state) => (living(state).filter((p) => p.age >= 16).length >= 4 ? (state.buildings.meetingHall > 0 ? 0.35 : 0.9) : 0),
+    weight: (state) => (living(state).filter((p) => p.age >= 16).length >= 4
+      ? (state.buildings.meetingHall > 0 ? 0.35 : 0.9) * (lawIs(state, 'justice', 'harsh') ? 0.4 : 1) : 0),
     start(state) {
       const [a, b] = shuffle(state, living(state).filter((p) => p.age >= 16));
       return { a: a.id, b: b.id, reason: pick(state, QUARREL_REASONS) };

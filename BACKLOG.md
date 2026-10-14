@@ -30,6 +30,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 ## Done in Phase 2 (Settlement era)
 
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
+- Laws: four laws (sharing food, strangers, service, justice), two options each, changeable once a year, with neighbors' reactions.
 - Part 4, the second settlement: founding it (where, name, settlers, governor, policy), shipments home, growth, Skarn skirmishes, and the start of the Nation era.
 - Part 3, the valley peoples as nations: growth, territory and claims, treaties (trade pact, open lands, alliance), trust and memory, ally calls, Skarn war bands from real warriors, skirmishers, and great hosts.
 - Part 2, stone and crafts: quarrying and the Grey cliffs, crafting goods, goods trades and gifts, a research tree in five branches (12 new discoveries, one either-or choice), and six village buildings.
@@ -37,7 +38,8 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 ## Still open in Phase 2 (Settlement era)
 
 - [ ] Balance: a village run on the default priorities grows to about 70 people in 20 years and stores well over a thousand food. Part 3 made the Skarn a growing power with skirmishers and great hosts, but a village behind a palisade still wins nearly every battle. Options: battles that scale less in the defenders' favor, sieges that cut off work outside the walls, harder starting regions. Goods also pile up if the player never trades; more uses for goods (upkeep, festivals, hiring) may help.
-- [ ] More either-or choices in the research tree, and laws or customs the village can adopt.
+- [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
+- [ ] Settlement era ideas still to build: sieges and unit types in battle, village events (group rivalries, heroes, festivals, fires, herd sickness), more uses for goods (comforts, hiring, shrines, bulk trade), and nations that act on their own.
 - [ ] Nations, deeper: relations between the nations themselves, nations proposing treaties and making demands, the council moving work away from foreign land, and the Velari and Tellani contesting land with each other.
 
 - [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.

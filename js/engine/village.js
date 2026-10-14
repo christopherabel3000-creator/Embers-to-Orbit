@@ -10,6 +10,7 @@ import {
 } from './state.js';
 import { bestWorkPlan } from './assign.js';
 import { startNations } from './nations.js';
+import { lawIs } from './laws.js';
 import { refreshAdvisors } from './advisors.js';
 import { hasTradition } from './legacy.js';
 import { chance, randomInt, pick } from './rng.js';
@@ -94,7 +95,7 @@ export function notablePeople(state) {
 // ----- Settlers -----
 
 export function settlerChance(state) {
-  if (!inVillage(state)) return 0;
+  if (!inVillage(state) || lawIs(state, 'strangers', 'closed')) return 0;
   const people = living(state);
   if (state.resources.food < foodNeeded(people) * 2) return 0;
   if (shelterNeeded(people) + 1 > shelterCapacity(state)) return 0;
@@ -103,6 +104,7 @@ export function settlerChance(state) {
   if (spirits >= 70) p += 0.1;
   if (hasTradition(state, 'hearth')) p += 0.1;
   if (hasKnowledge(state, 'elders')) p += 0.1; // Word of a fair council spreads.
+  if (lawIs(state, 'strangers', 'open')) p += 0.1;
   return p;
 }
 
@@ -131,7 +133,7 @@ function makeSettler(state) {
 export function maybeSettlers(state) {
   const events = [];
   if (!chance(state, settlerChance(state))) return events;
-  const count = chance(state, 0.2) ? 2 : 1;
+  const count = chance(state, lawIs(state, 'strangers', 'open') ? 0.4 : 0.2) ? 2 : 1;
   const arrived = [];
   for (let i = 0; i < count; i++) arrived.push(makeSettler(state));
   const names = arrived.map((p) => p.name).join(' and ');

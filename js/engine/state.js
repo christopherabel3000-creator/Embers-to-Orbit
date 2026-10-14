@@ -9,7 +9,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -102,6 +102,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     settlersMet: 0,
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
     settlements: [], // Other settlements the village has founded.
+    laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
+    lawChanged: {}, // Law to the turn it last changed.
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -245,6 +247,11 @@ export function migrate(data) {
   if (data.version === 15) {
     data.settlements = [];
     data.version = 16;
+  }
+  if (data.version === 16) {
+    data.laws = { food: null, strangers: null, service: null, justice: null };
+    data.lawChanged = {};
+    data.version = 17;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

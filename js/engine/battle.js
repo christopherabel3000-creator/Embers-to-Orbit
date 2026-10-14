@@ -4,6 +4,7 @@
 // lose too much strength; a side wins when the other breaks or flees.
 
 import { living, personById, canFight, hasKnowledge } from './state.js';
+import { lawFight } from './laws.js';
 import { randomBetween, randomInt, chance, pick, nextRandom } from './rng.js';
 import { gainExperience } from './skills.js';
 import { refreshAdvisors } from './advisors.js';
@@ -33,7 +34,7 @@ export function fighterStrength(state, p) {
   const spears = hasKnowledge(state, 'spears') ? 1.5 : 0;
   const warriors = hasTradition(state, 'warrior') ? 1.5 : 0;
   const bows = hasKnowledge(state, 'bows') ? 1.5 : 0;
-  return (4 + p.skills.hunting * 1.5 + spears + warriors + bows) * Math.max(0.3, p.health / 100) * guardBonus(state, p);
+  return (4 + p.skills.hunting * 1.5 + spears + warriors + bows) * Math.max(0.3, p.health / 100) * guardBonus(state, p) * lawFight(state, p);
 }
 
 // Guards are trained and ready; drill and a chieftain make them stronger.

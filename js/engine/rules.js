@@ -3,6 +3,7 @@
 
 import { PLACES } from './data.js';
 import { hasTradition } from './legacy.js';
+import { lawWork, lawGuilds } from './laws.js';
 import {
   isKnown, wolvesAt, hasKnowledge, living, seasonIndex, fieldPlots, hasCondition,
 } from './state.js';
@@ -78,7 +79,7 @@ export function expectedFood(state, person, task, seasonIdx) {
     amount *= abundanceFactor(state, site, 'forage') * distanceFactor(site);
     if (hasCondition(state, 'drought')) amount *= 0.6;
   }
-  return amount * workFactor(person);
+  return amount * workFactor(person) * lawWork(state);
 }
 
 export function expectedWood(state, person, task, seasonIdx) {
@@ -87,7 +88,7 @@ export function expectedWood(state, person, task, seasonIdx) {
   let amount = (4 + person.skills.building * 0.6) * WOOD_SEASON[seasonIdx] + bonus(site, 'wood');
   if (hasKnowledge(state, 'stoneTools')) amount += 1;
   amount *= distanceFactor(site);
-  return amount * workFactor(person);
+  return amount * workFactor(person) * lawWork(state);
 }
 
 // Stone a quarrier cuts in a season.
@@ -96,7 +97,7 @@ export function expectedStone(state, person) {
   let amount = 2 + person.skills.building * 0.5 + bonus(site, 'quarry');
   if (hasKnowledge(state, 'stoneTools')) amount += 1;
   amount *= distanceFactor(site);
-  return Math.max(0, amount) * workFactor(person);
+  return Math.max(0, amount) * workFactor(person) * lawWork(state);
 }
 
 // Goods a crafter makes in a season.
@@ -104,7 +105,8 @@ export function expectedGoods(state, person) {
   let amount = 1 + person.skills.building * 0.4;
   if (hasKnowledge(state, 'kilns')) amount += 1;
   if (state.buildings.workshop > 0) amount += 1;
-  return amount * workFactor(person);
+  if (lawGuilds(state)) amount += 1;
+  return amount * workFactor(person) * lawWork(state);
 }
 
 // Food from pastures each season.
@@ -113,14 +115,15 @@ export const FOOD_PER_PASTURE = 6;
 export function expectedWork(person, state = null) {
   const tools = state && hasKnowledge(state, 'stoneTools') ? 1 : 0;
   const masters = state && hasTradition(state, 'builders') ? 1 : 0;
-  return (2 + person.skills.building + tools + masters) * workFactor(person);
+  const guild = lawGuilds(state) ? 1 : 0;
+  return (2 + person.skills.building + tools + masters + guild) * workFactor(person) * lawWork(state);
 }
 
 // Study points a person adds toward the current discovery each season.
 export function studyPoints(person, state = null) {
   const love = state && hasTradition(state, 'learning') ? 1 : 0;
   const elders = state && hasKnowledge(state, 'elders') ? 1 : 0;
-  return (2 + person.skills.learning + love + elders) * workFactor(person);
+  return (2 + person.skills.learning + love + elders) * workFactor(person) * lawWork(state);
 }
 
 // ----- Farming -----

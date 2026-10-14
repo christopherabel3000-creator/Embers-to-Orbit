@@ -3,6 +3,7 @@
 // lasting traditions, and the neighbors judge the camp by its record.
 
 import { NEIGHBORS } from './data.js';
+import { lawAttitudeShift, lawAttitudes } from './laws.js';
 
 export const DEED_NAMES = {
   battlesWon: 'battles won',
@@ -178,7 +179,7 @@ export function effectiveBaseline(state, neighborId) {
   // Once they are a nation, trust and a trade pact shift it too.
   const nat = state.neighbors && state.neighbors[neighborId] && state.neighbors[neighborId].nation;
   const trust = nat ? Math.round((nat.trust - 50) / 5) + (nat.treaties.trade ? 5 : 0) : 0;
-  return NEIGHBORS[neighborId].baseline + trust
+  return NEIGHBORS[neighborId].baseline + trust + lawAttitudeShift(state, neighborId)
     + reputationEffects(state, neighborId).reduce((sum, e) => sum + e.shift, 0);
 }
 
@@ -196,5 +197,6 @@ export function attitudeLines(state, neighborId) {
   const name = NEIGHBORS[neighborId].title;
   return reputationEffects(state, neighborId).map(({ part, shift }) => (shift > 0
     ? `The ${name} think well of you for being ${REPUTATION_WORDS[part]} (plus ${shift}).`
-    : `The ${name} think less of you for being ${REPUTATION_WORDS[part]} (minus ${-shift}).`));
+    : `The ${name} think less of you for being ${REPUTATION_WORDS[part]} (minus ${-shift}).`))
+    .concat(lawAttitudes(state, neighborId).map((a) => a.text));
 }

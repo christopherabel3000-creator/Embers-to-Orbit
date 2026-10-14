@@ -11,7 +11,7 @@ import {
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
-  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER, ERA_NAMES,
+  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER, ERA_NAMES, LAWS, LAW_ORDER,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -40,6 +40,9 @@ import {
   settlementBlocker, settlementSites, settlerRange, governorChoices, settlementProduct, expectedShipment,
   POLICIES, costText, MIN_VILLAGE,
 } from '../engine/settlements.js';
+import {
+  lawsAvailable, seasonsUntilChange,
+} from '../engine/laws.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -814,6 +817,36 @@ function priorityControl(area) {
     <span id="priority-${area}-about" class="muted"> ${esc(info.about)}</span></p>`;
 }
 
+function lawEffectText(law) {
+  const option = state.laws[law];
+  return option ? LAWS[law].options[option].effect : 'Keeping to custom: no special effect.';
+}
+
+function lawControl(law) {
+  const def = LAWS[law];
+  const current = state.laws[law] || '';
+  const wait = seasonsUntilChange(state, law);
+  const options = [['', 'Keep to custom'], ...Object.entries(def.options).map(([key, o]) => [key, o.name])]
+    .map(([key, name]) => `<option value="${key}"${key === current ? ' selected' : ''}>${esc(name)}</option>`).join('');
+  return `<p><label for="law-${law}">${esc(def.name)}</label>
+    <select id="law-${law}" data-law="${law}" aria-describedby="law-${law}-about">${options}</select>
+    <span id="law-${law}-about" class="muted"> ${esc(lawEffectText(law))}${wait ? ` It can change again in ${plural(wait, 'season', 'seasons')}.` : ''}</span></p>`;
+}
+
+function lawsSection() {
+  if (!lawsAvailable(state)) {
+    return '<h2>Laws</h2><p>Once your people learn Oral law, the village can make laws here.</p>';
+  }
+  const choices = LAW_ORDER.map((law) => {
+    const opts = Object.values(LAWS[law].options);
+    return `<li><strong>${esc(LAWS[law].name)}.</strong> ${opts.map((o) => `${esc(o.name)}: ${esc(o.effect)}`).join(' ')}</li>`;
+  }).join('');
+  return `<h2 id="lawsHeading">Laws</h2>
+    <p>Each law can change once a year.${state.buildings.meetingHall > 0 ? ' Your meeting hall lets the village talk changes through, so no one grumbles.' : ' Without a meeting hall, every change makes people grumble, and spirits dip.'}</p>
+    ${LAW_ORDER.map(lawControl).join('')}
+    <details><summary>What each law does</summary><ul>${choices}</ul></details>`;
+}
+
 function groupLine(g) {
   const skill = g.skill && g.avgSkill !== null ? `, average ${g.skill} ${g.avgSkill.toFixed(1)}` : '';
   const hurt = g.hurt ? `, ${g.hurt} badly hurt or sick` : '';
@@ -842,6 +875,7 @@ function villageScreen() {
     ${Object.keys(PRIORITY_AREAS).map(priorityControl).join('')}
     <p><button type="button" data-action="assignBest">Have the council reassign everyone now</button></p>
     <p class="muted">Otherwise the council reassigns everyone at the start of each season.</p>
+    ${lawsSection()}
     ${settlementLines()}
     <h2>Groups (${g.length})</h2>
     <ul>${g.map((x) => `<li>${esc(groupLine(x))}</li>`).join('')}</ul>
@@ -884,6 +918,7 @@ function menuScreen() {
     <p>Once your camp has 16 people, a storehouse, a palisade, and farming, it can become a village, whenever you choose. In a village your advisors form a council that sets everyone's work each season. You guide it with priorities on the Village screen, and keep running the build and study queues, trade, feasts, and the food reserve. Villages can train guards, build huts, and draw settlers when well fed and roomy.</p>
     <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
     <p>Once you are a village, the Velari, Tellani, and Skarn grow into nations. Each spring they grow, and they claim land outward from their homes. You can claim places too, on the Map screen. Working another people's land angers them unless you share it with an open lands pact. On the Neighbors screen you can propose treaties: a trade pact, open lands, or an alliance, whose warriors help you against raiders, and who will ask you for help in turn. Each nation remembers your promises, kept and broken, and trusts you accordingly. Skarn war bands come from the warriors they actually have, so every raider you defeat weakens them.</p>
+    <p>Once your village knows Oral law, it can make four laws on the Village screen: how food is shared, whether strangers may settle, how people serve, and how wrongs are judged. Each choice has a cost as well as a benefit, some please or offend your neighbors, and each law can change once a year.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
@@ -1223,6 +1258,19 @@ $main.addEventListener('change', (e) => {
       const about = document.getElementById(`policy-${policySel.dataset.settlementPolicy}-about`);
       if (about) about.textContent = ` ${POLICIES[policySel.value].about}`;
       announce(msg);
+    }
+    return;
+  }
+  const lawSel = e.target.closest('select[data-law]');
+  if (lawSel) {
+    const law = lawSel.dataset.law;
+    const msg = act({ type: 'setLaw', law, option: lawSel.value || null });
+    if (msg) {
+      show('people', { focus: false });
+      refocus(`#law-${law}`, '#lawsHeading');
+      announce(msg);
+    } else {
+      lawSel.value = state.laws[law] || '';
     }
     return;
   }

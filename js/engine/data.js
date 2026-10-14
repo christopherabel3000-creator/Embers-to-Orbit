@@ -504,6 +504,41 @@ export const NATIONS = {
   },
 };
 
+// Laws a village can adopt once it knows Oral law. Each law has two
+// options; with neither chosen, the village keeps to custom (no effect).
+export const LAWS = {
+  food: {
+    name: 'Sharing food',
+    options: {
+      equal: { name: 'Equal shares', effect: 'Everyone eats the same. Spirits settle 5 higher.' },
+      byWork: { name: 'By work', effect: 'Those who work hardest eat best. Everyone works 5 percent better, but spirits settle 5 lower.' },
+    },
+  },
+  strangers: {
+    name: 'Strangers',
+    options: {
+      open: { name: 'Open gates', effect: 'All may come. Settlers arrive more often, but fever takes hold more easily. The Velari approve.' },
+      closed: { name: 'Closed gates', effect: 'Strangers are turned away. No settlers come, but the village is close-knit: spirits settle 3 higher, fever takes hold far less often, and Skarn skirmishers find it much harder to surprise you. The Velari and Tellani think you cold.' },
+    },
+  },
+  service: {
+    name: 'Service',
+    options: {
+      militia: { name: 'Militia', effect: 'Every adult drills with weapons. All fighters strike 15 percent harder, but everyone works 3 percent less.' },
+      guilds: { name: 'Guilds', effect: 'Crafts are taught and guarded. Crafters make 1 more goods and builders do 1 more work, but everyone but the guards fights 10 percent weaker.' },
+    },
+  },
+  justice: {
+    name: 'Justice',
+    options: {
+      mercy: { name: 'Mercy', effect: 'Wrongs are forgiven where they can be. The Velari approve; the Skarn see softness.' },
+      harsh: { name: 'Harsh law', effect: 'Wrongs are punished hard. Quarrels are far rarer and the Skarn respect you, but spirits settle 3 lower and the Velari disapprove.' },
+    },
+  },
+};
+export const LAW_ORDER = Object.keys(LAWS);
+export const LAW_CHANGE_GAP = 4; // Seasons before the same law can change again.
+
 // Treaties a village can make with a nation.
 export const TREATIES = {
   trade: {

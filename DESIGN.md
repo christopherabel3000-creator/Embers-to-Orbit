@@ -30,6 +30,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 - **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
 - **The valley peoples as nations:** population, warriors, and land that grow each spring; territory and claims on the map; treaties; trust and remembered promises; Skarn war bands, skirmishers, and great hosts drawn from their real strength.
+- **Laws:** four laws a village can make once it knows Oral law, each with two options that trade one benefit for a cost and shift how the neighbors see you.
 - **A second settlement** under a governor, which sends home food, wood, or stone, and whose founding begins the Nation era.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
@@ -174,6 +175,23 @@ When the camp becomes a village, the Velari, Tellani, and Skarn become nations. 
 - **Great hosts.** Once Skarn warriors reach seven tenths of the village's fighters, they may gather a great host, announced a season ahead. It marches with nine tenths of their warriors, unless peace is made first; allies turn some back.
 
 **Balance so far:** in simulated villages run on default priorities, with no diplomacy, the Skarn grow to 30 to 50 warriors, gather about four great hosts in 15 years, and send skirmishers about once every two years, which guards mostly drive off. A village behind a palisade still wins its battles, so the threat bites hardest on villages without walls or guards, on work out in the open, and on allies.
+
+**Laws (built)**
+
+Once a village knows Oral law, the Village screen has a Laws section. Each law has two options, or the village keeps to custom, which has no effect. A law can change once a year (every 4 seasons); without a meeting hall, every change lowers everyone's spirits by 5.
+
+| Law | Option | Effect |
+| --- | --- | --- |
+| Sharing food | Equal shares | Spirits settle 5 higher |
+| | By work | Everyone works 5 percent better; spirits settle 5 lower |
+| Strangers | Open gates | Settlers 10 percent more likely each season and twice as likely to come in pairs; fever outbreaks half again as likely; the Velari approve (plus 5) |
+| | Closed gates | No settlers; spirits settle 3 higher; fever outbreaks half as likely; Skarn skirmishes half as likely; the Velari and Tellani think you cold (minus 3 each) |
+| Service | Militia | Every fighter strikes 15 percent harder; everyone works 3 percent less |
+| | Guilds | Crafters make 1 more goods and builders do 1 more work; everyone but guards fights 10 percent weaker |
+| Justice | Mercy | The Velari approve (plus 3); the Skarn see softness (minus 3) |
+| | Harsh law | Quarrels come less than half as often; spirits settle 3 lower; the Skarn respect it (plus 5); the Velari disapprove (minus 3) |
+
+The neighbors' reactions show on the Neighbors screen with their other reasons. In simulated villages, most laws change little on their own, because their value depends on what the player is aiming for; the big one is strangers: open gates grow a village to about 70 people in 20 years, closed gates keep it near 38.
 
 **Built so far (part 4: the second settlement)**
 

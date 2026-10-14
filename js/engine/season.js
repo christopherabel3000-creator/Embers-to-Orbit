@@ -9,6 +9,7 @@ import {
   hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage,
 } from './state.js';
 import { maybeSettlers } from './village.js';
+import { lawSettle } from './laws.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
 import {
   nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, skarnDaring,
@@ -340,7 +341,7 @@ export function resolveSeason(state) {
     }
     if (state.buildings.healersHut > 0 && p.health < 75) p.health = clamp(p.health + 5);
     // Spirits settle back toward steady: high spirits fade faster the higher they are.
-    const settle = state.buildings.meetingHall > 0 ? 62 : 55; // A meeting hall keeps spirits up.
+    const settle = (state.buildings.meetingHall > 0 ? 62 : 55) + lawSettle(state); // A meeting hall and the laws move where spirits settle.
     if (p.morale < settle) p.morale = clamp(Math.min(settle, p.morale + 3));
     else if (p.morale > settle) p.morale = clamp(p.morale - 3 - (p.morale - settle) * 0.2);
   }

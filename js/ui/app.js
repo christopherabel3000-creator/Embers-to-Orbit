@@ -7,11 +7,11 @@ import {
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
   isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
   allowedTasksFor, lifeStage, canFight, metNeighbors, relationWord, storageCapacity, leanTimesNow,
-  inVillage, eraAtLeast, taskAvailable, knowledgeClosed,
+  inVillage, eraAtLeast, taskAvailable, knowledgeClosed, foodStoreTarget, foodStocked,
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
-  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER, ERA_NAMES, LAWS, LAW_ORDER,
+  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER, ERA_NAMES, LAWS, LAW_ORDER, FOOD_STORE_CHOICES,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -870,6 +870,21 @@ function priorityControl(area) {
     <span id="priority-${area}-about" class="muted"> ${esc(info.about)}</span></p>`;
 }
 
+// How much food the council keeps before spare hands turn to building and crafts.
+function foodStoresControl() {
+  const current = state.foodStores ?? 8;
+  const options = FOOD_STORE_CHOICES.map((c) => `<option value="${c}"${c === current ? ' selected' : ''}>${c === 'full' ? 'As much as the stores hold' : `About ${c} seasons`}</option>`).join('');
+  const need = foodNeeded(living(state));
+  const food = state.resources.food;
+  const seasons = need ? Math.floor(food / need) : 0;
+  const status = foodStocked(state)
+    ? 'The stores are full enough: the council sows only what they need, and spare hands build and make goods.'
+    : 'Below that, the council plants the fields to fill them, and spare hands gather food.';
+  return `<p><label for="foodStores">Food stores</label>
+    <select id="foodStores" data-food-stores aria-describedby="foodStores-about">${options}</select>
+    <span id="foodStores-about" class="muted"> How much food the council keeps before it stops growing more. Now ${food} food, about ${plural(seasons, 'season', 'seasons')}; it aims for ${foodStoreTarget(state)}. ${status}</span></p>`;
+}
+
 function lawEffectText(law) {
   const option = state.laws[law];
   return option ? LAWS[law].options[option].effect : 'Keeping to custom: no special effect.';
@@ -943,7 +958,8 @@ function villageScreen() {
     <p>${esc(workSitesSentence())} Change work sites on the Map screen.</p>
     ${hasKnowledge(state, 'farming') ? `<p>${esc(farmSentence())}</p>` : ''}
     <h2 id="prioritiesHeading">Council priorities</h2>
-    <p>The council covers the essentials first: tending the hurt, the fields, and firewood for the fires. Then it follows these priorities, and puts everyone else on food and wood by their skill. The food reserve order on the Advisors screen keeps the stores safe.</p>
+    <p>The council covers the essentials first: tending the hurt, the fields, and firewood for the fires. Then it follows these priorities, and puts everyone else on food and wood by their skill, or on building and crafts once the food stores are full. The food reserve order on the Advisors screen keeps the stores safe.</p>
+    ${foodStoresControl()}
     ${Object.keys(PRIORITY_AREAS).map(priorityControl).join('')}
     <p><button type="button" data-action="assignBest">Have the council reassign everyone now</button></p>
     <p class="muted">Otherwise the council reassigns everyone at the start of each season.</p>
@@ -1386,6 +1402,17 @@ $main.addEventListener('change', (e) => {
       announce(msg);
     } else {
       lawSel.value = state.laws[law] || '';
+    }
+    return;
+  }
+  const stores = e.target.closest('select[data-food-stores]');
+  if (stores) {
+    const msg = act({ type: 'setFoodStores', choice: stores.value });
+    if (msg) {
+      // Redraw so the target in the description matches the new choice.
+      show('people', { focus: false });
+      refocus('#foodStores');
+      announce(msg);
     }
     return;
   }

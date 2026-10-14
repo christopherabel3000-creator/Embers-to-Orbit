@@ -3,14 +3,14 @@
 // work that makes no sense right now, and the hurt and sick rest.
 
 import { TASKS, WANDERERS } from './data.js';
-import { remainingQueueWork } from './building.js';
+import { remainingQueueWork, shortfall } from './building.js';
 import {
   living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces, fieldPlots,
-  inVillage, woodNeededForWarmth, hasCondition, taskAvailable,
+  inVillage, woodNeededForWarmth, hasCondition, taskAvailable, foodNeeded, foodStoreTarget, foodStocked,
 } from './state.js';
 import { BUILDINGS } from './data.js';
 import {
-  siteFor, farmersNeeded, workFactor, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
+  siteFor, farmersNeeded, workFactor, expectedWork, foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 
 // When two tasks use equally strong skills, prefer the earlier one. Farming
@@ -150,6 +150,37 @@ function woodcuttersNeeded(state, workers) {
   return Math.min(Math.ceil(workers.length / 3), Math.ceil(short / 10)); // About 5 wood a season each, over two seasons.
 }
 
+// Plots the council sows this spring: enough that the harvest brings the
+// stores up to what it aims to keep, after the village eats through spring,
+// summer, and autumn. None if the stores will still be full.
+export function plotsToSow(state) {
+  const open = fieldPlots(state) - state.farm.planted;
+  if (open <= 0) return 0;
+  const before = state.resources.food - 3 * foodNeeded(living(state));
+  const short = foodStoreTarget(state) - before;
+  if (short <= 0) return 0;
+  return Math.min(open, Math.ceil(short / foodPerPlot(1, state)));
+}
+
+// While the stores hold all the council aims to keep, spare hands build
+// until the queue could be finished this season, then make goods. Before
+// your people can craft, they cut wood instead. Returns the task, or null
+// to send this person to food as usual.
+function spareHandsTask(state, plan, p, allowed) {
+  // Only while builders could work: something is under way, or the next
+  // building is paid for in hand.
+  const next = state.buildQueue.find((item) => !item.paid);
+  const workable = state.buildQueue.some((item) => item.paid) || (next && !shortfall(state, next.id).length);
+  if (allowed.includes('build') && workable) {
+    const work = [...plan].filter(([, t]) => t === 'build')
+      .reduce((sum, [id]) => sum + expectedWork(state.people.find((x) => x.id === id), state), 0);
+    if (work < remainingQueueWork(state)) return 'build';
+  }
+  if (allowed.includes('craft')) return 'craft';
+  if (allowed.includes('wood')) return 'wood';
+  return null;
+}
+
 export function villagePlan(state) {
   const people = living(state);
   const s = seasonIndex(state);
@@ -180,7 +211,8 @@ export function villagePlan(state) {
     }
     return plan;
   }
-  const needed = fieldWork(state);
+  // In spring the council sows only what the food stores need.
+  const needed = s === 0 ? plotsToSow(state) / PLANT_PER_FARMER : fieldWork(state);
   if (needed > 0) {
     let strength = 0;
     for (const p of free('farm').sort((a, b) => b.skills.foraging - a.skills.foraging)) {
@@ -200,9 +232,17 @@ export function villagePlan(state) {
   take('study', targets.study);
   take('scout', targets.scout);
 
-  // Everyone else to food or wood, by skill. Ties go to food.
-  for (const p of workers.filter((x) => !plan.has(x.id))) {
+  // Everyone else to food or wood, by skill. Ties go to food. While the
+  // stores are full, spare hands go to building and crafts instead.
+  const stocked = foodStocked(state);
+  const rest = workers.filter((x) => !plan.has(x.id)).sort((a, b) => b.skills.building - a.skills.building);
+  for (const p of rest) {
     const allowed = allowedTasksFor(state, p);
+    const spare = stocked ? spareHandsTask(state, plan, p, allowed) : null;
+    if (spare) {
+      plan.set(p.id, spare);
+      continue;
+    }
     const options = [['hunt', p.skills.hunting], ['forage', p.skills.foraging], ['wood', p.skills.building - 0.5]]
       .filter(([t]) => allowed.includes(t) && !(t === 'forage' && s === 3)) // Nothing to forage in winter.
       .sort((a, b) => b[1] - a[1]);

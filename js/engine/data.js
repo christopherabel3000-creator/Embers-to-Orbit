@@ -496,6 +496,12 @@ export const PRIORITY_AREAS = {
 };
 export const PRIORITY_LEVELS = ['low', 'normal', 'high'];
 
+// How much food the council keeps in store before it stops growing more and
+// sends spare hands to building and crafts: seasons of food, or 'full' for
+// as much as the stores hold.
+export const FOOD_STORE_CHOICES = [4, 6, 8, 12, 'full'];
+export const DEFAULT_FOOD_STORES = 8;
+
 // How each valley people grows into a nation once your camp is a village.
 // growth: share added to their population each spring. warriors: share of
 // their people under arms. expansion: the places they claim, in order.

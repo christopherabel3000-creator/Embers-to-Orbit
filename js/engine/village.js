@@ -3,10 +3,10 @@
 // its people as groups by work, and draws settlers when it thrives.
 
 import {
-  TASKS, TASK_ORDER, SETTLER_NAMES, SETTLER_NOTES, SKILLS, PRIORITY_AREAS, PRIORITY_LEVELS,
+  TASKS, TASK_ORDER, SETTLER_NAMES, SETTLER_NOTES, SKILLS, PRIORITY_AREAS, PRIORITY_LEVELS, FOOD_STORE_CHOICES,
 } from './data.js';
 import {
-  living, inVillage, makePerson, foodNeeded, shelterNeeded, shelterCapacity, lifeStage, hasKnowledge,
+  living, inVillage, makePerson, foodNeeded, shelterNeeded, shelterCapacity, lifeStage, hasKnowledge, foodStoreTarget,
 } from './state.js';
 import { bestWorkPlan } from './assign.js';
 import { startNations } from './nations.js';
@@ -78,6 +78,20 @@ export function setPriority(state, area, level) {
   if (!PRIORITY_LEVELS.includes(level)) return { error: 'Choose low, normal, or high.' };
   state.priorities[area] = level;
   return { message: `${PRIORITY_AREAS[area].name} priority set to ${level}. The council will follow it from next season.` };
+}
+
+// "about 8 seasons of food" or "as much food as the stores hold".
+export function foodStoresWords(choice) {
+  return choice === 'full' ? 'as much food as the stores hold' : `about ${choice} seasons of food`;
+}
+
+export function setFoodStores(state, choice) {
+  if (!inVillage(state)) return { error: 'The council keeps the stores once your camp becomes a village.' };
+  const value = choice === 'full' ? 'full' : Number(choice);
+  if (!FOOD_STORE_CHOICES.includes(value)) return { error: 'Choose how many seasons of food to keep.' };
+  state.foodStores = value;
+  const amount = value === 'full' ? `${foodStoreTarget(state)} food` : `about ${foodStoreTarget(state)} at today's needs`;
+  return { message: `The council will keep ${foodStoresWords(value)}: ${amount}. Beyond that, spare hands will build and make goods. From next season.` };
 }
 
 // The village's people as groups by work, largest first.

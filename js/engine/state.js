@@ -6,10 +6,11 @@ import {
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
   NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, STORAGE_PER_GRANARY, LEAN_TIMES,
+  DEFAULT_FOOD_STORES,
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -101,6 +102,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     era: 'camp', // 'camp' (Survival era), 'village' (Settlement era), then 'nation' with a second settlement.
     villageFounded: null, // The turn the camp became a village.
     priorities: { ...DEFAULT_PRIORITIES }, // What the village council pushes for.
+    foodStores: DEFAULT_FOOD_STORES, // Seasons of food the council keeps before it stops growing more, or 'full'.
     settlersMet: 0,
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
     settlements: [], // Other settlements the village has founded.
@@ -287,6 +289,10 @@ export function migrate(data) {
     data.clans = { warriors: 0, quietUntil: -1, arrived: false };
     data.version = 22;
   }
+  if (data.version === 22) {
+    data.foodStores = DEFAULT_FOOD_STORES;
+    data.version = 23;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -405,6 +411,20 @@ export function wolvesAt(state, placeId) {
 
 // Food eaten each season: 2 per person, 1 for children under 12.
 // Accepts a list of people, or a plain count of adults.
+// The food the village council aims to keep in store: some seasons' worth
+// at today's needs, never more than the stores can hold.
+export function foodStoreTarget(state) {
+  const room = storageCapacity(state);
+  const choice = state.foodStores ?? DEFAULT_FOOD_STORES;
+  if (choice === 'full') return room;
+  return Math.min(room, choice * foodNeeded(living(state)));
+}
+
+// Whether the stores hold all the council aims to keep.
+export function foodStocked(state) {
+  return inVillage(state) && state.resources.food >= foodStoreTarget(state);
+}
+
 export function foodNeeded(people) {
   if (typeof people === 'number') return people * 2;
   return people.reduce((sum, p) => sum + (p.age < AGES.youth ? 1 : 2), 0);

@@ -9,6 +9,7 @@ import {
   spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName, shelterNeeded, canFight,
   unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt, hasKnowledge,
   knowledgeBlocker, fieldPlots, metNeighbors, storageCapacity, hasCondition, leanTimesNow, inVillage,
+  foodStoreTarget, foodStocked,
 } from './state.js';
 import { feastBlocker, feastCost } from './stores.js';
 import { shortfall, costWords } from './building.js';
@@ -117,8 +118,11 @@ export function getAdvice(state) {
   }
   const room = storageCapacity(state);
   const food = state.resources.food;
+  if (village && foodStocked(state)) {
+    add('steward', 'note', `Our stores hold ${food} food, all the council aims to keep (${foodStoreTarget(state)}). It is sowing only what the stores need, and spare hands are building and making goods. Change how much to keep on the Village screen.`);
+  }
   if (food > room) {
-    add('steward', 'urgent', `Our stores are overflowing: ${food} food, with room for ${room}. About half the extra will rot this season. Hold a feast from the Report screen, send gifts or trade on the Neighbors screen, or build another storehouse.`);
+    add('steward', 'urgent', `Our stores are overflowing: ${food} food, with room for ${room}. About half the extra will rot this season. Hold a feast from the Report screen, send gifts or trade on the Neighbors screen, or build another storehouse.${village ? ' Keeping less food on the Village screen would grow less.' : ''}`);
   } else if (food >= room * 0.85) {
     add('steward', 'warning', `Our stores are nearly full: ${food} food, with room for ${room}. Anything beyond that will rot. A feast, gifts or trade, or another storehouse would help.`);
   } else if (!feastBlocker(state) && food - feastCost(state) >= foodNeeded(people) * 4) {

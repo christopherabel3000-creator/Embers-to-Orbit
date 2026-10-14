@@ -7,7 +7,7 @@ import {
   personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
   taskAvailable, hasKnowledge, knowledgeBlocker, knowledgeClosed, allowedTasksFor, lifeStage, inVillage,
 } from './state.js';
-import { foundVillage, setPriority } from './village.js';
+import { foundVillage, setPriority, setFoodStores } from './village.js';
 import { claimPlace } from './nations.js';
 import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
@@ -160,6 +160,12 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return setPriority(state, area, level);
+  },
+
+  setFoodStores(state, { choice }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setFoodStores(state, choice);
   },
 
   queueBuilding(state, { buildingId }) {

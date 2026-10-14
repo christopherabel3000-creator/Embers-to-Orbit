@@ -7,9 +7,11 @@ import {
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
   isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
   allowedTasksFor, lifeStage, canFight, metNeighbors, relationWord, storageCapacity, leanTimesNow,
+  inVillage, eraAtLeast,
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
+  PRIORITY_AREAS, PRIORITY_LEVELS,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -28,6 +30,9 @@ import { seasonsToNextLevel } from '../engine/skills.js';
 import {
   feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD,
 } from '../engine/stores.js';
+import {
+  villageBlocker, groups, notablePeople, GROUP_NAMES,
+} from '../engine/village.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -133,6 +138,7 @@ function renderNav() {
   }
   const items = SCREENS
     .filter(([id]) => !state.gameOver || ['report', 'chronicle', 'menu'].includes(id))
+    .map(([id, label]) => [id, id === 'people' && inVillage(state) ? 'Village' : label])
     .map(([id, label]) => `<li><button type="button" data-nav="${id}"${screen === id ? ' aria-current="page"' : ''}>${label}</button></li>`);
   if (!state.gameOver) items.push('<li><button type="button" class="primary" data-action="endTurn">End season</button></li>');
   $nav.innerHTML = `<ul>${items.join('')}</ul>`;
@@ -147,7 +153,8 @@ function render() {
     html = state.pendingEvent.type === 'raid' ? raidScreen() : storyScreen();
   }
   else html = ({
-    report: reportScreen, people: peopleScreen, map: mapScreen, build: buildScreen, knowledge: knowledgeScreen, neighbors: neighborsScreen,
+    foundVillage: foundVillageScreen,
+    report: reportScreen, people: () => (inVillage(state) ? villageScreen() : peopleScreen()), map: mapScreen, build: buildScreen, knowledge: knowledgeScreen, neighbors: neighborsScreen,
     advisors: advisorsScreen, chronicle: chronicleScreen, menu: menuScreen,
   }[screen] || reportScreen)();
   $main.innerHTML = html;
@@ -168,7 +175,7 @@ function titleScreen() {
     </div>
     <input type="file" id="importInput" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
     <h2>About this version</h2>
-    <p>This is the first playable piece of the Survival era: twelve survivors in a forest valley, trying to last through their first winters.</p>`;
+    <p>Twelve survivors in a forest valley, trying to last through their first winters. Grow strong enough and your camp can become a village, the start of the Settlement era.</p>`;
 }
 
 function newGameScreen() {
@@ -218,7 +225,12 @@ function reportScreen() {
   }
   html += `<h2>Advisors</h2>${adviceList(getAdvice(state))}`;
   html += storesSection();
-  html += `<div class="actions"><button type="button" data-nav="people">Assign people</button><button type="button" data-nav="build">Build</button></div>`;
+  if (!villageBlocker(state)) {
+    html += `<h2>Become a village</h2>
+      <p>${esc(state.campName)} has grown into a true settlement. Your people could become a village whenever you choose. It is a big change, and it cannot be undone.</p>
+      <div class="actions"><button type="button" data-nav="foundVillage">Consider becoming a village</button></div>`;
+  }
+  html += `<div class="actions"><button type="button" data-nav="people">${inVillage(state) ? 'Village and priorities' : 'Assign people'}</button><button type="button" data-nav="build">Build</button></div>`;
   return html;
 }
 
@@ -557,6 +569,7 @@ function buildScreen() {
   for (const id of BUILDING_ORDER) {
     const b = BUILDINGS[id];
     if (b.requires && !hasKnowledge(state, b.requires)) continue;
+    if (b.era && !eraAtLeast(state, b.era)) continue;
     const owned = state.buildings[id];
     const status = b.repeatable ? `You have ${owned}.` : owned ? 'Built.' : 'Not built.';
     const why = queueBlocker(state, id);
@@ -577,6 +590,16 @@ function checkbox(id, checked, label) {
 
 function ordersFor(role) {
   const o = state.orders;
+  if (role === 'steward' && inVillage(state)) {
+    const options = [0, 1, 2, 3, 4].map((n) => `<option value="${n}"${o.foodReserve === n ? ' selected' : ''}>${n === 0 ? 'No food order' : plural(n, 'season', 'seasons')}</option>`).join('');
+    return `<p>In the village the council sets everyone's work each season, so it covers best work, the fields, winter work, and newcomers.</p>
+      <p><label for="order-food">Make sure our food will last at least</label>
+      <select id="order-food" data-order="foodReserve">${options}</select></p>
+      ${checkbox('harvestFeast', o.harvestFeast, 'Hold a feast once the harvest is in, at the start of winter, if at least 3 seasons of food would be left')}`;
+  }
+  if (role === 'healer' && inVillage(state)) {
+    return checkbox('autoShelter', o.autoShelter, 'Put a hut at the front of the build queue whenever the shelters are nearly full, behind any building already underway');
+  }
   if (role === 'steward') {
     const options = [0, 1, 2, 3, 4].map((n) => `<option value="${n}"${o.foodReserve === n ? ' selected' : ''}>${n === 0 ? 'No food order' : plural(n, 'season', 'seasons')}</option>`).join('');
     return `<p><label for="order-food">Make sure our food will last at least</label>
@@ -650,6 +673,74 @@ function chronicleScreen() {
   return html;
 }
 
+function foundVillageScreen() {
+  const why = villageBlocker(state);
+  if (why) return `<h1>Become a village</h1><p>${esc(why)}</p><div class="actions"><button type="button" data-nav="report">Back to the report</button></div>`;
+  return `<h1>Become a village?</h1>
+    <p>${esc(state.campName)} has ${plural(living(state).length, 'person', 'people')}, fields of its own, and a palisade. The elders say it is time to live as a village. This begins the Settlement era.</p>
+    <h2>What changes</h2>
+    <ul>
+      <li>Your advisors become the village council. Each season the council sets everyone's work, so you no longer assign people one by one.</li>
+      <li>You guide the council with priorities: how hard to push building, learning, defense, and exploration. You still run the build and study queues, trade, feasts, and the food reserve.</li>
+      <li>The People screen becomes the Village screen, showing your people as groups by their work. Your council and anyone who masters a skill stay named.</li>
+      <li>New: guards, who train and stand watch; huts, which shelter 8; and settlers, who come to a village that is well fed and has room.</li>
+    </ul>
+    <p class="warning">This cannot be undone. You can also wait and keep playing as a camp for as long as you like.</p>
+    <div class="actions">
+      <button type="button" class="primary" data-action="foundVillage">Become a village</button>
+      <button type="button" data-nav="report">Not yet</button>
+    </div>`;
+}
+
+function priorityControl(area) {
+  const info = PRIORITY_AREAS[area];
+  const current = state.priorities[area] || 'normal';
+  const options = PRIORITY_LEVELS.map((lvl) => `<option value="${lvl}"${lvl === current ? ' selected' : ''}>${capitalize(lvl)}</option>`).join('');
+  return `<p><label for="priority-${area}">${esc(info.name)}</label>
+    <select id="priority-${area}" data-priority="${area}" aria-describedby="priority-${area}-about">${options}</select>
+    <span id="priority-${area}-about" class="muted"> ${esc(info.about)}</span></p>`;
+}
+
+function groupLine(g) {
+  const skill = g.skill && g.avgSkill !== null ? `, average ${g.skill} ${g.avgSkill.toFixed(1)}` : '';
+  const hurt = g.hurt ? `, ${g.hurt} badly hurt or sick` : '';
+  return `${g.name}: ${g.count}${skill}${hurt}.`;
+}
+
+function villagerRow(p) {
+  const role = advisorTitleFor(p);
+  const group = GROUP_NAMES[p.task] ? GROUP_NAMES[p.task].toLowerCase().replace(/s$/, '') : p.task;
+  const work = lifeStage(p) === 'infant' ? 'too young to work' : p.task === 'rest' ? 'resting' : group;
+  const best = SKILLS.filter((k) => p.skills[k] === Math.max(...SKILLS.map((x) => p.skills[x])) && p.skills[k] > 0);
+  return `${p.name}${role ? `, ${role}` : ''}: ${work}, ${personStatus(p)}${best.length ? `, best at ${best.join(' and ')} (${p.skills[best[0]]})` : ''}.`;
+}
+
+function villageScreen() {
+  const people = living(state);
+  const young = people.filter((p) => p.age < 16);
+  const g = groups(state);
+  const notable = notablePeople(state);
+  let html = `<h1>Village</h1>
+    <p>${plural(people.length, 'person', 'people')} live in ${esc(state.campName)}${young.length ? `, ${young.length} of them young` : ''}. Food needed this season: ${foodNeeded(people)}. Shelter for ${shelterCapacity(state)}.</p>
+    <p>${esc(workSitesSentence())} Change work sites on the Map screen.</p>
+    ${hasKnowledge(state, 'farming') ? `<p>${esc(farmSentence())}</p>` : ''}
+    <h2 id="prioritiesHeading">Council priorities</h2>
+    <p>The council covers the essentials first: tending the hurt, the fields, and firewood for the fires. Then it follows these priorities, and puts everyone else on food and wood by their skill. The food reserve order on the Advisors screen keeps the stores safe.</p>
+    ${Object.keys(PRIORITY_AREAS).map(priorityControl).join('')}
+    <p><button type="button" data-action="assignBest">Have the council reassign everyone now</button></p>
+    <p class="muted">Otherwise the council reassigns everyone at the start of each season.</p>
+    <h2>Groups (${g.length})</h2>
+    <ul>${g.map((x) => `<li>${esc(groupLine(x))}</li>`).join('')}</ul>
+    <h2>Notable people (${notable.length})</h2>
+    <p class="muted">The council, and anyone who has mastered a skill.</p>
+    <ul>${notable.map((p) => `<li>${esc(villagerRow(p))}</li>`).join('')}</ul>
+    <details>
+      <summary>Everyone in the village (${people.length})</summary>
+      <ul>${[...people].sort((a, b) => TASK_ORDER.indexOf(a.task) - TASK_ORDER.indexOf(b.task) || a.name.localeCompare(b.name)).map((p) => `<li>${esc(villagerRow(p))}</li>`).join('')}</ul>
+    </details>`;
+  return html;
+}
+
 function menuScreen() {
   return `<h1>Menu</h1>
     <p>Your game saves automatically after every action.</p>
@@ -676,6 +767,7 @@ function menuScreen() {
     <p>Other peoples live around the valley. Scouts may find their homes, and some will find you. On the Neighbors screen you can send gifts, trade, and make deals, once per people each season. The raiders who trouble your camp are a people too, and they can be bargained with.</p>
     <p>Your people grow traditions from what they do again and again: win battles, hunt, bring in harvests, welcome strangers, give gifts, trade, study, build, hold feasts, or slip away from raiders. Each tradition gives a lasting benefit. The Chronicle screen shows the traditions you have and the ones taking shape. What you do also earns a reputation, and each neighboring people likes some parts of it and dislikes others, which slowly shifts how they feel about you.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off. You can let your war chief fight, hide, or command the battle yourself. The field has a left flank, a center, and a right flank, plus a reserve. Place your fighters, then each round give every group an order: hold (safer, especially behind a palisade or in the treeline), attack (hits harder, takes more harm), swing round to hit the enemy center, or fall back to the reserve. The reserve can join any zone. Any zone you leave empty lets raiders reach the stores. Groups that lose too much strength break and flee; the enemy gives up when enough of them have fallen. You can also march on Skarn hold from the Neighbors screen: break through two zones they leave empty, or beat them down, to win.</p>
+    <p>Once your camp has 16 people, a storehouse, a palisade, and farming, it can become a village, whenever you choose. In a village your advisors form a council that sets everyone's work each season. You guide it with priorities on the Village screen, and keep running the build and study queues, trade, feasts, and the food reserve. Villages can train guards, build huts, and draw settlers when well fed and roomy.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }
@@ -877,6 +969,14 @@ function handleAction(action, btn) {
       }
       break;
     }
+    case 'foundVillage': {
+      const msg = act({ type: 'foundVillage' });
+      if (msg) {
+        show('people');
+        announce(msg);
+      }
+      break;
+    }
     case 'holdFeast': {
       const msg = act({ type: 'holdFeast', guest: btn.dataset.guest || null });
       if (msg) {
@@ -987,6 +1087,12 @@ $main.addEventListener('change', (e) => {
   const site = e.target.closest('select[data-site]');
   if (site) {
     const msg = act({ type: 'setWorkSite', task: site.dataset.site, placeId: site.value });
+    if (msg) announce(msg);
+    return;
+  }
+  const priority = e.target.closest('select[data-priority]');
+  if (priority) {
+    const msg = act({ type: 'setPriority', area: priority.dataset.priority, level: priority.value });
     if (msg) announce(msg);
     return;
   }

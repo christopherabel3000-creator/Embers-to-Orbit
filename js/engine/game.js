@@ -5,8 +5,9 @@
 import { TASKS, BUILDINGS, PLACES, KNOWLEDGE } from './data.js';
 import {
   personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
-  taskAvailable, hasKnowledge, knowledgeBlocker, allowedTasksFor, lifeStage,
+  taskAvailable, hasKnowledge, knowledgeBlocker, allowedTasksFor, lifeStage, inVillage,
 } from './state.js';
+import { foundVillage, setPriority } from './village.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
@@ -35,10 +36,13 @@ function blocked(state) {
   return null;
 }
 
+const COUNCIL_ASSIGNS = 'In the village, the council assigns everyone\'s work each season. Set its priorities on the Village screen.';
+
 const handlers = {
   assign(state, { personId, task }) {
     const stop = blocked(state);
     if (stop) return stop;
+    if (inVillage(state)) return { error: COUNCIL_ASSIGNS };
     const p = personById(state, personId);
     if (!p || !p.alive) return { error: 'That person is not in the camp.' };
     if (!TASKS[task]) return { error: 'Unknown task.' };
@@ -54,6 +58,7 @@ const handlers = {
   assignAll(state, { fromTask, task }) {
     const stop = blocked(state);
     if (stop) return stop;
+    if (inVillage(state)) return { error: COUNCIL_ASSIGNS };
     if (!TASKS[task]) return { error: 'Unknown task.' };
     if (!taskAvailable(state, task)) return { error: `Your people do not know how to ${TASKS[task].name.toLowerCase()} yet.` };
     const moved = living(state).filter((p) => p.task === fromTask && allowedTasksFor(state, p).includes(task));
@@ -81,7 +86,19 @@ const handlers = {
       .sort((a, b) => b[1] - a[1])
       .map(([t, n]) => `${TASKS[t].name.toLowerCase()} ${n}`)
       .join(', ');
+    if (inVillage(state)) return { message: `The council reassigned everyone. ${changed} changed. ${summary}.` };
     return { message: changed ? `Everyone is on their best work. ${changed} changed. ${summary}.` : `Everyone was already on their best work. ${summary}.` };
+  },
+
+  foundVillage(state) {
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return foundVillage(state);
+  },
+
+  setPriority(state, { area, level }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setPriority(state, area, level);
   },
 
   queueBuilding(state, { buildingId }) {

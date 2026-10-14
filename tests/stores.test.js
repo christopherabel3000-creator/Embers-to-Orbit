@@ -177,7 +177,7 @@ test('version 11 saves can feast', () => {
   delete old.orders.harvestFeast;
   delete old.deeds.feasts;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 12);
+  assert.equal(s.version, 13);
   assert.equal(s.lastFeast, -99);
   assert.equal(s.orders.harvestFeast, false);
   assert.equal(s.deeds.feasts, 0);

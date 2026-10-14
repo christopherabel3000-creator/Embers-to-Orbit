@@ -2,14 +2,18 @@
 // about the game state.
 
 import {
-  FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, BUILDING_ORDER,
+  FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, SHELTER_PER_HUT, BUILDING_ORDER, ERAS,
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
   NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, LEAN_TIMES,
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
+
+export const DEFAULT_PRIORITIES = {
+  building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal',
+};
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -92,6 +96,10 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     lastFeast: -99, // The turn of the last feast. One a year.
+    era: 'camp', // 'camp' (Survival era), then 'village' (Settlement era) by choice.
+    villageFounded: null, // The turn the camp became a village.
+    priorities: { ...DEFAULT_PRIORITIES }, // What the village council pushes for.
+    settlersMet: 0,
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -208,6 +216,14 @@ export function migrate(data) {
     if (data.deeds && data.deeds.feasts === undefined) data.deeds.feasts = 0;
     data.version = 12;
   }
+  if (data.version === 12) {
+    data.era = 'camp';
+    data.villageFounded = null;
+    data.priorities = { ...DEFAULT_PRIORITIES };
+    data.settlersMet = 0;
+    data.buildings.hut = 0;
+    data.version = 13;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -236,7 +252,17 @@ export function personById(state, id) {
 }
 
 export function shelterCapacity(state) {
-  return STARTING_SHELTER + state.buildings.leanTo * SHELTER_PER_LEAN_TO;
+  return STARTING_SHELTER + state.buildings.leanTo * SHELTER_PER_LEAN_TO
+    + (state.buildings.hut || 0) * SHELTER_PER_HUT;
+}
+
+// Whether the game has reached an era yet ('camp', 'village', ...).
+export function eraAtLeast(state, era) {
+  return ERAS.indexOf(state.era || 'camp') >= ERAS.indexOf(era);
+}
+
+export function inVillage(state) {
+  return eraAtLeast(state, 'village');
 }
 
 // How much food the stores can hold. Food beyond this rots quickly.
@@ -289,7 +315,7 @@ export function knowledgeBlocker(state, id) {
 
 export function taskAvailable(state, task) {
   const t = TASKS[task];
-  return Boolean(t) && (!t.requires || hasKnowledge(state, t.requires));
+  return Boolean(t) && (!t.requires || hasKnowledge(state, t.requires)) && (!t.era || eraAtLeast(state, t.era));
 }
 
 export function availableTasks(state) {

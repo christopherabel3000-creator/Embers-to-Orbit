@@ -6,8 +6,9 @@ import {
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
-  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity,
+  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage,
 } from './state.js';
+import { maybeSettlers } from './village.js';
 import { overflowRot } from './stores.js';
 import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
@@ -366,6 +367,7 @@ export function resolveSeason(state) {
     const life = advanceLife(state);
     urgent.push(...life.urgent);
     events.push(...life.events);
+    events.push(...maybeSettlers(state));
     if (living(state).length === 0) {
       state.gameOver = true;
       urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
@@ -381,7 +383,7 @@ export function resolveSeason(state) {
     if (!state.milestoneReached && survivors.length >= MILESTONE_POPULATION
         && state.buildings.storehouse > 0 && state.buildings.palisade > 0 && hasKnowledge(state, 'farming')) {
       state.milestoneReached = true;
-      urgent.push(`${state.campName} has grown into a true settlement of ${survivors.length} people: farming its own fields, safe behind its palisade. The Settlement era will arrive in a future update. You can keep playing.`);
+      urgent.push(`${state.campName} has grown into a true settlement of ${survivors.length} people: farming its own fields, safe behind its palisade. Your people could now become a village, whenever you choose. See the Report screen.`);
     }
   }
   if (survivors.length !== startCount && survivors.length > 0) {
@@ -404,13 +406,14 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   if (state.resources.food > 80) p += 0.05;
   p += Math.min(0.1, Math.max(0, state.resources.food - WEALTH_START) / 3000);
   p *= raidModifier(state);
+  p *= Math.max(0.6, 1 - 0.04 * guardsOnWatch(state)); // Guards keep some raiders away.
   if (!chance(state, Math.min(state.raidThreat ? 0.8 : 0.35, p))) return;
   // With peace or a truce, the only raiders are small bands of outlaws.
   const from = skarnAtPeace(state) ? 'outlaws' : 'skarn';
   const lure = wealthLure(state);
   let raiders = randomInt(state, 4, 7) + raidGrowth(y) + lure;
   if (from === 'outlaws') raiders = Math.max(3, Math.ceil(raiders / 2));
-  const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail')
+  const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail') || guardsOnWatch(state) >= 2
     || (scoutsOut && chance(state, 0.6));
   state.raidThreat = false;
   state.pendingEvent = { type: 'raid', raiders, warned, from };
@@ -420,6 +423,10 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   urgent.unshift(warned
     ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp.${drawn} Decide how to respond before anything else.`
     : `Raiders are at the edge of camp! About ${raiders} ${who} caught you by surprise.${drawn} Decide how to respond before anything else.`);
+}
+
+export function guardsOnWatch(state) {
+  return living(state).filter((p) => p.task === 'guard' && p.health >= 40).length;
 }
 
 // Raiders grow bolder over the years: quickly at first, then more slowly.

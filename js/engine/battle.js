@@ -32,7 +32,8 @@ const WOUND_EVERY = 6; // About one wound for this much damage.
 export function fighterStrength(state, p) {
   const spears = hasKnowledge(state, 'spears') ? 1.5 : 0;
   const warriors = hasTradition(state, 'warrior') ? 1.5 : 0;
-  return (4 + p.skills.hunting * 1.5 + spears + warriors) * Math.max(0.3, p.health / 100);
+  const guard = p.task === 'guard' ? 1.25 : 1; // Trained and ready.
+  return (4 + p.skills.hunting * 1.5 + spears + warriors) * Math.max(0.3, p.health / 100) * guard;
 }
 
 function groupStrength(state, ids) {

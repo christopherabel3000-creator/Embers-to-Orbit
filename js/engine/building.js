@@ -3,7 +3,7 @@
 // Each building's wood is paid when work on it begins.
 
 import { BUILDINGS, KNOWLEDGE } from './data.js';
-import { hasKnowledge } from './state.js';
+import { hasKnowledge, eraAtLeast } from './state.js';
 import { plural } from './util.js';
 import { recordDeed } from './legacy.js';
 
@@ -19,6 +19,7 @@ export function remainingQueueWork(state) {
 export function queueBlocker(state, id) {
   const b = BUILDINGS[id];
   if (!b) return 'Unknown building.';
+  if (b.era && !eraAtLeast(state, b.era)) return `${b.name}s can be built once your camp becomes a village.`;
   if (b.requires && !hasKnowledge(state, b.requires)) return `Building a ${b.name.toLowerCase()} needs ${KNOWLEDGE[b.requires].name}.`;
   if (!b.repeatable && state.buildings[id] > 0) return `You already have a ${b.name.toLowerCase()}.`;
   if (!b.repeatable && queuedCount(state, id) > 0) return `A ${b.name.toLowerCase()} is already in the queue.`;

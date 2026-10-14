@@ -1,9 +1,10 @@
 // Standing orders: rules the player sets once, which advisors carry out at
 // the start of every season. The player can still change anything after.
 
-import { TASKS, SHELTER_PER_LEAN_TO } from './data.js';
+import { TASKS, SHELTER_PER_LEAN_TO, SHELTER_PER_HUT } from './data.js';
 import {
   living, seasonIndex, canFight, allowedTasksFor, hasKnowledge, shelterNeeded, shelterCapacity, foodNeeded,
+  inVillage,
 } from './state.js';
 import { advisorPerson, ADVISOR_ROLES, forecastFood, raidOdds } from './advisors.js';
 import { expectedFood, farmersNeeded } from './rules.js';
@@ -98,7 +99,7 @@ export function applyStandingOrders(state) {
     }
   }
 
-  if (orders.autoAssign) {
+  if (orders.autoAssign || inVillage(state)) {
     // Steward: everyone to their best work. This covers resting the hurt,
     // tending the sick, winter work, and newcomers, so those orders wait.
     const plan = bestWorkPlan(state);
@@ -109,7 +110,11 @@ export function applyStandingOrders(state) {
       p.task = task;
       p.orderReturn = null;
     }
-    if (changed) say('steward', `put everyone on their best work for the season; ${changed} changed jobs.`);
+    if (changed) {
+      say('steward', inVillage(state)
+        ? `the council set everyone's work for the season; ${changed} changed jobs.`
+        : `put everyone on their best work for the season; ${changed} changed jobs.`);
+    }
   } else {
     // Healer: the badly hurt rest until they are healthy again.
     const backToWork = people.filter((p) => p.health >= 75 && returnFrom(p, 'hurt', 'rest'));
@@ -174,14 +179,17 @@ export function applyStandingOrders(state) {
     }
   }
 
-  // Healer: keep a lean-to in the build queue when the shelters are nearly full.
+  // Healer: keep shelter in the build queue when the shelters are nearly full.
+  // A village builds huts; a camp builds lean-tos.
   if (orders.autoShelter) {
-    const coming = state.buildQueue.filter((item) => item.id === 'leanTo').length * SHELTER_PER_LEAN_TO;
+    const coming = state.buildQueue.filter((item) => item.id === 'leanTo').length * SHELTER_PER_LEAN_TO
+      + state.buildQueue.filter((item) => item.id === 'hut').length * SHELTER_PER_HUT;
     if (shelterNeeded(people) + 2 > shelterCapacity(state) + coming) {
+      const id = inVillage(state) ? 'hut' : 'leanTo';
       // Ahead of everything not yet started, but behind work already underway.
       const at = state.buildQueue.findIndex((item) => !item.paid);
-      state.buildQueue.splice(at === -1 ? state.buildQueue.length : at, 0, { id: 'leanTo', progress: 0, paid: false });
-      say('healer', 'the shelters are nearly full, so a lean-to went to the front of the build queue.');
+      state.buildQueue.splice(at === -1 ? state.buildQueue.length : at, 0, { id, progress: 0, paid: false });
+      say('healer', `the shelters are nearly full, so a ${id === 'hut' ? 'hut' : 'lean-to'} went to the front of the build queue.`);
     }
   }
 
@@ -201,7 +209,7 @@ export function applyStandingOrders(state) {
       return f.emptyIn === null || f.emptyIn >= orders.foodReserve;
     };
     if (!lastsLongEnough()) {
-      const rank = { rest: 0, scout: 1, study: 2, build: 3, wood: 4 };
+      const rank = { rest: 0, scout: 1, study: 2, guard: 3, build: 4, wood: 5 };
       const candidates = people
         .filter((p) => p.task in rank && p.health >= 40 && p.age >= 5 && !(p.orderReturn && p.orderReturn.reason === 'hurt'))
         .sort((a, b) => rank[a.task] - rank[b.task]);
@@ -225,7 +233,7 @@ export function applyStandingOrders(state) {
         say('steward', `moved ${parts.join(' and ')} so our food lasts at least ${orders.foodReserve} ${orders.foodReserve === 1 ? 'season' : 'seasons'}.`);
       }
       if (!lastsLongEnough()) {
-        say('steward', 'even with these changes, our food may not last as long as you ordered. Check the People screen.');
+        say('steward', `even with these changes, our food may not last as long as you ordered. ${inVillage(state) ? 'Lowering priorities on the Village screen would free more hands.' : 'Check the People screen.'}`);
       }
     }
   }

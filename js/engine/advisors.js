@@ -8,7 +8,7 @@ import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
   spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName, shelterNeeded, canFight,
   unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt, hasKnowledge,
-  knowledgeBlocker, fieldPlots, metNeighbors, storageCapacity, hasCondition, leanTimesNow,
+  knowledgeBlocker, fieldPlots, metNeighbors, storageCapacity, hasCondition, leanTimesNow, inVillage,
 } from './state.js';
 import { feastBlocker, feastCost } from './stores.js';
 import { HIGH_SPIRITS } from './rules.js';
@@ -95,9 +95,14 @@ export function getAdvice(state) {
   const count = (task) => people.filter((p) => p.task === task).length;
 
   // Steward: food, wood, and work.
+  // In a village the council assigns work, so advice points to priorities.
+  const village = inVillage(state);
+  const moreHands = (work) => (village
+    ? `Lowering priorities on the Village screen would free more hands for ${work}.`
+    : `Put more people on ${work}.`);
   const forecast = forecastFood(state);
   if (forecast.emptyIn === 0) {
-    add('steward', 'urgent', `We will run out of food this season. We eat ${foodNeeded(people)} food a season and have ${state.resources.food}. Put more people on hunting${s === 3 ? '' : ' and foraging'}.`);
+    add('steward', 'urgent', `We will run out of food this season. We eat ${foodNeeded(people)} food a season and have ${state.resources.food}. ${moreHands(s === 3 ? 'hunting' : 'hunting and foraging')}`);
   } else if (forecast.emptyIn !== null) {
     add('steward', 'warning', `At this pace, our food runs out in ${forecast.emptyIn} ${forecast.emptyIn === 1 ? 'season' : 'seasons'}, during ${forecast.season}. ${s === 2 || s === 3 || forecast.season === 'Winter' ? 'Winter hunting is poor and nothing grows, so we must store food before it comes.' : 'We should gather more while the land is generous.'}`);
   } else {
@@ -127,7 +132,7 @@ export function getAdvice(state) {
     let woodComing = 0;
     for (const p of people) woodComing += expectedWood(state, p, p.task, s) * (untilWinter + 1);
     if (state.resources.wood + woodComing < woodNeed) {
-      add('steward', untilWinter === 0 ? 'urgent' : 'warning', `We need about ${woodNeed} wood to keep the fires burning ${untilWinter === 0 ? 'this winter' : 'through winter'}, and we have ${state.resources.wood}. Put more people on gathering wood.`);
+      add('steward', untilWinter === 0 ? 'urgent' : 'warning', `We need about ${woodNeed} wood to keep the fires burning ${untilWinter === 0 ? 'this winter' : 'through winter'}, and we have ${state.resources.wood}. ${moreHands('gathering wood')}`);
     }
   }
   const next = state.buildQueue[0];
@@ -192,7 +197,7 @@ export function getAdvice(state) {
   if (studying && !k.current) {
     add('scholar', 'warning', `${studying} ${studying === 1 ? 'person is' : 'people are'} studying, but no discovery is chosen. Choose one on the Knowledge screen.`);
   } else if (k.current && !studying) {
-    add('scholar', 'note', `No one is studying ${KNOWLEDGE[k.current].name.toLowerCase()}. Set someone to study on the People screen.`);
+    add('scholar', 'note', `No one is studying ${KNOWLEDGE[k.current].name.toLowerCase()}. ${village ? 'Raise the learning priority on the Village screen.' : 'Set someone to study on the People screen.'}`);
   } else if (!k.current && !studying && state.turn >= 1) {
     const open = KNOWLEDGE_ORDER.filter((id) => !knowledgeBlocker(state, id));
     if (open.length) add('scholar', 'note', `We could study ${open.map((id) => KNOWLEDGE[id].name.toLowerCase()).join(', ')}. Choose one on the Knowledge screen and set someone to study.`);
@@ -230,7 +235,7 @@ export function getAdvice(state) {
   if (needed > capacity) {
     const exposed = Math.ceil(needed - capacity);
     const severity = s === 2 || s === 3 ? 'urgent' : s === 1 ? 'warning' : 'note';
-    add('healer', severity, `Our shelter holds ${capacity} people and we need room for ${Math.ceil(needed)}${people.some((p) => p.age < 12) ? ', counting each young child as half' : ''}. ${exposed} will sleep in the open, which is deadly in autumn and winter. Each lean-to shelters 4 more.`);
+    add('healer', severity, `Our shelter holds ${capacity} people and we need room for ${Math.ceil(needed)}${people.some((p) => p.age < 12) ? ', counting each young child as half' : ''}. ${exposed} will sleep in the open, which is deadly in autumn and winter. ${inVillage(state) ? 'Each hut shelters 8 more.' : 'Each lean-to shelters 4 more.'}`);
   }
 
   // Steward: what is holding families back.

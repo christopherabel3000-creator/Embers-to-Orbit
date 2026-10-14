@@ -27,10 +27,17 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 
 - [ ] Balance, still open: a camp run on standing orders, with sensible building, still does well in the forest valley (about 26 people after 20 years, never wiped out). Food no longer piles up past the stores, but most late surplus now rots. The harder starting regions are the main answer; more uses for food (bulk trade with the Tellani, feeding specialists in the Settlement era) would also help.
 
+## Done in Phase 2 (Settlement era)
+
+- Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
+
 ## Toward Phase 2 (Settlement era)
 
-- [ ] Research tree.
-- [ ] Population moves from named individuals to groups by profession.
+- [ ] Part 2: stone and crafts (a quarry, stone buildings, new discoveries) and a research tree with branches.
+- [ ] Part 3: the Velari, Tellani, and Skarn grow into rival nations: their own population and strength, territory, treaties, and promises remembered.
+- [ ] Part 4: founding a second settlement ends the era and opens the Nation era.
+- [ ] Balance: a village run on the default priorities grows to about 65 people in 20 years and raids stop being a threat. Part 3's rival nations should bring the challenge back.
+
 - [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.
 - [ ] More traditions over the eras, and traditions that can fade if neglected.
 - [ ] Battles, deeper: commanders, unit types (archers, spearmen), weather and seasons on the battlefield, and balance as raids grow (raider numbers rise by 2 a year with no cap).

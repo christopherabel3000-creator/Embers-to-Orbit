@@ -14,10 +14,11 @@ export const TASKS = {
   heal: { name: 'Tend the hurt', skill: 'healing', description: 'Treat the injured and sick.' },
   study: { name: 'Study', skill: 'learning', description: 'Experiment and share what people know, to make new discoveries.' },
   farm: { name: 'Farm', skill: 'foraging', description: 'Plant in spring, tend in summer, harvest in autumn. Needs fields. Nothing to do in winter.', requires: 'farming' },
+  guard: { name: 'Guard', skill: 'hunting', description: 'Train with weapons and watch the paths. Guards fight harder, spot raiders early, and keep some away.', era: 'village' },
   rest: { name: 'Rest', skill: null, description: 'Recover health and spirits.' },
 };
 
-export const TASK_ORDER = ['hunt', 'forage', 'farm', 'wood', 'build', 'scout', 'heal', 'study', 'rest'];
+export const TASK_ORDER = ['hunt', 'forage', 'farm', 'wood', 'build', 'scout', 'guard', 'heal', 'study', 'rest'];
 
 export const BUILDINGS = {
   leanTo: {
@@ -26,6 +27,14 @@ export const BUILDINGS = {
     work: 8,
     repeatable: true,
     description: 'Shelters 4 more people from the cold.',
+  },
+  hut: {
+    name: 'Hut',
+    cost: 30,
+    work: 14,
+    repeatable: true,
+    era: 'village',
+    description: 'A sturdy hut of logs and thatch that shelters 8 people.',
   },
   storehouse: {
     name: 'Storehouse',
@@ -66,7 +75,7 @@ export const BUILDINGS = {
   },
 };
 
-export const BUILDING_ORDER = ['leanTo', 'fields', 'storehouse', 'healersHut', 'watchtower', 'palisade'];
+export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'storehouse', 'healersHut', 'watchtower', 'palisade'];
 
 export const PLOTS_PER_FIELD = 6;
 
@@ -94,6 +103,7 @@ export const LEAN_TIMES = {
 };
 
 export const SHELTER_PER_LEAN_TO = 4;
+export const SHELTER_PER_HUT = 8;
 
 // Hand-crafted founding survivors. Skills run from 0 to 5.
 export const AGE_BY_NAME = { Aric: 34, Brenna: 29, Corvin: 31, Dalia: 40, Esker: 22, Fenna: 38, Garrow: 45, Hesta: 36, Iven: 17, Jora: 27, Kael: 33, Lisbet: 24, Maren: 40, Noll: 35, Orla: 26, Pell: 19, Rhosyn: 30, Senna: 25, Tobin: 44, Ula: 58 };
@@ -288,6 +298,40 @@ export const BABY_NAMES = [
   'Tamsin', 'Umber', 'Vale', 'Willow', 'Yarrow', 'Ash', 'Bram', 'Clover', 'Dara', 'Elm',
   'Fern', 'Gale', 'Heath', 'Isla', 'Jasper', 'Kit', 'Lark', 'Merle', 'Nim', 'Ora',
   'Perrin', 'Reed', 'Sorrel', 'Tarn', 'Ulla', 'Vesper', 'Wynn', 'Zephyr', 'Briar', 'Cedar',
+];
+
+// ----- The Settlement era -----
+
+// The eras in order. A camp becomes a village by the player's choice.
+export const ERAS = ['camp', 'village'];
+export const ERA_NAMES = { camp: 'the Survival era', village: 'the Settlement era' };
+
+// What the player can push the council toward in a village.
+export const PRIORITY_AREAS = {
+  building: { name: 'Building', about: 'How many people the council puts on the build queue.' },
+  learning: { name: 'Learning', about: 'How many people study, while a discovery is chosen.' },
+  defense: { name: 'Defense', about: 'How many people train and stand watch as guards.' },
+  exploration: { name: 'Exploration', about: 'How many people scout, while there is anything left to find.' },
+};
+export const PRIORITY_LEVELS = ['low', 'normal', 'high'];
+
+// Names for settlers drawn to the village from beyond the valley.
+export const SETTLER_NAMES = [
+  'Ansel', 'Brisa', 'Calder', 'Doran', 'Edda', 'Fallon', 'Gideon', 'Halla', 'Idris', 'Jessamy',
+  'Korin', 'Lyra', 'Madoc', 'Neve', 'Osric', 'Petra', 'Quinlan', 'Runa', 'Soren', 'Thea',
+  'Ulric', 'Vida', 'Wystan', 'Yselde', 'Aldo', 'Bethan', 'Cormac', 'Delphine', 'Eamon', 'Freya',
+  'Gareth', 'Hild', 'Ione', 'Jorah', 'Kenna', 'Lorcan', 'Maeve', 'Niall', 'Odette', 'Piers',
+  'Rhea', 'Stellan', 'Tova', 'Uma', 'Viggo', 'Wilda', 'Yorick', 'Zora', 'Bastian', 'Cerys',
+];
+export const SETTLER_NOTES = [
+  'A farmer whose village flooded, looking for steadier ground.',
+  'A traveling woodworker who liked what she heard of the village.',
+  'A young hunter tired of wandering alone.',
+  'A herb-gatherer who followed the smoke of your fires.',
+  'A former trader who wants to put down roots.',
+  'A quiet laborer who works from dawn to dusk.',
+  'A storyteller who has walked half the world.',
+  'A runaway from a harsh chieftain beyond the hills.',
 ];
 
 // The peoples of the forest valley. Relations run from -100 to 100 and

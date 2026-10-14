@@ -6,7 +6,9 @@ import { TASKS, WANDERERS } from './data.js';
 import { remainingQueueWork } from './building.js';
 import {
   living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces, fieldPlots,
+  inVillage, woodNeededForWarmth, hasCondition,
 } from './state.js';
+import { BUILDINGS } from './data.js';
 import {
   siteFor, farmersNeeded, workFactor, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
@@ -33,13 +35,16 @@ function needsRest(p) {
   return p.health < 40 || p.sick;
 }
 
+function scoutingLeft(state) {
+  return unexploredNeighbors(state, siteFor(state, 'scout')).length > 0
+    || knownPlaces(state).some((id) => unexploredNeighbors(state, id).length > 0)
+    || state.wanderersMet < WANDERERS.length;
+}
+
 // How many people each task can usefully take this season (Infinity = no limit).
 function limits(state, people) {
   const s = seasonIndex(state);
   const hurt = people.filter((p) => p.health < 75 || p.sick).length;
-  const scoutingLeft = unexploredNeighbors(state, siteFor(state, 'scout')).length > 0
-    || knownPlaces(state).some((id) => unexploredNeighbors(state, id).length > 0)
-    || state.wanderersMet < WANDERERS.length;
   const farmers = farmersNeeded(state);
   return {
     hunt: Infinity,
@@ -51,13 +56,14 @@ function limits(state, people) {
       ? Math.min(6, Math.max(1, Math.ceil(remainingQueueWork(state) / 12)))
       : 0,
     heal: hurt === 0 ? 0 : hurt >= 4 ? 2 : 1,
-    scout: scoutingLeft ? 2 : 0,
+    scout: scoutingLeft(state) ? 2 : 0,
     study: state.knowledge.current ? Infinity : 0,
   };
 }
 
 // Returns a Map of person id to their best task.
 export function bestWorkPlan(state) {
+  if (inVillage(state)) return villagePlan(state);
   const people = living(state);
   const room = limits(state, people);
   const plan = new Map();
@@ -91,6 +97,85 @@ export function bestWorkPlan(state) {
       if (strength() + 1e-9 >= needed) break;
       plan.set(p.id, 'farm');
     }
+  }
+  return plan;
+}
+
+// ---------- the village council ----------
+// In a village the council assigns everyone each season. The player sets
+// priorities; the council fills the essential work first (healing, the
+// fields, firewood), then the priority work, then food and wood by skill.
+
+const LEVEL = { low: 0, normal: 1, high: 2 };
+
+// How many people the council puts on each priority task.
+export function councilTargets(state, workers) {
+  const pr = state.priorities || {};
+  const level = (area) => LEVEL[pr[area] ?? 'normal'];
+  const n = workers.length;
+  const share = (lvl, normal, high) => (lvl === 0 ? 0 : lvl === 1 ? normal : high);
+  const queueLeft = remainingQueueWork(state);
+  const baseBuilders = state.buildQueue.length ? Math.max(1, Math.ceil(queueLeft / 12)) : 0;
+  return {
+    build: !baseBuilders ? 0 : [Math.min(2, baseBuilders), Math.min(6, baseBuilders), Math.min(10, Math.max(2, baseBuilders * 2))][level('building')],
+    guard: share(level('defense'), Math.max(1, Math.round(n * 0.08)), Math.max(2, Math.round(n * 0.16))),
+    study: !state.knowledge.current ? 0 : [1, Math.max(1, Math.round(n * 0.08)), Math.max(2, Math.round(n * 0.16))][level('learning')],
+    scout: !scoutingLeft(state) ? 0 : share(level('exploration'), 1, 2),
+  };
+}
+
+// Woodcutters needed so the fires never go cold and the next building can start.
+function woodcuttersNeeded(state, workers) {
+  const s = seasonIndex(state);
+  const count = living(state).length;
+  let need = 0;
+  for (let i = 0; i < 3; i++) need += woodNeededForWarmth((s + i) % 4, count, i === 0 && hasCondition(state, 'hardWinter'));
+  const next = state.buildQueue.find((item) => !item.paid);
+  if (next) need += BUILDINGS[next.id].cost;
+  const short = need - state.resources.wood;
+  if (short <= 0) return 0;
+  return Math.min(Math.ceil(workers.length / 3), Math.ceil(short / 10)); // About 5 wood a season each, over two seasons.
+}
+
+export function villagePlan(state) {
+  const people = living(state);
+  const s = seasonIndex(state);
+  const plan = new Map();
+  for (const p of people) if (needsRest(p) || p.age < 5) plan.set(p.id, 'rest');
+  const workers = people.filter((p) => !plan.has(p.id));
+  const free = (task) => workers.filter((p) => !plan.has(p.id) && allowedTasksFor(state, p).includes(task));
+  const take = (task, n, skill = TASKS[task].skill) => {
+    free(task).sort((a, b) => b.skills[skill] - a.skills[skill]).slice(0, Math.max(0, n)).forEach((p) => plan.set(p.id, task));
+  };
+
+  // Essentials first.
+  const hurt = people.filter((p) => p.health < 75 || p.sick).length;
+  take('heal', hurt === 0 ? 0 : hurt >= 8 ? 3 : hurt >= 4 ? 2 : 1);
+  const needed = fieldWork(state);
+  if (needed > 0) {
+    let strength = 0;
+    for (const p of free('farm').sort((a, b) => b.skills.foraging - a.skills.foraging)) {
+      if (strength + 1e-9 >= needed) break;
+      plan.set(p.id, 'farm');
+      strength += workFactor(p);
+    }
+  }
+  take('wood', woodcuttersNeeded(state, workers));
+
+  // Then what the player asked the council to push.
+  const targets = councilTargets(state, workers);
+  take('build', targets.build);
+  take('guard', targets.guard);
+  take('study', targets.study);
+  take('scout', targets.scout);
+
+  // Everyone else to food or wood, by skill. Ties go to food.
+  for (const p of workers.filter((x) => !plan.has(x.id))) {
+    const allowed = allowedTasksFor(state, p);
+    const options = [['hunt', p.skills.hunting], ['forage', p.skills.foraging], ['wood', p.skills.building - 0.5]]
+      .filter(([t]) => allowed.includes(t) && !(t === 'forage' && s === 3)) // Nothing to forage in winter.
+      .sort((a, b) => b[1] - a[1]);
+    plan.set(p.id, options.length ? options[0][0] : (allowed.includes('study') && state.knowledge.current ? 'study' : 'rest'));
   }
   return plan;
 }

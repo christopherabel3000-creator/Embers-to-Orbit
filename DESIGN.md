@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceOver. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceOver, and the first part of the Settlement era is built on top of it. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -27,6 +27,7 @@ Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceO
 - **Five advisors** who give ranked advice, forecasts, and odds, and carry out standing orders.
 - **Traditions** (ten) **and reputation** that grow from what the camp actually does.
 - **The Chronicle** of the campaign, a turn report each season, autosave, and save export and import.
+- **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
 
@@ -95,7 +96,36 @@ The game unfolds in eras. Each era layers new systems on top of the old ones, so
 4. **Modern.** Advanced industry, mechanized warfare, intelligence agencies, rocketry research.
 5. **Space.** Satellites, orbital mining, colonization, fleets (see Space age).
 
-Era advancement is driven by research and growth, not a fixed timer. For now, reaching the Settlement era is a milestone the game announces: 16 people, a storehouse, a palisade, and farming.
+Era advancement is driven by research and growth, not a fixed timer, and the player chooses when to take each step. The Settlement era begins when the player chooses to become a village, any time after the camp has 16 people, a storehouse, a palisade, and farming. It ends, and the Nation era begins, when the village founds a second settlement.
+
+## The Settlement era (part 1 built)
+
+Decisions made with Christopher, October 2026:
+
+- **The step is the player's choice.** Once the camp reaches the milestone, the Report screen offers to become a village, with a screen that explains what changes. The player can take that step whenever they like, or never. It cannot be undone.
+- **The council runs the groups.** In a village, the advisors become the council and set everyone's work at the start of every season. The player no longer assigns people one by one, and focuses on broader aims: council priorities, the build and study queues, trade and diplomacy, feasts, and the food reserve.
+- **A second settlement ends the era.** Founding an outpost or a second town marks the start of the Nation era.
+- **The valley peoples grow into the first rival nations.** The Velari, Tellani, and Skarn grow alongside the player rather than new nations arriving.
+- **People are still simulated one by one under the hood**, so events, battles, births, and skills keep working, but the game presents and manages them as groups. If populations grow into the thousands in later eras, the engine can switch to true group counts.
+
+**Built so far (part 1: becoming a village)**
+
+- **Council priorities:** building, learning, defense, and exploration, each low, normal, or high. The council first covers the essentials: tending the hurt (1 to 3 healers), the fields (enough farmers for the season's work, counting children at part strength), and firewood (woodcutters whenever the woodpile cannot cover three seasons of fires plus the next building). Then it fills the priorities, and puts everyone else on hunting, foraging, or wood by their skill. The food reserve order still runs afterward as a safety net. The player can have the council reassign everyone at once.
+
+| Priority | Low | Normal | High |
+| --- | --- | --- | --- |
+| Building (while the queue has work) | Up to 2 builders | Enough to finish in about two seasons, up to 6 | Twice that, up to 10 |
+| Learning (while a discovery is chosen) | 1 scholar | About 8 percent of workers | About 16 percent, at least 2 |
+| Defense | No guards | About 8 percent of workers, at least 1 | About 16 percent, at least 2 |
+| Exploration (while anything is left to find) | No scouts | 1 scout | 2 scouts |
+
+- **The Village screen** replaces the People screen: council priorities, groups by work with their size and average skill, notable people (the council and anyone with a skill of 5), and a full list of everyone, which is read-only.
+- **Guards** (a new task, using the hunting skill): they fight 25 percent harder, two or more on watch always spot raiders early, and each one makes raids 4 percent less likely (down to 60 percent of the usual chance).
+- **Huts:** 30 wood and 14 work; they shelter 8. The healer's shelter order builds huts in a village.
+- **Settlers:** each season a village with at least 2 seasons of food and room in its shelters has a 15 percent chance of drawing settlers (25 percent in high spirits, 10 percent more with Open hearth), sometimes two at once. Settlers are 16 to 34, with one strong skill.
+- **Advice** in a village points to priorities instead of moving people by hand.
+
+**Still to build:** part 2, stone and crafts with a real research tree; part 3, the valley peoples growing into rival nations (population, strength, territory, treaties, remembered promises); part 4, founding a second settlement, which ends the era.
 
 ## Population and resources
 
@@ -303,7 +333,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, keyboard shortcuts, and audio cues (see BACKLOG.md).
-2. **Phase 2: Settlement era.** Started early: zone-based combat, buildings, the first research, trade, and neighboring peoples exist in Survival-era form. Still to build: population groups by profession, the full research tree, the other four starting regions, the first rival nations, deeper trade and diplomacy, and unit types in battle.
+2. **Phase 2: Settlement era (in progress).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers. Still to build: stone and crafts with the full research tree, the valley peoples as rival nations with deeper trade and diplomacy, a second settlement to end the era, the other four starting regions, and unit types in battle.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.
@@ -320,8 +350,9 @@ The game is built in layers, and each phase should be playable and fun on its ow
 - [x] Phase 1 starting region: forest valley
 - [x] Battle model: zones, simultaneous orders, morale (built in Phase 1)
 - [x] Traditions earned from deeds, never chosen (built in Phase 1)
-- [ ] When and how named survivors become population groups
-- [ ] How the Settlement era begins: a milestone the player accepts, or a gradual change
+- [x] When and how named survivors become groups: at the player's choice, once the milestone is reached; the council manages groups, and notable people stay named
+- [x] How the Settlement era begins and ends: the player chooses to become a village; a second settlement starts the Nation era
+- [x] The first rival nations: the Velari, Tellani, and Skarn grow into them
 - [ ] Late-game balance: what keeps a well-run camp challenged (bigger threats, uses for surplus, harder regions)
 - [ ] Whether traditions can fade if neglected
 - [ ] Multiplayer modes: head-to-head, co-op, async with friends

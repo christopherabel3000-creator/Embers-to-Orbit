@@ -210,6 +210,14 @@ export function getAdvice(state) {
     add('scholar', 'note', 'The wild grain in the North meadow could be planted. We are ready to study farming.');
   }
 
+  // Steward and war chief: a siege.
+  if (state.siege) {
+    const need = foodNeeded(people);
+    const lasts = need ? Math.floor(state.resources.food / need) : 0;
+    add('steward', lasts <= state.siege.supplies ? 'urgent' : 'warning', `We are besieged. Our food lasts about ${lasts} ${lasts === 1 ? 'season' : 'seasons'}; the Skarn have supplies for about ${state.siege.supplies} more. No one can work outside the walls.`);
+    add('warChief', 'note', `About ${state.siege.raiders} Skarn hold the siege. We could sally out and fight them in the open, or pay them ${state.siege.raiders * 3} food to leave. They lose some to hunger every season.`);
+  }
+
   // Speaker and war chief: the nations of the valley.
   if (state.neighbors.skarn.nation) {
     for (const task of ['hunt', 'forage', 'wood', 'quarry']) {

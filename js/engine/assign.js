@@ -164,6 +164,22 @@ export function villagePlan(state) {
   // Essentials first.
   const hurt = people.filter((p) => p.health < 75 || p.sick).length;
   take('heal', hurt === 0 ? 0 : hurt >= 8 ? 3 : hurt >= 4 ? 2 : 1);
+
+  // Under siege, everyone works inside the walls: building, crafts, study,
+  // and a strong watch on the walls.
+  if (state.siege) {
+    const targets = councilTargets(state, workers);
+    take('build', targets.build);
+    take('guard', Math.max(targets.guard, Math.round(workers.length * 0.25)));
+    take('craft', targets.craft);
+    take('study', targets.study);
+    for (const p of workers.filter((x) => !plan.has(x.id))) {
+      const allowed = allowedTasksFor(state, p);
+      const inside = ['craft', 'study', 'build'].find((t) => allowed.includes(t) && (t !== 'study' || state.knowledge.current) && (t !== 'build' || state.buildQueue.length));
+      plan.set(p.id, inside || 'rest');
+    }
+    return plan;
+  }
   const needed = fieldWork(state);
   if (needed > 0) {
     let strength = 0;

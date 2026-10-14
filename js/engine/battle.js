@@ -43,6 +43,34 @@ export function guardBonus(state, p) {
   return (hasKnowledge(state, 'drill') ? 1.5 : 1.25) + (hasKnowledge(state, 'chieftain') ? 0.15 : 0);
 }
 
+// Archers: anyone who knows the bow and hunts well (hunting 3 or more)
+// shoots rather than fighting hand to hand. Guards stand in the line.
+export function isArcher(state, p) {
+  return hasKnowledge(state, 'bows') && p.skills.hunting >= 3 && p.task !== 'guard';
+}
+
+// A group's strength, split into archers and those who fight up close.
+function groupParts(state, ids) {
+  let archers = 0;
+  let melee = 0;
+  for (const id of ids) {
+    const p = personById(state, id);
+    if (!p || !p.alive) continue;
+    if (isArcher(state, p)) archers += fighterStrength(state, p);
+    else melee += fighterStrength(state, p);
+  }
+  return { archers, melee };
+}
+
+export function archerCount(state, ids) {
+  return ids.filter((id) => {
+    const p = personById(state, id);
+    return p && p.alive && isArcher(state, p);
+  }).length;
+}
+
+const ENEMY_ARCHERS = 0.25; // Share of a Skarn nation's war band who are archers.
+
 function groupStrength(state, ids) {
   return ids.reduce((sum, id) => {
     const p = personById(state, id);
@@ -84,17 +112,22 @@ export function createBattle(state, ev) {
     side,
     from: ev.from || 'skarn',
     warned: side === 'attack' ? true : ev.warned,
+    sally: Boolean(ev.sally), // Fighting the besiegers in the open, outside the walls.
     terrain: {
-      palisade: side === 'defend' && state.buildings.palisade > 0,
-      wall: side === 'defend' && state.buildings.stoneWall > 0,
-      treeline: side === 'defend' ? 'left' : null,
+      palisade: side === 'defend' && !ev.sally && state.buildings.palisade > 0,
+      wall: side === 'defend' && !ev.sally && state.buildings.stoneWall > 0,
+      treeline: side === 'defend' && !ev.sally ? 'left' : null,
       hillfort: side === 'attack',
+      siegeworks: Boolean(ev.sally), // Besiegers dig in behind stakes and ditches.
     },
     phase: 'deploy',
     round: 0,
     enemyStart: ev.raiders,
     enemy,
     enemyZoneStart: { ...enemy },
+    // Once the Skarn are a nation, a quarter of their fighters are archers.
+    archers: Object.fromEntries(ZONES.map((z) => [z, (ev.from || 'skarn') === 'skarn' && state.neighbors.skarn.nation ? Math.round(enemy[z] * ENEMY_ARCHERS) : 0])),
+    breached: {}, // Zones where the enemy broke through the palisade or wall.
     ours: { left: [], center: [], right: [], reserve: [] },
     oursStart: { left: 0, center: 0, right: 0 },
     fought: [],
@@ -180,8 +213,8 @@ function enemyOrders(state, battle) {
     if (!n) continue;
     const ours = groupStrength(state, battle.ours[z]);
     const theirs = n * RAIDER_STRENGTH;
-    if (battle.side === 'attack') {
-      // Defending their hold: mostly hold the walls, strike when strong.
+    if (battle.side === 'attack' || battle.sally) {
+      // Defending their hold or their siege works: mostly hold, strike when strong.
       orders[z] = theirs > ours * 1.5 && chance(state, 0.5) ? 'attack' : 'hold';
       continue;
     }
@@ -209,9 +242,9 @@ export function warChiefOrders(state, battle) {
     const ratio = theirs ? ours / theirs : Infinity;
     if (theirs && ratio < weakestRatio) { weakest = z; weakestRatio = ratio; }
     if (!theirs) {
-      if (battle.side === 'attack') orders[z] = 'attack';
+      if (battle.side === 'attack' || battle.sally) orders[z] = 'attack';
       else orders[z] = z !== 'center' && battle.enemy.center ? 'flank' : 'hold';
-    } else if (battle.side === 'attack') {
+    } else if (battle.side === 'attack' || battle.sally) {
       orders[z] = ratio >= 1.2 ? 'attack' : 'hold';
     } else {
       orders[z] = ratio >= 1.4 ? 'attack' : 'hold';
@@ -232,24 +265,49 @@ export function describeOrders(orders) {
 
 // ---------- resolving a round ----------
 
+// The cover our fighters have in a zone: 'wall', 'palisade', or null.
+export function coverAt(battle, zone) {
+  if (!battle || (battle.breached && battle.breached[zone])) return null;
+  if (battle.terrain.wall) return 'wall';
+  if (battle.terrain.palisade) return 'palisade';
+  return null;
+}
+
 function inMultiplier(battle, order, zone, ourSide) {
   if (order === 'fallBack') return 0.5;
   if (order !== 'hold') return 1;
   if (ourSide) {
-    if (battle.terrain.wall) return 0.35;
-    if (battle.terrain.palisade) return 0.45;
+    const cover = coverAt(battle, zone);
+    if (cover === 'wall') return 0.45;
+    if (cover === 'palisade') return 0.55;
     if (battle.terrain.treeline === zone) return 0.6;
     return 0.7;
   }
-  return battle.terrain.hillfort ? 0.5 : 0.7;
+  return battle.terrain.hillfort ? 0.5 : battle.terrain.siegeworks ? 0.55 : 0.7;
 }
 
-function outMultiplier(order, battle = null, ourSide = false) {
+function outMultiplier(order, battle = null, ourSide = false, zone = null) {
   // Defenders behind a palisade strike from the walls as hard as in the open.
-  if (order === 'hold' && ourSide && battle && battle.terrain.wall) return 1.25;
-  if (order === 'hold' && ourSide && battle && battle.terrain.palisade) return 1.1;
+  if (order === 'hold' && ourSide && battle) {
+    const cover = coverAt(battle, zone);
+    if (cover === 'wall') return 1.15;
+    if (cover === 'palisade') return 1;
+  }
   return { hold: 0.8, attack: 1.2, flank: 1.5, fallBack: 0 }[order] ?? 1;
 }
+
+// Archers shoot at full strength even while holding.
+function archerOut(order, battle, ourSide, zone) {
+  const m = outMultiplier(order, battle, ourSide, zone);
+  return order === 'hold' ? Math.max(1, m) : m;
+}
+
+// Arrows come over walls: cover protects only half as well against them.
+function arrowMultiplier(inMult) {
+  return 1 - (1 - inMult) / 2;
+}
+
+const MELEE_ON_ARCHERS = 1.3; // Archers caught up close by warriors suffer.
 
 // Wounds spread across a group.
 function woundGroup(state, ids, damage, lines) {
@@ -277,6 +335,8 @@ function woundGroup(state, ids, damage, lines) {
 // Resolves one round. orders: { left, center, right, reserve }.
 export function resolveRound(state, battle, ourOrders) {
   const lines = [];
+  battle.breached = battle.breached || {}; // Older saved battles.
+  battle.archers = battle.archers || { left: 0, center: 0, right: 0 };
   const surprised = !battle.warned && battle.round === 1;
   const enemy = enemyOrders(state, battle);
   const ours = { ...ourOrders };
@@ -308,23 +368,30 @@ export function resolveRound(state, battle, ourOrders) {
     const f = fronts[z];
     const oursHere = f.ours;
     const theirsHere = f.theirs;
-    const ourOut = oursHere.reduce((sum, g) => sum + groupStrength(state, battle.ours[g.zone]) * outMultiplier(g.order, battle, true), 0)
-      * (surprised ? 0.75 : 1);
-    const theirOut = theirsHere.reduce((sum, g) => sum + battle.enemy[g.zone] * RAIDER_STRENGTH * outMultiplier(g.order), 0)
+    const ourOut = oursHere.reduce((sum, g) => {
+      const parts = groupParts(state, battle.ours[g.zone]);
+      return sum + parts.melee * outMultiplier(g.order, battle, true, g.zone) + parts.archers * archerOut(g.order, battle, true, g.zone);
+    }, 0) * (surprised ? 0.75 : 1);
+    const enemyArchers = (zone) => Math.min(battle.enemy[zone], (battle.archers && battle.archers[zone]) || 0);
+    const theirArrows = theirsHere.reduce((sum, g) => sum + enemyArchers(g.zone) * RAIDER_STRENGTH * archerOut(g.order), 0);
+    const theirOut = (theirArrows + theirsHere.reduce((sum, g) => sum + (battle.enemy[g.zone] - enemyArchers(g.zone)) * RAIDER_STRENGTH * outMultiplier(g.order), 0))
       * (surprised ? 1.2 : 1);
+    const arrowShare = theirOut ? theirArrows * (surprised ? 1.2 : 1) / theirOut : 0;
+    const theyCharge = theirsHere.some((g) => (g.order === 'attack' || g.order === 'flank') && battle.enemy[g.zone] > enemyArchers(g.zone));
+    const weCharge = oursHere.some((g) => g.order === 'attack' || g.order === 'flank');
     const bothHold = oursHere.every((g) => g.order === 'hold') && theirsHere.every((g) => g.order === 'hold');
     const skirmish = bothHold ? 0.4 : 1;
 
     if (!theirsHere.length && oursHere.length) {
-      if (battle.side === 'attack' && oursHere.some((g) => g.order === 'attack')) {
+      if ((battle.side === 'attack' || battle.sally) && oursHere.some((g) => g.order === 'attack')) {
         battle.breakIns += 1;
-        lines.push(`${AT[z]}, your fighters met no one and pushed through the Skarn defenses.`);
+        lines.push(`${AT[z]}, your fighters met no one and pushed through the Skarn ${battle.sally ? 'siege works' : 'defenses'}.`);
       }
       continue;
     }
     if (theirsHere.length && !oursHere.some((g) => g.order !== 'fallBack')) {
       // Nobody stands against them here.
-      if (battle.side === 'defend') {
+      if (battle.side === 'defend' && !battle.sally) {
         const n = theirsHere.reduce((sum, g) => sum + battle.enemy[g.zone], 0);
         const food = Math.min(state.resources.food, n * 2);
         const wood = Math.min(state.resources.wood, n);
@@ -343,12 +410,16 @@ export function resolveRound(state, battle, ourOrders) {
     const toThem = ourOut * PACE * skirmish * randomBetween(state, 0.8, 1.2);
     for (const g of oursHere) {
       const share = groupStrength(state, battle.ours[g.zone]) / Math.max(1, oursHere.reduce((s, x) => s + groupStrength(state, battle.ours[x.zone]), 0));
-      woundGroup(state, battle.ours[g.zone], toUs * share * inMultiplier(battle, g.order, g.zone, true), lines);
+      const cover = inMultiplier(battle, g.order, g.zone, true);
+      const parts = groupParts(state, battle.ours[g.zone]);
+      const exposed = theyCharge && parts.archers > parts.melee ? MELEE_ON_ARCHERS : 1;
+      woundGroup(state, battle.ours[g.zone], toUs * share * (cover * (1 - arrowShare) + arrowMultiplier(cover) * arrowShare) * exposed, lines);
     }
     const theirTotal = theirsHere.reduce((s, g) => s + battle.enemy[g.zone], 0) || 1;
     for (const g of theirsHere) {
       const share = battle.enemy[g.zone] / theirTotal;
-      const dmg = toThem * share * inMultiplier(battle, g.order, g.zone, false);
+      const exposed = weCharge && enemyArchers(g.zone) * 2 > battle.enemy[g.zone] ? MELEE_ON_ARCHERS : 1;
+      const dmg = toThem * share * inMultiplier(battle, g.order, g.zone, false) * exposed;
       const fallen = Math.min(battle.enemy[g.zone], Math.floor(dmg / RAIDER_STRENGTH) + (nextRandom(state) < (dmg % RAIDER_STRENGTH) / RAIDER_STRENGTH ? 1 : 0));
       enemyLosses[g.zone] += fallen;
     }
@@ -356,16 +427,35 @@ export function resolveRound(state, battle, ourOrders) {
 
   // Enemy losses and flight.
   const foe = battle.from === 'outlaws' ? 'outlaws' : 'Skarn';
+  // Warriors charging an undermanned stretch of wall may break through it.
+  for (const z of ZONES) {
+    if (battle.side !== 'defend' || !coverAt(battle, z) || enemy[z] !== 'attack') continue;
+    const warriors = battle.enemy[z] - ((battle.archers && battle.archers[z]) || 0);
+    if (warriors <= 0) continue;
+    const defenders = battle.ours[z].length;
+    let p = defenders ? Math.max(0.05, Math.min(0.5, 0.1 + 0.04 * (warriors - defenders))) : 0.6;
+    if (battle.terrain.wall) p *= 0.5;
+    if (chance(state, p)) {
+      battle.breached[z] = true;
+      lines.push(`${AT[z]}, the ${battle.from === 'outlaws' ? 'outlaws' : 'Skarn'} broke through the ${battle.terrain.wall ? 'wall' : 'palisade'}. Fighters there no longer have its cover.`);
+    }
+  }
+
   for (const z of ZONES) {
     const lost = Math.min(battle.enemy[z], enemyLosses[z]);
+    if (battle.archers && battle.enemy[z]) {
+      battle.archers[z] = Math.max(0, battle.archers[z] - Math.round(lost * battle.archers[z] / battle.enemy[z]));
+    }
     battle.enemy[z] -= lost;
     if (lost) lines.push(`The ${foe} lost ${lost} ${AT[z].replace(/^On|^In/, (w) => w.toLowerCase())}.`.replace(/ (on|in) the/, ' $1 the'));
     if (battle.enemy[z] > 0 && battle.enemy[z] < battle.enemyZoneStart[z] * BREAK_AT) {
       lines.push(`The ${foe} on the ${ZONE_NAMES[z]} broke and ran.`);
       battle.enemy[z] = 0;
+      if (battle.archers) battle.archers[z] = 0;
     } else if (enemy[z] === 'fallBack' && battle.enemy[z] > 0) {
       lines.push(`The ${foe} on the ${ZONE_NAMES[z]} pulled back.`);
       battle.enemy[z] = 0;
+      if (battle.archers) battle.archers[z] = 0;
     }
   }
 
@@ -400,7 +490,7 @@ function checkOutcome(state, battle) {
   const ourLeft = ZONES.some((z) => battle.ours[z].length) || battle.ours.reserve.length;
   if (!ourLeft) return 'defeat';
   if (enemyTotal(battle) <= battle.enemyStart * ENEMY_RETREAT_AT || enemyTotal(battle) === 0) return 'victory';
-  if (battle.side === 'attack' && battle.breakIns >= 2) return 'victory';
+  if ((battle.side === 'attack' || battle.sally) && battle.breakIns >= 2) return 'victory';
   if (battle.round > MAX_ROUNDS) return 'stalemate';
   return null;
 }
@@ -433,7 +523,21 @@ export function finishBattle(state, battle, outcome) {
     if (fallen) lines.push(`The Skarn lost ${fallen} warriors. They now have about ${sk.warriors}.`);
   }
   if (battle.side === 'attack') recordDeed(state, 'attacks');
-  if (battle.side === 'defend') {
+  if (battle.sally) {
+    // A sally out against besiegers: win and the siege is broken; otherwise
+    // the survivors fall back inside the walls and the siege goes on.
+    const left = Object.values(battle.enemy).reduce((sum, n) => sum + n, 0);
+    if (outcome === 'victory' || left < 4) {
+      state.siege = null;
+      lines.push(`Your fighters routed the besiegers. The siege of ${state.campName} is broken.`);
+      for (const p of all) p.morale = clamp(p.morale + 10);
+      changeRelation(state, 'skarn', -5);
+    } else {
+      if (state.siege) state.siege.raiders = left;
+      lines.push(`Your fighters fell back inside the walls. About ${left} Skarn still hold the siege.`);
+      for (const p of all) p.morale = clamp(p.morale - 5);
+    }
+  } else if (battle.side === 'defend') {
     if (outcome === 'victory') {
       lines.push(`The ${foe} broke and fled. ${state.campName} is safe.`);
       for (const p of all) p.morale = clamp(p.morale + 8);
@@ -567,12 +671,18 @@ export function battleView(state) {
   const attack = battle.side === 'attack';
   const foe = battle.from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known || attack ? 'Skarn' : 'raiders';
   const terrain = [];
-  if (battle.terrain.wall) terrain.push('Your stone wall covers every zone: fighters who hold behind it take very little harm and strike hard from the top.');
-  else if (battle.terrain.palisade) terrain.push('Your palisade covers every zone: fighters who hold behind it take far less harm and strike hard from the walls.');
+  if (battle.sally) terrain.push('You are sallying out against the besiegers. They have dug in behind stakes and ditches and take less harm while they hold; you have no walls out here. Beat them down, or push through two zones they leave empty, and the siege is broken.');
+  if (battle.terrain.wall) terrain.push('Your stone wall covers every zone: fighters who hold behind it take much less harm and strike hard from the top. Arrows still come over it, and warriors who charge an undermanned stretch may break through.');
+  else if (battle.terrain.palisade) terrain.push('Your palisade covers every zone: fighters who hold behind it take less harm and strike well from the walls. Arrows still come over it, and warriors who charge an undermanned stretch may break through.');
+  const broken = ZONES.filter((z) => battle.breached && battle.breached[z]);
+  if (broken.length) terrain.push(`The defenses are broken on the ${broken.map((z) => ZONE_NAMES[z]).join(' and ')}: fighters there have no cover.`);
   if (battle.terrain.treeline) terrain.push(`The treeline covers your ${ZONE_NAMES[battle.terrain.treeline]}: fighters holding there take less harm.`);
   if (battle.terrain.hillfort) terrain.push('The Skarn hold their walls on a rocky hill: they take far less harm while they hold. Attack where they are thin; pushing through two zones they have left empty wins the day.');
   if (!battle.warned) terrain.push('You were caught by surprise: in the first round your fighters strike weaker and the raiders harder.');
-  const enemyLines = ZONES.map((z) => `${capitalize(ZONE_NAMES[z])}: ${enemyWord(battle, battle.enemy[z])} ${foe}.`);
+  const enemyLines = ZONES.map((z) => {
+    const archers = battle.archers ? Math.min(battle.enemy[z], battle.archers[z] || 0) : 0;
+    return `${capitalize(ZONE_NAMES[z])}: ${enemyWord(battle, battle.enemy[z])} ${foe}${archers && (battle.warned || battle.round > 1) ? `, ${archers === 1 ? '1 of them an archer' : `${archers} of them archers`}` : ''}.`;
+  });
   const view = {
     phase: battle.phase,
     side: battle.side,
@@ -589,7 +699,7 @@ export function battleView(state) {
     const suggested = warChiefFormation(battle);
     view.suggestedFormation = suggested;
     view.plan = formationPlan(state, battle, suggested);
-    view.fighters = living(state).filter(canFight).map((p) => ({ id: p.id, name: p.name, hunting: p.skills.hunting, health: p.health, sick: p.sick }));
+    view.fighters = living(state).filter(canFight).map((p) => ({ id: p.id, name: p.name, hunting: p.skills.hunting, health: p.health, sick: p.sick, archer: isArcher(state, p) }));
     return view;
   }
   view.zones = ZONES.map((z) => {
@@ -599,7 +709,10 @@ export function battleView(state) {
     return {
       zone: z,
       name: ZONE_NAMES[z],
-      people: ids.map((id) => personById(state, id).name),
+      people: ids.map((id) => `${personById(state, id).name}${isArcher(state, personById(state, id)) ? ' (archer)' : ''}`),
+      archers: archerCount(state, ids),
+      enemyArchers: battle.archers ? Math.min(battle.enemy[z], battle.archers[z] || 0) : 0,
+      breached: Boolean(battle.breached && battle.breached[z]),
       enemy: battle.enemy[z],
       odds: ids.length ? oddsWord(ours, theirs) : null,
       orders: !ids.length ? [] : ['hold', 'attack', ...(z !== 'center' ? ['flank'] : []), 'fallBack'],

@@ -10,9 +10,12 @@ import {
 } from './state.js';
 import { maybeSettlers } from './village.js';
 import { lawSettle } from './laws.js';
+import {
+  besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege,
+} from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
 import {
-  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, skarnDaring,
+  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor,
   maybeHarry,
 } from './nations.js';
 import { NEIGHBORS } from './data.js';
@@ -66,6 +69,7 @@ export function resolveSeason(state) {
   const events = [];
   const ordersDone = [];
   const s = seasonIndex(state);
+  const sieged = besieged(state); // No one works outside the walls.
   const finishedLabel = dateLabel(state);
   const people = living(state);
   const startCount = people.length;
@@ -83,6 +87,7 @@ export function resolveSeason(state) {
   // Skirmishers make work at a harried place worth half.
   const harriedTask = (task) => state.harried && state.workSites[task] === state.harried ? 0.5 : 1;
   for (const p of people) {
+    if (sieged && OUTSIDE_TASKS.includes(p.task)) continue;
     const variance = randomBetween(state, 0.7, 1.3) * harriedTask(p.task);
     switch (p.task) {
       case 'hunt':
@@ -132,12 +137,13 @@ export function resolveSeason(state) {
   state.resources.wood += wood;
   state.resources.stone = (state.resources.stone || 0) + stone;
   state.resources.goods = (state.resources.goods || 0) + goods;
-  const herds = (state.buildings.pasture || 0) * FOOD_PER_PASTURE;
+  const herds = Math.round((state.buildings.pasture || 0) * FOOD_PER_PASTURE * (sieged ? 0.5 : 1)); // Penned close in a siege.
   state.resources.food += herds;
   const hunters = people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
   recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
   if (hunters > 0 || food > 0) events.push(`Hunters and foragers brought in ${food} food.`);
   if (wood > 0) events.push(`Woodcutters gathered ${wood} wood.`);
+  if (sieged && people.some((p) => OUTSIDE_TASKS.includes(p.task))) urgent.push('The Skarn siege kept everyone inside the walls: no one could hunt, forage, farm, cut wood or stone, or scout.');
   if (stone > 0) events.push(`Quarriers cut ${stone} stone.`);
   if (goods > 0) events.push(`Crafters made ${goods} goods.`);
   if (herds > 0) events.push(`The herds in the pastures gave ${herds} food.`);
@@ -166,8 +172,8 @@ export function resolveSeason(state) {
     }
   }
 
-  // Other settlements send home what they can spare.
-  events.push(...settlementsSeason(state));
+  // Other settlements send home what they can spare, unless the road is cut.
+  if (!sieged) events.push(...settlementsSeason(state));
 
   // 3. Building, with whatever wood the fires did not need.
   events.push(...applyBuildWork(state, work, { afterFires: woodNeed > 0 }));
@@ -198,7 +204,7 @@ export function resolveSeason(state) {
   }
 
   // Farming follows the year: plant in spring, tend in summer, harvest in autumn.
-  const farmers = people.filter((p) => p.task === 'farm');
+  const farmers = sieged ? [] : people.filter((p) => p.task === 'farm');
   if (farmers.length || state.farm.planted) {
     const plots = fieldPlots(state);
     if (s === 0 && farmers.length) {
@@ -271,8 +277,8 @@ export function resolveSeason(state) {
   // Hunting and foraging use up a place; every place slowly recovers.
   const huntSite = siteFor(state, 'hunt');
   const forageSite = siteFor(state, 'forage');
-  const huntersOut = people.filter((p) => p.task === 'hunt').length;
-  const foragersOut = s === 3 ? 0 : people.filter((p) => p.task === 'forage').length;
+  const huntersOut = sieged ? 0 : people.filter((p) => p.task === 'hunt').length;
+  const foragersOut = s === 3 || sieged ? 0 : people.filter((p) => p.task === 'forage').length;
   for (const id of PLACE_ORDER) {
     const a = state.places[id].abundance;
     if (id === huntSite) a.hunt -= huntersOut * DEPLETION.hunt;
@@ -399,8 +405,9 @@ export function resolveSeason(state) {
     const life = advanceLife(state);
     urgent.push(...life.urgent);
     events.push(...life.events);
-    events.push(...maybeSettlers(state));
-    events.push(...borderFriction(state));
+    if (sieged) urgent.push(...siegeSeason(state));
+    if (!state.siege) events.push(...maybeSettlers(state));
+    if (!state.siege) events.push(...borderFriction(state));
     const valley = valleyYear(state);
     (state.pendingEvent && state.pendingEvent.id === 'allyCall' ? urgent : events).push(...valley);
     if (living(state).length === 0) {
@@ -408,8 +415,8 @@ export function resolveSeason(state) {
       urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
-    urgent.push(...maybeHarry(state));
-    urgent.push(...harrySettlements(state));
+    if (!state.siege) urgent.push(...maybeHarry(state));
+    if (!state.siege) urgent.push(...harrySettlements(state));
     const happened = maybeStartEvent(state);
     urgent.push(...happened.urgent);
     events.push(...happened.events);
@@ -436,12 +443,17 @@ export function resolveSeason(state) {
 }
 
 function maybeStartRaid(state, scoutsOut, urgent) {
-  if (state.turn < 2 || state.pendingEvent) return;
+  if (state.turn < 2 || state.pendingEvent || state.siege) return;
   // A great host gathered last season marches now, unless peace was made.
   if (state.skarnHost && state.turn >= state.skarnHost) {
     state.skarnHost = null;
     if (!skarnAtPeace(state) && state.neighbors.skarn.nation) {
       let raiders = Math.max(6, Math.round(state.neighbors.skarn.nation.warriors * 0.9));
+      // Facing walls they cannot take, the host settles in for a siege.
+      if (skarnApproach(state, raiders) === 'siege') {
+        urgent.unshift(startSiege(state, raiders));
+        return;
+      }
       const helpers = alliedHelpers(state);
       const stopped = Math.min(helpers, raiders - 4);
       raiders -= Math.max(0, stopped);
@@ -469,8 +481,16 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   let raiders = nationsActive(state) && from === 'skarn'
     ? skarnBand(state) + lure
     : randomInt(state, 4, 7) + raidGrowth(y) + lure;
-  // A Skarn nation only sends a band it thinks can win; otherwise it waits.
-  if (nationsActive(state) && from === 'skarn' && raiders < skarnDaring(state)) return;
+  // A Skarn nation only storms a village it thinks it can take. Facing walls
+  // it cannot take, a strong enough band lays siege; otherwise it waits.
+  if (nationsActive(state) && from === 'skarn') {
+    const approach = skarnApproach(state, raiders);
+    if (approach === 'siege') {
+      urgent.unshift(startSiege(state, raiders));
+      return;
+    }
+    if (approach === 'wait') return;
+  }
   if (from === 'outlaws') raiders = Math.max(3, Math.ceil((randomInt(state, 4, 7) + raidGrowth(y)) / 2));
   // Allies send warriors, who meet some of the raiders on the way.
   let allyNote = '';

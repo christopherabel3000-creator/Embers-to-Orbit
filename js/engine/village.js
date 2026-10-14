@@ -95,7 +95,7 @@ export function notablePeople(state) {
 // ----- Settlers -----
 
 export function settlerChance(state) {
-  if (!inVillage(state) || lawIs(state, 'strangers', 'closed')) return 0;
+  if (!inVillage(state) || lawIs(state, 'strangers', 'closed') || state.siege) return 0;
   const people = living(state);
   if (state.resources.food < foodNeeded(people) * 2) return 0;
   if (shelterNeeded(people) + 1 > shelterCapacity(state)) return 0;

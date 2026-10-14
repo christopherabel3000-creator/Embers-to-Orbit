@@ -10,6 +10,7 @@ import {
 import { foundVillage, setPriority } from './village.js';
 import { claimPlace } from './nations.js';
 import { setLaw } from './laws.js';
+import { sallyOut, payBesiegers } from './siege.js';
 import { foundSettlement, setPolicy } from './settlements.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
@@ -109,6 +110,18 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return setPolicy(state, action);
+  },
+
+  sallyOut(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return sallyOut(state);
+  },
+
+  payBesiegers(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return payBesiegers(state);
   },
 
   setLaw(state, { law, option = null }) {

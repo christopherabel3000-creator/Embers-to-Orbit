@@ -25,6 +25,10 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
     state.pendingEvent = null;
     return { lines: ['You called off the attack on Skarn hold.'] };
   }
+  if (plan === 'hide' && ev.sally) {
+    state.pendingEvent = null;
+    return { lines: ['Your fighters stayed behind the walls. The siege goes on.'] };
+  }
   if (plan === 'hide') {
     lines.push(ev.warned
       ? 'Your people hid what they could and slipped into the trees until the raiders left.'

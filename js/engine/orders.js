@@ -203,7 +203,7 @@ export function applyStandingOrders(state) {
   }
 
   // Steward: make sure food will last the chosen number of seasons.
-  if (orders.foodReserve > 0) {
+  if (orders.foodReserve > 0 && !state.siege) { // In a siege there is no food to be had outside.
     const lastsLongEnough = () => {
       const f = forecastFood(state);
       return f.emptyIn === null || f.emptyIn >= orders.foodReserve;

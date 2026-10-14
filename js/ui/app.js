@@ -43,6 +43,10 @@ import {
 import {
   lawsAvailable, seasonsUntilChange,
 } from '../engine/laws.js';
+import {
+  ransom, sallyEvent,
+} from '../engine/siege.js';
+import { estimateBattle } from '../engine/battle.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -125,7 +129,7 @@ function updateStatus() {
     + `food ${state.resources.food} of ${storageCapacity(state)}, wood ${state.resources.wood}, `
     + `${taskAvailable(state, 'quarry') || state.resources.stone ? `stone ${state.resources.stone || 0}, ` : ''}`
     + `${taskAvailable(state, 'craft') || state.resources.goods ? `goods ${state.resources.goods || 0}, ` : ''}`
-    + `shelter for ${shelterCapacity(state)}.`;
+    + `shelter for ${shelterCapacity(state)}.${state.siege ? ' Under siege.' : ''}`;
 }
 
 function show(name, { focus = true } = {}) {
@@ -238,6 +242,19 @@ function reportScreen() {
     html += `<h2>Standing orders carried out</h2><ul>${r.orders.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   }
   html += `<h2>Advisors</h2>${adviceList(getAdvice(state))}`;
+  if (state.siege) {
+    const chance = estimateBattle(state, sallyEvent(state), null, 12);
+    const word = chance >= 0.75 ? 'likely to win' : chance >= 0.45 ? 'an even fight' : 'likely to lose';
+    const cost = ransom(state);
+    html += `<h2 id="siegeHeading">Siege</h2>
+      <p>About ${state.siege.raiders} Skarn surround ${esc(state.campName)}. They have supplies for about ${plural(state.siege.supplies, 'more season', 'more seasons')}, and lose some to hunger each season. While they stay, no one can work outside the walls.</p>
+      <p>Sallying out means fighting them in the open, with no walls, against besiegers dug in behind stakes and ditches. The war chief thinks that would be ${word}.</p>
+      <div class="actions">
+        <button type="button" data-action="sallyOut">Sally out and fight them</button>
+        ${state.resources.food >= cost ? `<button type="button" data-action="payBesiegers">Pay them ${cost} food to leave</button>` : `<p>They would leave for ${cost} food, and you have ${state.resources.food}.</p>`}
+      </div>
+      <p class="muted">Or wait: end the season, and the siege goes on.</p>`;
+  }
   html += storesSection();
   if (inVillage(state) && !(state.settlements || []).length && living(state).length >= MIN_VILLAGE - 10) {
     const why = settlementBlocker(state);
@@ -919,6 +936,7 @@ function menuScreen() {
     <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
     <p>Once you are a village, the Velari, Tellani, and Skarn grow into nations. Each spring they grow, and they claim land outward from their homes. You can claim places too, on the Map screen. Working another people's land angers them unless you share it with an open lands pact. On the Neighbors screen you can propose treaties: a trade pact, open lands, or an alliance, whose warriors help you against raiders, and who will ask you for help in turn. Each nation remembers your promises, kept and broken, and trusts you accordingly. Skarn war bands come from the warriors they actually have, so every raider you defeat weakens them.</p>
     <p>Once your village knows Oral law, it can make four laws on the Village screen: how food is shared, whether strangers may settle, how people serve, and how wrongs are judged. Each choice has a cost as well as a benefit, some please or offend your neighbors, and each law can change once a year.</p>
+    <p>Once the Skarn are a nation, a quarter of their warriors are archers, whose arrows come over walls; archers are weak up close, so charge them. Your own people with hunting 3 or more shoot as archers once you know Bows. Warriors who charge an undermanned stretch of palisade or wall may break through it, and fighters there lose its cover. When the Skarn cannot storm your walls but can hem you in, they lay siege: no one can work outside, and you live on your stores. Wait for their supplies to run out, pay them, or sally out and fight them in the open.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
@@ -954,9 +972,12 @@ function deployScreen(view) {
   const chiefName = chief ? chief.name : 'your war chief';
   const odds = raidOdds(state, living(state).filter(canFight), ev.warned, ev.raiders);
   const total = view.enemyTotal;
+  const sally = Boolean(ev.sally);
   let html = attack
     ? `<h1>March on Skarn hold</h1>
       <p>About ${total} Skarn warriors hold the walls. Choose who goes and where they stand.</p>`
+    : sally ? `<h1>Sally out</h1>
+      <p>About ${total} Skarn besiege ${esc(state.campName)}. Choose who goes out through the gate to fight them in the open, and where they stand.</p>`
     : `<h1>Raiders!</h1>
       <p class="urgent">${ev.warned
         ? `Scouts spotted ${total} ${esc(view.foe)} heading for ${esc(state.campName)}. There is time to prepare.`
@@ -968,7 +989,7 @@ function deployScreen(view) {
     <h2>Quick choices</h2>
     <div class="actions">
       <button type="button" class="primary" data-action="battleAuto">Let ${esc(chiefName)} command the battle</button>
-      <button type="button" data-action="${attack ? 'callOff' : 'hide'}">${attack ? 'Call off the attack' : 'Hide what you can and flee into the trees. Nobody gets hurt, but the raiders take some food and wood.'}</button>
+      <button type="button" data-action="${attack || sally ? 'callOff' : 'hide'}">${attack ? 'Call off the attack' : sally ? 'Stay behind the walls after all' : 'Hide what you can and flee into the trees. Nobody gets hurt, but the raiders take some food and wood.'}</button>
     </div>
     <h2>Command it yourself</h2>
     <form id="deployForm">
@@ -978,7 +999,7 @@ function deployScreen(view) {
       <fieldset><legend>Positions</legend>`;
   for (const f of view.fighters) {
     const where = view.plan[f.id] || 'out';
-    html += `<p><label for="pos-${f.id}">${esc(f.name)}, hunting ${f.hunting}, ${healthWord(f.health)}${f.sick ? ', sick' : ''}</label>
+    html += `<p><label for="pos-${f.id}">${esc(f.name)}${f.archer ? ', archer' : ''}, hunting ${f.hunting}, ${healthWord(f.health)}${f.sick ? ', sick' : ''}</label>
       <select id="pos-${f.id}" data-position="${f.id}">${Object.entries(POSITION_NAMES).map(([z, label]) => `<option value="${z}"${z === where ? ' selected' : ''}>${label}</option>`).join('')}</select></p>`;
   }
   html += `</fieldset>
@@ -1009,7 +1030,7 @@ function battleRoundScreen(view) {
   html += '<h2>The field</h2>';
   for (const z of view.zones) {
     html += `<h3>${esc(capitalize(z.name))}</h3>
-      <p>${z.people.length ? `Yours: ${esc(listWords(z.people))}, ${esc(z.odds)}.` : 'None of yours.'} Enemy: ${z.enemy || 'none'}.</p>`;
+      <p>${z.people.length ? `Yours: ${esc(listWords(z.people))}, ${esc(z.odds)}.` : 'None of yours.'} Enemy: ${z.enemy || 'none'}${z.enemyArchers ? `, ${z.enemyArchers === 1 ? '1 of them an archer' : `${z.enemyArchers} of them archers`}` : ''}.${z.breached ? ' The defenses are broken here.' : ''}</p>`;
   }
   html += `<h3>Reserve</h3><p>${view.reserve.length ? esc(listWords(view.reserve)) : 'Empty.'}</p>`;
   if (view.terrain.length) html += `<details><summary>The ground</summary><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
@@ -1117,6 +1138,22 @@ function handleAction(action, btn) {
       if (msg) {
         show('build', { focus: false });
         refocus('#queueHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'sallyOut': {
+      const msg = act({ type: 'sallyOut' });
+      if (msg) {
+        show('report');
+        announce(msg);
+      }
+      break;
+    }
+    case 'payBesiegers': {
+      const msg = act({ type: 'payBesiegers' });
+      if (msg) {
+        show('report');
         announce(msg);
       }
       break;

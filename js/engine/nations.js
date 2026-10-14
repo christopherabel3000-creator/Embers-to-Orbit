@@ -261,7 +261,7 @@ export function valleyYear(state) {
     // Hill clans flock to the Skarn as the village grows rich and large.
     if (id === 'skarn') {
       const village = living(state).length;
-      if (village > nat.population * 0.8) nat.population += Math.round((village - nat.population * 0.8) * 0.25);
+      if (village * 1.2 > nat.population) nat.population += Math.round((village * 1.2 - nat.population) * 0.4);
     }
     // Losses are made good quickly: young people take up arms.
     const target = Math.round(nat.population * def.warriors);

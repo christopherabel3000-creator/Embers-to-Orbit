@@ -33,6 +33,14 @@ export const GROUP_NAMES = {
 };
 
 // Why the camp cannot become a village yet, or null if it can.
+// A large village frays: spirits settle 1 lower for every 10 people beyond
+// 30, up to 5. A meeting hall, a shrine, comforts, and laws can make up for it.
+export const CROWDING_FROM = 30;
+export function crowdingSettle(state) {
+  if (!inVillage(state)) return 0;
+  return Math.min(5, Math.floor(Math.max(0, living(state).length - CROWDING_FROM) / 10));
+}
+
 export function villageBlocker(state) {
   if (inVillage(state)) return 'Your people already live in a village.';
   if (state.gameOver) return 'The game is over.';

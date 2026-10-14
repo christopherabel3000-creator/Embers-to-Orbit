@@ -7,6 +7,7 @@ import {
 } from '../js/engine/battle.js';
 import {
   skarnApproach, startSiege, siegeSeason, ransom, OUTSIDE_TASKS,
+  villageDefense, bandPower, coverWeight, STORM_RATIO, SIEGE_RATIO,
 } from '../js/engine/siege.js';
 import { villagePlan } from '../js/engine/assign.js';
 import { nation } from '../js/engine/nations.js';
@@ -74,12 +75,20 @@ test('warriors charging an undermanned palisade can break through it', () => {
 
 test('the Skarn storm what they can take, besiege walls they cannot, and wait otherwise', () => {
   const s = village();
-  const fighters = living(s).filter((p) => p.health >= 40 && p.age >= 12).length;
-  assert.equal(skarnApproach(s, fighters + 5), 'storm');
-  assert.equal(skarnApproach(s, Math.ceil(fighters * 0.7)), 'siege');
+  // They weigh what the village's fighters are worth, and its walls.
+  const defense = villageDefense(s);
+  const per = bandPower(s, 1);
+  const stormAt = Math.ceil(defense * coverWeight(s) * STORM_RATIO / per);
+  const siegeAt = Math.ceil(defense * SIEGE_RATIO / per);
+  assert.equal(skarnApproach(s, stormAt), 'storm');
+  assert.equal(skarnApproach(s, stormAt - 1), 'siege');
+  assert.equal(skarnApproach(s, siegeAt), 'siege');
+  assert.equal(skarnApproach(s, siegeAt - 1), 'wait');
   assert.equal(skarnApproach(s, 2), 'wait');
   s.buildings.palisade = 0;
-  assert.equal(skarnApproach(s, Math.ceil(fighters * 0.6)), 'wait', 'no walls: no siege, and a band this size will not storm');
+  const openStorm = Math.ceil(defense * STORM_RATIO / per);
+  assert.equal(skarnApproach(s, openStorm), 'storm', 'without walls they storm sooner');
+  assert.equal(skarnApproach(s, openStorm - 1), 'wait', 'no walls: no siege');
 });
 
 test('under siege no one works outside the walls, and the council keeps everyone inside', () => {

@@ -15,6 +15,8 @@ import {
   besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege,
 } from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
+import { skarnStrength } from './clans.js';
+import { crowdingSettle } from './village.js';
 import {
   nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, helpersText,
   maybeHarry,
@@ -341,6 +343,7 @@ export function resolveSeason(state) {
   // 8. Recovery and morale. Goods for comforts and arms are spent first.
   const spent = spendGoods(state);
   events.push(...spent.events);
+  const crowding = crowdingSettle(state);
   for (const p of people) {
     if (p.health <= 0) continue; // Too far gone to recover.
     if (!unfed.has(p.id) && !cold.has(p.id)) p.health = clamp(p.health + 5);
@@ -351,7 +354,8 @@ export function resolveSeason(state) {
     if (state.buildings.healersHut > 0 && p.health < 75) p.health = clamp(p.health + 5);
     // Spirits settle back toward steady: high spirits fade faster the higher they are.
     const settle = (state.buildings.meetingHall > 0 ? 62 : 55) + lawSettle(state) + spent.settle
-      + (state.buildings.shrine > 0 ? 2 : 0); // A meeting hall, the laws, comforts, and a shrine move where spirits settle.
+      + (state.buildings.shrine > 0 ? 2 : 0) // A meeting hall, the laws, comforts, and a shrine move where spirits settle.
+      - crowding; // A large village frays.
     if (p.morale < settle) p.morale = clamp(Math.min(settle, p.morale + 3));
     else if (p.morale > settle) p.morale = clamp(p.morale - 3 - (p.morale - settle) * 0.2);
   }
@@ -454,7 +458,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   if (state.skarnHost && state.turn >= state.skarnHost) {
     state.skarnHost = null;
     if (!skarnAtPeace(state) && state.neighbors.skarn.nation) {
-      let raiders = Math.max(6, Math.round(state.neighbors.skarn.nation.warriors * 0.9));
+      let raiders = Math.max(6, Math.round(skarnStrength(state) * 0.9));
       // Facing walls they cannot take, the host settles in for a siege.
       if (skarnApproach(state, raiders) === 'siege') {
         urgent.unshift(startSiege(state, raiders));

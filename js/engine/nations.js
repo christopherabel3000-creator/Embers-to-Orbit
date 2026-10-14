@@ -12,6 +12,8 @@ import { chance, randomInt } from './rng.js';
 import { clamp } from './util.js';
 import { lawIs } from './laws.js';
 import { swordsHelp } from './goods.js';
+import { skarnStrength, clanLosses, clansYear, clansMarching } from './clans.js';
+import { skarnApproach } from './siege.js';
 
 const WORK_TASKS = ['hunt', 'forage', 'wood', 'quarry'];
 
@@ -229,18 +231,30 @@ export function allies(state) {
 
 // ----- War -----
 
-// The war band the Skarn send against the village: a share of their warriors.
+// The war band the Skarn send against the village: a share of their
+// warriors, and of any hill clansmen marching with them.
 export function skarnBand(state) {
-  const nat = nation(state, 'skarn');
-  return Math.max(4, Math.round(nat.warriors * (0.5 + 0.3 * (randomInt(state, 0, 100) / 100))));
+  return Math.max(4, Math.round(skarnStrength(state) * (0.5 + 0.3 * (randomInt(state, 0, 100) / 100))));
 }
 
-// The Skarn size up the village before they raid it: a band smaller than
-// this stays home and grows instead. Walls make them want more.
-export function skarnDaring(state) {
-  const fighters = living(state).filter(canFight).length;
-  const walls = state.buildings.stoneWall > 0 ? 1.2 : state.buildings.palisade > 0 ? 1 : 0.7;
-  return Math.round(fighters * walls);
+// The Skarn learn war as a nation: forging better blades, copying your bows
+// and shields, and training their young. Each year as a nation their warriors
+// fight 6 percent better, up to twice as well as the old raiders: they strike
+// harder and are harder to bring down.
+export const SKARN_ARMS_PER_YEAR = 0.06;
+export const SKARN_ARMS_MAX = 2.0;
+export function skarnArms(state) {
+  if (!nation(state, 'skarn') || state.villageFounded == null) return 1;
+  const years = Math.max(0, state.turn - state.villageFounded) / 4;
+  return Math.min(SKARN_ARMS_MAX, 1 + SKARN_ARMS_PER_YEAR * years);
+}
+
+export function skarnArmsWord(state) {
+  const a = skarnArms(state);
+  if (a >= 1.7) return 'as well armed and drilled as any people in the valley';
+  if (a >= 1.3) return 'better armed and drilled than the old raiders';
+  if (a > 1.05) return 'learning to fight as a nation';
+  return 'armed like the old raiders';
 }
 
 // Allies send warriors when raiders come. Returns the number who come.
@@ -258,19 +272,23 @@ export function helpersText(state) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-// Skarn warriors who fall in battle are lost to their nation.
+// Skarn warriors who fall in battle are lost to their nation; hill
+// clansmen marching with them fall in proportion. Returns the clansmen lost.
 export function skarnLosses(state, fallen) {
   const nat = nation(state, 'skarn');
-  if (!nat || fallen <= 0) return;
-  nat.warriors = Math.max(0, nat.warriors - fallen);
-  nat.population = Math.max(nat.warriors, nat.population - Math.ceil(fallen / 2)); // Many of the fallen are only wounded.
+  if (!nat || fallen <= 0) return 0;
+  const clansmen = clanLosses(state, fallen);
+  const own = fallen - clansmen;
+  nat.warriors = Math.max(0, nat.warriors - own);
+  nat.population = Math.max(nat.warriors, nat.population - Math.ceil(own / 2)); // Many of the fallen are only wounded.
+  return clansmen;
 }
 
 // How often the Skarn raid depends on how many warriors they have.
 export function skarnRaidFactor(state) {
   const nat = nation(state, 'skarn');
   if (!nat) return 1;
-  return Math.max(0.2, Math.min(1.5, nat.warriors / 20));
+  return Math.max(0.2, Math.min(1.5, skarnStrength(state) / 20));
 }
 
 // ----- Skirmishers -----
@@ -350,11 +368,15 @@ export function valleyYear(state) {
   lines.push(...valleyRelationsYear(state));
   const sk = nation(state, 'skarn');
   if (state.neighbors.skarn.known) lines.push(`The Skarn now count about ${sk.warriors} warriors among ${sk.population} people.`);
+  lines.push(...clansYear(state));
   // A strong Skarn gathers a great host against the village, giving warning.
-  const fighters = living(state).filter(canFight).length;
-  if (state.neighbors.skarn.known && !skarnAtPeace(state) && !state.skarnHost && sk.warriors >= fighters * 0.7 && chance(state, 0.5)) {
+  const strength = skarnStrength(state);
+  // A host only gathers when it could storm the walls or hem the village in.
+  if (state.neighbors.skarn.known && !skarnAtPeace(state) && !state.skarnHost
+      && skarnApproach(state, Math.round(strength * 0.9)) !== 'wait' && chance(state, 0.5)) {
     state.skarnHost = state.turn + 1;
-    lines.push(`Scouts bring grim news: the Skarn are gathering a great host of about ${Math.round(sk.warriors * 0.9)} warriors. They will march on ${state.campName} next season. Tribute, peace, allies, guards, and walls could all help.`);
+    const withClans = clansMarching(state) ? ', hill clansmen among them' : '';
+    lines.push(`Scouts bring grim news: the Skarn are gathering a great host of about ${Math.round(strength * 0.9)} warriors${withClans}. They will march on ${state.campName} next season. Tribute, peace, allies, guards, walls, and gifts to the clans could all help.`);
   }
   lines.push(...skarnRaidsOthers(state));
   return lines;

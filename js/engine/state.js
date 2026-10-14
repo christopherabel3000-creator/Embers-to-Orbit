@@ -9,7 +9,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -111,6 +111,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     lastHire: -99, // The turn a master was last hired.
     swordsUntil: -1, // Sell-swords guard the roads until this turn.
     guardsArmed: false, // Whether the guards were armed with goods this season.
+    clans: { warriors: 0, quietUntil: -1, arrived: false }, // Hill clansmen who march with the Skarn, and how long gifts keep them home.
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -281,6 +282,10 @@ export function migrate(data) {
     // Relations between the nations start where they would have.
     if (data.neighbors.skarn.nation && !data.valley) data.valley = { 'tellani|velari': 30, 'skarn|velari': -40, 'skarn|tellani': -20 };
     data.version = 21;
+  }
+  if (data.version === 21) {
+    data.clans = { warriors: 0, quietUntil: -1, arrived: false };
+    data.version = 22;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

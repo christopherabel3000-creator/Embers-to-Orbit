@@ -7,7 +7,7 @@
 import { living, canFight, inVillage } from './state.js';
 import { alliedHelpers, skarnLosses, helpersText } from './nations.js';
 import { changeRelation } from './neighbors.js';
-import { createBattle } from './battle.js';
+import { createBattle, fighterStrength, foeStrengthFor } from './battle.js';
 import { randomInt } from './rng.js';
 
 // Work that cannot be done while the village is besieged.
@@ -21,14 +21,35 @@ function hasWalls(state) {
   return state.buildings.palisade > 0 || state.buildings.stoneWall > 0;
 }
 
-// How the Skarn mean to deal with the village, given the band they can send:
-// 'storm' if they think they can take it, 'siege' if they can only hem it in
-// behind its walls, or 'wait' if they are too weak for either.
+// The Skarn size up the village by what its fighters are worth, not just
+// how many there are, and by its walls. They storm a village they think they
+// can take, lay siege to one whose walls they cannot, and otherwise wait and
+// grow. Walls count for this much more when they weigh an assault.
+export const COVER_WEIGHT = { none: 1, palisade: 1.5, wall: 1.9 };
+export const STORM_RATIO = 0.85; // Storm when the band is worth this much of the walled defense.
+export const SIEGE_RATIO = 0.9; // Besiege when it is worth this much of the fighters in the open.
+
+export function villageDefense(state) {
+  return living(state).filter(canFight).reduce((sum, p) => sum + fighterStrength(state, p), 0);
+}
+
+export function coverWeight(state) {
+  if (state.buildings.stoneWall > 0) return COVER_WEIGHT.wall;
+  if (state.buildings.palisade > 0) return COVER_WEIGHT.palisade;
+  return COVER_WEIGHT.none;
+}
+
+// What a Skarn band of this size is worth in battle.
+export function bandPower(state, band) {
+  return band * foeStrengthFor(state, { from: 'skarn' }, 'defend');
+}
+
+// 'storm', 'siege', or 'wait'.
 export function skarnApproach(state, band) {
-  const fighters = living(state).filter(canFight).length;
-  const walls = state.buildings.stoneWall > 0 ? 1.2 : state.buildings.palisade > 0 ? 1 : 0.7;
-  if (band >= Math.round(fighters * walls)) return 'storm';
-  if (hasWalls(state) && inVillage(state) && band >= Math.round(fighters * 0.5)) return 'siege';
+  const power = bandPower(state, band);
+  const defense = villageDefense(state);
+  if (power >= defense * coverWeight(state) * STORM_RATIO) return 'storm';
+  if (hasWalls(state) && inVillage(state) && power >= defense * SIEGE_RATIO) return 'siege';
   return 'wait';
 }
 

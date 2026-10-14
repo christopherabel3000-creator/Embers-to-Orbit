@@ -34,7 +34,14 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
       ? 'Your people hid what they could and slipped into the trees until the raiders left.'
       : 'Caught by surprise, your people grabbed what they could and fled into the trees.');
     const half = hasTradition(state, 'hidden') ? 0.5 : 1;
-    lines.push(ev.warned ? loseShare(0.2 * half, 0.15 * half) : loseShare(0.35 * half, 0.25 * half));
+    if (ev.host) {
+      // A great host has time to strip the village bare.
+      const g = Math.floor((res.goods || 0) * 0.3 * half);
+      res.goods = (res.goods || 0) - g;
+      lines.push(`${loseShare(0.4 * half, 0.3 * half).replace(' wood.', ` wood${g ? `, and ${g} goods` : ''}.`)} A great host has time to take its fill.`);
+    } else {
+      lines.push(ev.warned ? loseShare(0.2 * half, 0.15 * half) : loseShare(0.35 * half, 0.25 * half));
+    }
     recordDeed(state, 'hid');
     for (const p of all) p.morale = Math.max(0, p.morale - 6);
   } else if (plan === 'fight') {

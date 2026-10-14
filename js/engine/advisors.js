@@ -19,6 +19,8 @@ import {
 } from './rules.js';
 import { birthOutlook, parents } from './population.js';
 import { skarnAtPeace } from './neighbors.js';
+import { skarnStrength, clansMarching } from './clans.js';
+import { crowdingSettle } from './village.js';
 import { estimateBattle } from './battle.js';
 
 export const ADVISOR_ROLES = {
@@ -231,8 +233,10 @@ export function getAdvice(state) {
     if (sk.known && !skarnAtPeace(state)) {
       const able = people.filter(canFight).length;
       const nat = sk.nation;
-      if (nat.warriors >= able) add('warChief', 'warning', `The Skarn have about ${nat.warriors} warriors, and we have ${able} people fit to fight. Their war bands are half to most of that. Guards, a wall, allies, or peace would help.`);
-      else add('warChief', 'note', `The Skarn have about ${nat.warriors} warriors. Their war bands are half to most of that.`);
+      const strength = skarnStrength(state);
+      const clanNote = clansMarching(state) ? `, ${clansMarching(state)} of them hill clansmen drawn by our size and stores` : '';
+      if (strength >= able) add('warChief', 'warning', `The Skarn could send about ${strength} warriors${clanNote}, and we have ${able} people fit to fight. Their war bands are half to most of that. Guards, a wall, allies, peace, or gifts to the clans would help.`);
+      else add('warChief', 'note', `The Skarn could send about ${strength} warriors${clanNote}. Their war bands are half to most of that.`);
     }
   }
 
@@ -266,6 +270,12 @@ export function getAdvice(state) {
     const exposed = Math.ceil(needed - capacity);
     const severity = s === 2 || s === 3 ? 'urgent' : s === 1 ? 'warning' : 'note';
     add('healer', severity, `Our shelter holds ${capacity} people and we need room for ${Math.ceil(needed)}${people.some((p) => p.age < 12) ? ', counting each young child as half' : ''}. ${exposed} will sleep in the open, which is deadly in autumn and winter. ${inVillage(state) ? 'Each hut shelters 8 more.' : 'Each lean-to shelters 4 more.'}`);
+  }
+
+  // Steward: a crowded village.
+  const crowded = crowdingSettle(state);
+  if (crowded > 0) {
+    add('steward', 'note', `With ${people.length} people, the village is crowded, and spirits settle ${crowded} lower than they would. A meeting hall, a shrine, comforts, festivals, and the right laws all help.`);
   }
 
   // Steward: what is holding families back.

@@ -34,7 +34,7 @@ import {
   villageBlocker, groups, notablePeople, GROUP_NAMES,
 } from '../engine/village.js';
 import {
-  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord, valleyLines,
+  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord, valleyLines, skarnArmsWord,
 } from '../engine/nations.js';
 import {
   settlementBlocker, settlementSites, settlerRange, governorChoices, settlementProduct, expectedShipment,
@@ -50,6 +50,7 @@ import { estimateBattle } from '../engine/battle.js';
 import {
   hireBlocker, swordsBlocker, swordsActive, comfortsCost, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT,
 } from '../engine/goods.js';
+import { clansLine, clanGiftBlocker, clanGiftCost, clansQuiet } from '../engine/clans.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -578,7 +579,23 @@ function nationSection(id) {
   return `<h3>Their nation</h3>
     <p>${esc(nationSummary(state, id))}</p>
     <p>Trust: ${esc(trustWord(nat.trust))} (${nat.trust}).${treaties.length ? ` Treaties in force: ${esc(listWords(treaties))}.` : ' No treaties.'}</p>
-    ${memory.length ? `<p>They remember that you:</p><ul>${memory.map((m) => `<li>${esc(m.text)}${m.kind === 'broken' ? ' (a broken promise)' : ''}.</li>`).join('')}</ul>` : ''}`;
+    ${memory.length ? `<p>They remember that you:</p><ul>${memory.map((m) => `<li>${esc(m.text)}${m.kind === 'broken' ? ' (a broken promise)' : ''}.</li>`).join('')}</ul>` : ''}
+    ${id === 'skarn' ? skarnWarSection() : ''}`;
+}
+
+// The Skarn's arms, and the hill clans who march with them.
+function skarnWarSection() {
+  let html = `<p>Their warriors are ${esc(skarnArmsWord(state))}.</p>`;
+  const line = clansLine(state);
+  if (!line) return html;
+  html += `<h3 id="clansHeading">The hill clans</h3><p>${esc(line)}</p>`;
+  const why = clanGiftBlocker(state);
+  if (!why) {
+    html += `<p><button type="button" data-action="giftClans">Send ${clanGiftCost(state)} goods to the clan chiefs: half go home, and the rest stay out of the Skarn's wars for two years</button></p>`;
+  } else if (!clansQuiet(state)) {
+    html += `<p>${esc(why)}</p>`;
+  }
+  return html;
 }
 
 function neighborsScreen() {
@@ -1232,6 +1249,15 @@ function handleAction(action, btn) {
       if (msg) {
         show('report', { focus: false });
         refocus('#feastStatus', '#storesHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'giftClans': {
+      const msg = act({ type: 'giftClans' });
+      if (msg) {
+        show('neighbors', { focus: false });
+        refocus('#clansHeading', '#neighbor-skarn');
         announce(msg);
       }
       break;

@@ -11,6 +11,8 @@ import { refreshAdvisors } from './advisors.js';
 import { meet, changeRelation } from './neighbors.js';
 import { listNames, clamp, plural } from './util.js';
 import { recordDeed, hasTradition } from './legacy.js';
+import { skarnLosses, skarnArms } from './nations.js';
+import { clansMarching, skarnStrength } from './clans.js';
 
 export const ZONES = ['left', 'center', 'right'];
 export const ZONE_NAMES = { left: 'left flank', center: 'center', right: 'right flank', reserve: 'reserve' };
@@ -23,6 +25,21 @@ export const ORDER_NAMES = {
 };
 export const MAX_ROUNDS = 4;
 const RAIDER_STRENGTH = 6;
+
+// How hard each enemy strikes in this battle. Skarn warriors grow stronger
+// the longer they have been a nation (see skarnArms), and are as much harder
+// to bring down; hill clansmen and outlaws fight like the old raiders.
+export function foeStrength(battle) {
+  return battle.foeStrength || RAIDER_STRENGTH;
+}
+
+export function foeStrengthFor(state, ev, side) {
+  if ((ev.from || 'skarn') !== 'skarn' || !state.neighbors.skarn.nation) return RAIDER_STRENGTH;
+  const arms = skarnArms(state);
+  const total = skarnStrength(state);
+  const clanShare = side === 'attack' || !total ? 0 : clansMarching(state) / total;
+  return Math.round(RAIDER_STRENGTH * (arms * (1 - clanShare) + clanShare) * 100) / 100;
+}
 const PACE = 0.4; // Share of strength that turns into damage each round.
 const BREAK_AT = 0.4; // A group breaks below this share of its starting strength.
 const ENEMY_RETREAT_AT = 0.35; // The enemy gives up below this share of its fighters.
@@ -124,6 +141,7 @@ export function createBattle(state, ev) {
     phase: 'deploy',
     round: 0,
     enemyStart: ev.raiders,
+    foeStrength: foeStrengthFor(state, ev, side),
     enemy,
     enemyZoneStart: { ...enemy },
     // Once the Skarn are a nation, a quarter of their fighters are archers.
@@ -213,7 +231,7 @@ function enemyOrders(state, battle) {
     const n = battle.enemy[z];
     if (!n) continue;
     const ours = groupStrength(state, battle.ours[z]);
-    const theirs = n * RAIDER_STRENGTH;
+    const theirs = n * foeStrength(battle);
     if (battle.side === 'attack' || battle.sally) {
       // Defending their hold or their siege works: mostly hold, strike when strong.
       orders[z] = theirs > ours * 1.5 && chance(state, 0.5) ? 'attack' : 'hold';
@@ -234,7 +252,7 @@ export function warChiefOrders(state, battle) {
   let weakestRatio = Infinity;
   for (const z of ZONES) {
     const ids = battle.ours[z];
-    const theirs = battle.enemy[z] * RAIDER_STRENGTH;
+    const theirs = battle.enemy[z] * foeStrength(battle);
     if (!ids.length) {
       if (theirs > 0 && 0 < weakestRatio) { weakest = z; weakestRatio = 0; }
       continue;
@@ -374,8 +392,8 @@ export function resolveRound(state, battle, ourOrders) {
       return sum + parts.melee * outMultiplier(g.order, battle, true, g.zone) + parts.archers * archerOut(g.order, battle, true, g.zone);
     }, 0) * (surprised ? 0.75 : 1);
     const enemyArchers = (zone) => Math.min(battle.enemy[zone], (battle.archers && battle.archers[zone]) || 0);
-    const theirArrows = theirsHere.reduce((sum, g) => sum + enemyArchers(g.zone) * RAIDER_STRENGTH * archerOut(g.order), 0);
-    const theirOut = (theirArrows + theirsHere.reduce((sum, g) => sum + (battle.enemy[g.zone] - enemyArchers(g.zone)) * RAIDER_STRENGTH * outMultiplier(g.order), 0))
+    const theirArrows = theirsHere.reduce((sum, g) => sum + enemyArchers(g.zone) * foeStrength(battle) * archerOut(g.order), 0);
+    const theirOut = (theirArrows + theirsHere.reduce((sum, g) => sum + (battle.enemy[g.zone] - enemyArchers(g.zone)) * foeStrength(battle) * outMultiplier(g.order), 0))
       * (surprised ? 1.2 : 1);
     const arrowShare = theirOut ? theirArrows * (surprised ? 1.2 : 1) / theirOut : 0;
     const theyCharge = theirsHere.some((g) => (g.order === 'attack' || g.order === 'flank') && battle.enemy[g.zone] > enemyArchers(g.zone));
@@ -421,7 +439,8 @@ export function resolveRound(state, battle, ourOrders) {
       const share = battle.enemy[g.zone] / theirTotal;
       const exposed = weCharge && enemyArchers(g.zone) * 2 > battle.enemy[g.zone] ? MELEE_ON_ARCHERS : 1;
       const dmg = toThem * share * inMultiplier(battle, g.order, g.zone, false) * exposed;
-      const fallen = Math.min(battle.enemy[g.zone], Math.floor(dmg / RAIDER_STRENGTH) + (nextRandom(state) < (dmg % RAIDER_STRENGTH) / RAIDER_STRENGTH ? 1 : 0));
+      const tough = foeStrength(battle); // Better-armed warriors are harder to bring down.
+      const fallen = Math.min(battle.enemy[g.zone], Math.floor(dmg / tough) + (nextRandom(state) < (dmg % tough) / tough ? 1 : 0));
       enemyLosses[g.zone] += fallen;
     }
   }
@@ -518,10 +537,13 @@ export function finishBattle(state, battle, outcome) {
     const left = Object.values(battle.enemy).reduce((sum, n) => sum + n, 0);
     const fallen = Math.max(0, battle.enemyStart - left);
     const sk = state.neighbors.skarn.nation;
-    sk.warriors = Math.max(0, sk.warriors - fallen);
-    sk.population = Math.max(sk.warriors, sk.population - Math.ceil(fallen / 2));
+    const clansmen = battle.side === 'attack' ? 0 : skarnLosses(state, fallen);
+    if (battle.side === 'attack') {
+      sk.warriors = Math.max(0, sk.warriors - fallen);
+      sk.population = Math.max(sk.warriors, sk.population - Math.ceil(fallen / 2));
+    }
     if (battle.side === 'defend' && outcome !== 'victory') sk.wealth += 40; // Plunder feeds them.
-    if (fallen) lines.push(`The Skarn lost ${fallen} warriors. They now have about ${sk.warriors}.`);
+    if (fallen) lines.push(`The Skarn lost ${fallen} warriors${clansmen ? `, ${clansmen} of them hill clansmen` : ''}. They now have about ${sk.warriors}.`);
   }
   if (battle.side === 'attack') recordDeed(state, 'attacks');
   if (battle.sally) {
@@ -706,7 +728,7 @@ export function battleView(state) {
   view.zones = ZONES.map((z) => {
     const ids = battle.ours[z];
     const ours = groupStrength(state, ids);
-    const theirs = battle.enemy[z] * RAIDER_STRENGTH;
+    const theirs = battle.enemy[z] * foeStrength(battle);
     return {
       zone: z,
       name: ZONE_NAMES[z],

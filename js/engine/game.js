@@ -12,6 +12,7 @@ import { claimPlace } from './nations.js';
 import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
 import { hireMaster, hireSwords } from './goods.js';
+import { giftClans } from './clans.js';
 import { foundSettlement, setPolicy } from './settlements.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
@@ -129,6 +130,12 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return hireMaster(state, skill);
+  },
+
+  giftClans(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return giftClans(state);
   },
 
   hireSwords(state) {

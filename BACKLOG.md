@@ -36,12 +36,13 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Sieges and combat: walls rebalanced, archers on both sides, breaches, sieges (wait, pay, or sally out against dug-in besiegers), allies harassing besiegers.
 - Laws: four laws (sharing food, strangers, service, justice), two options each, changeable once a year, with neighbors' reactions.
 - Part 4, the second settlement: founding it (where, name, settlers, governor, policy), shipments home, growth, Skarn skirmishes, and the start of the Nation era.
+- Late-era challenge: the Skarn learn war as a nation (stronger and harder to bring down each year), weigh the village's real strength and walls before attacking, hill clans drawn by the village's size and stores (with gifts of goods to keep them home), a crowded village whose spirits settle lower, and great hosts that strip a village that hides.
 - Part 3, the valley peoples as nations: growth, territory and claims, treaties (trade pact, open lands, alliance), trust and memory, ally calls, Skarn war bands from real warriors, skirmishers, and great hosts.
 - Part 2, stone and crafts: quarrying and the Grey cliffs, crafting goods, goods trades and gifts, a research tree in five branches (12 new discoveries, one either-or choice), and six village buildings.
 
 ## Still open in Phase 2 (Settlement era)
 
-- [ ] Balance: a village run on the default priorities grows to about 60 to 70 people in 20 years and stores over a thousand food. Walls are weaker, archers and breaches make battles riskier, and sieges cost seasons of work, but a well-run village still wins most fights and breaks sieges quickly. Options: weather and season in battle, Skarn that ally with hill clans for great hosts, harder starting regions. Battle tactics for the player could go further too: spearmen and shield walls as a choice, ambushes on the road.
+- [ ] Balance, still open: harvest feasts cost little once stores are large, so spirits stay high in a big village; feasts could cost more per person as a village grows, or draw clans like stores do. Simulated villages still win every battle they choose to fight. Ideas: weather and season in battle, spearmen and shield walls as a choice, ambushes on the road, a standing order to send gifts to the clans, and the Velari and Tellani hiring clansmen of their own.
 - [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
 - [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices.
 - [ ] Nations, deeper: the council moving work away from foreign land, the Velari and Tellani making formal treaties with each other, and nations reacting to your strength.

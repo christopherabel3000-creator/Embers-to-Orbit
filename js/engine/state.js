@@ -9,7 +9,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -96,11 +96,12 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     lastFeast: -99, // The turn of the last feast. One a year.
-    era: 'camp', // 'camp' (Survival era), then 'village' (Settlement era) by choice.
+    era: 'camp', // 'camp' (Survival era), 'village' (Settlement era), then 'nation' with a second settlement.
     villageFounded: null, // The turn the camp became a village.
     priorities: { ...DEFAULT_PRIORITIES }, // What the village council pushes for.
     settlersMet: 0,
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
+    settlements: [], // Other settlements the village has founded.
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -240,6 +241,10 @@ export function migrate(data) {
     // Nations: a village save gets its nations at the start of its next season.
     data.skarnHost = null;
     data.version = 15;
+  }
+  if (data.version === 15) {
+    data.settlements = [];
+    data.version = 16;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

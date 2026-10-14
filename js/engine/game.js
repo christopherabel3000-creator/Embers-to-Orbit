@@ -9,6 +9,7 @@ import {
 } from './state.js';
 import { foundVillage, setPriority } from './village.js';
 import { claimPlace } from './nations.js';
+import { foundSettlement, setPolicy } from './settlements.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
@@ -94,6 +95,19 @@ const handlers = {
   foundVillage(state) {
     if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
     return foundVillage(state);
+  },
+
+  foundSettlement(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return foundSettlement(state, action);
+  },
+
+  setSettlementPolicy(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setPolicy(state, action);
   },
 
   claimPlace(state, { placeId }) {

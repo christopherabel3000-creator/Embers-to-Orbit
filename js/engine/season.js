@@ -9,6 +9,7 @@ import {
   hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage,
 } from './state.js';
 import { maybeSettlers } from './village.js';
+import { settlementsSeason, harrySettlements } from './settlements.js';
 import {
   nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, skarnDaring,
   maybeHarry,
@@ -163,6 +164,9 @@ export function resolveSeason(state) {
       urgent.push(`There was not enough firewood. ${freezing.length} ${freezing.length === 1 ? 'person' : 'people'} suffered from the cold.`);
     }
   }
+
+  // Other settlements send home what they can spare.
+  events.push(...settlementsSeason(state));
 
   // 3. Building, with whatever wood the fires did not need.
   events.push(...applyBuildWork(state, work, { afterFires: woodNeed > 0 }));
@@ -404,6 +408,7 @@ export function resolveSeason(state) {
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
     urgent.push(...maybeHarry(state));
+    urgent.push(...harrySettlements(state));
     const happened = maybeStartEvent(state);
     urgent.push(...happened.urgent);
     events.push(...happened.events);

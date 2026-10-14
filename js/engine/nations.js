@@ -77,7 +77,7 @@ export function landsOf(state, who) {
 
 // Places the village may hold besides its own camp.
 export function claimLimit(state) {
-  return 2 + Math.floor(living(state).length / 10);
+  return 2 + Math.floor(living(state).length / 10) + 2 * (state.settlements || []).length;
 }
 
 // Who would have liked to claim a place for themselves.

@@ -11,7 +11,7 @@ import {
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
-  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER,
+  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES, TREATIES, TREATY_ORDER, ERA_NAMES,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -36,6 +36,10 @@ import {
 import {
   nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord,
 } from '../engine/nations.js';
+import {
+  settlementBlocker, settlementSites, settlerRange, governorChoices, settlementProduct, expectedShipment,
+  POLICIES, costText, MIN_VILLAGE,
+} from '../engine/settlements.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -160,6 +164,7 @@ function render() {
   }
   else html = ({
     foundVillage: foundVillageScreen,
+    foundSettlement: foundSettlementScreen,
     report: reportScreen, people: () => (inVillage(state) ? villageScreen() : peopleScreen()), map: mapScreen, build: buildScreen, knowledge: knowledgeScreen, neighbors: neighborsScreen,
     advisors: advisorsScreen, chronicle: chronicleScreen, menu: menuScreen,
   }[screen] || reportScreen)();
@@ -231,6 +236,12 @@ function reportScreen() {
   }
   html += `<h2>Advisors</h2>${adviceList(getAdvice(state))}`;
   html += storesSection();
+  if (inVillage(state) && !(state.settlements || []).length && living(state).length >= MIN_VILLAGE - 10) {
+    const why = settlementBlocker(state);
+    html += `<h2>A second settlement</h2>
+      <p>Founding a second settlement on land your village holds will end the Settlement era and begin the Nation era.${why ? ` ${esc(why)}` : ' Your village is ready.'}</p>
+      ${why ? '' : '<div class="actions"><button type="button" data-nav="foundSettlement">Plan a new settlement</button></div>'}`;
+  }
   if (!villageBlocker(state)) {
     html += `<h2>Become a village</h2>
       <p>${esc(state.campName)} has grown into a true settlement. Your people could become a village whenever you choose. It is a big change, and it cannot be undone.</p>
@@ -461,6 +472,7 @@ function mapScreen() {
       <p>Paths lead to ${esc(listWords(linkParts) || 'nowhere new')}.</p>
       ${workingHere.length ? `<p>Your ${esc(listWords(workingHere))} work here.</p>` : ''}
       ${siteFor(state, 'scout') === id ? '<p>Your scouts explore from here.</p>' : ''}
+      ${(state.settlements || []).filter((t) => t.place === id).map((t) => `<p>Your settlement of ${esc(t.name)} stands here, with ${plural(t.population, 'person', 'people')}.</p>`).join('')}
       ${canClaim ? `<p><button type="button" data-action="claimPlace" data-place="${id}">Claim ${esc(placeName(state, id))}</button></p>` : ''}
     </li>`;
   }
@@ -695,6 +707,7 @@ function advisorsScreen() {
 
 function chronicleScreen() {
   let html = '<h1>Chronicle</h1><p>Your people\'s story: the traditions they have grown into, how others see them, and what has happened.</p>';
+  html += `<p>Your people live in ${esc(ERA_NAMES[state.era || 'camp'])}.</p>`;
   const earned = state.traditions || [];
   html += '<h2>Traditions</h2>';
   if (earned.length) {
@@ -745,6 +758,53 @@ function foundVillageScreen() {
     </div>`;
 }
 
+function foundSettlementScreen() {
+  const why = settlementBlocker(state);
+  if (why) return `<h1>A new settlement</h1><p>${esc(why)}</p><div class="actions"><button type="button" data-nav="report">Back to the report</button></div>`;
+  const sites = settlementSites(state);
+  const [lo, hi] = settlerRange(state);
+  const governors = governorChoices(state);
+  const productWord = { food: 'food', wood: 'wood', stone: 'stone' };
+  const settlerOptions = [];
+  for (let n = lo; n <= hi; n++) settlerOptions.push(`<option value="${n}"${n === lo ? ' selected' : ''}>${n} settlers</option>`);
+  return `<h1>Found a new settlement</h1>
+    <p>Some of your people will leave ${esc(state.campName)} to found a second settlement on land you hold. It will run itself under a governor, and send home food, wood, or stone each season. Founding it costs ${esc(costText())}, and begins the Nation era.</p>
+    <p class="warning">This cannot be undone: the settlers leave the village for good.</p>
+    <form id="settlementForm">
+      <fieldset><legend>Where will it stand?</legend>
+        ${sites.map((id, i) => `<label class="choice"><input type="radio" name="settlementPlace" value="${id}"${i === 0 ? ' checked' : ''}> ${esc(placeName(state, id))}: it would send home ${productWord[settlementProduct(id)]}. ${esc(PLACES[id].description)}</label>`).join('')}
+      </fieldset>
+      <p><label for="settlementName">Name the settlement</label>
+        <input type="text" id="settlementName" maxlength="30" autocomplete="off" value="${esc(`New ${placeName(state, sites[0])}`)}"></p>
+      <p><label for="settlementCount">How many people go</label>
+        <select id="settlementCount">${settlerOptions.join('')}</select></p>
+      <p class="muted">At least 30 must stay in ${esc(state.campName)}. The council chooses a fair mix of able adults, and stays at home itself unless one of them governs.</p>
+      <p><label for="settlementGovernor">Governor</label>
+        <select id="settlementGovernor">${governors.map((p) => `<option value="${p.id}">${esc(villagerRow(p))}</option>`).join('')}</select></p>
+      <fieldset><legend>What should it do at first?</legend>
+        ${Object.entries(POLICIES).map(([key, pol], i) => `<label class="choice"><input type="radio" name="settlementPolicy" value="${key}"${i === 0 ? ' checked' : ''}> ${esc(pol.name)}: ${esc(pol.about)}</label>`).join('')}
+      </fieldset>
+      <div class="actions">
+        <button type="submit" class="primary">Found the settlement</button>
+        <button type="button" data-nav="report">Not yet</button>
+      </div>
+    </form>`;
+}
+
+function settlementLines() {
+  const list = state.settlements || [];
+  if (!list.length) return '';
+  return `<h2 id="settlementsHeading">Other settlements (${list.length})</h2>${list.map((t) => {
+    const ship = expectedShipment(state, t);
+    const options = Object.entries(POLICIES).map(([key, pol]) => `<option value="${key}"${t.policy === key ? ' selected' : ''}>${esc(pol.name)}</option>`).join('');
+    return `<h3>${esc(t.name)}</h3>
+      <p>At ${esc(placeName(state, t.place))}: ${plural(t.population, 'person', 'people')}, governed by ${esc(t.governor.name)}. It sends home about ${ship.amount} ${ship.kind} a season.</p>
+      <p><label for="policy-${t.id}">Policy for ${esc(t.name)}</label>
+        <select id="policy-${t.id}" data-settlement-policy="${t.id}" aria-describedby="policy-${t.id}-about">${options}</select>
+        <span id="policy-${t.id}-about" class="muted"> ${esc(POLICIES[t.policy].about)}</span></p>`;
+  }).join('')}`;
+}
+
 function priorityControl(area) {
   const info = PRIORITY_AREAS[area];
   const current = state.priorities[area] || 'normal';
@@ -782,6 +842,7 @@ function villageScreen() {
     ${Object.keys(PRIORITY_AREAS).map(priorityControl).join('')}
     <p><button type="button" data-action="assignBest">Have the council reassign everyone now</button></p>
     <p class="muted">Otherwise the council reassigns everyone at the start of each season.</p>
+    ${settlementLines()}
     <h2>Groups (${g.length})</h2>
     <ul>${g.map((x) => `<li>${esc(groupLine(x))}</li>`).join('')}</ul>
     <h2>Notable people (${notable.length})</h2>
@@ -823,6 +884,7 @@ function menuScreen() {
     <p>Once your camp has 16 people, a storehouse, a palisade, and farming, it can become a village, whenever you choose. In a village your advisors form a council that sets everyone's work each season. You guide it with priorities on the Village screen, and keep running the build and study queues, trade, feasts, and the food reserve. Villages can train guards, build huts, and draw settlers when well fed and roomy.</p>
     <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
     <p>Once you are a village, the Velari, Tellani, and Skarn grow into nations. Each spring they grow, and they claim land outward from their homes. You can claim places too, on the Map screen. Working another people's land angers them unless you share it with an open lands pact. On the Neighbors screen you can propose treaties: a trade pact, open lands, or an alliance, whose warriors help you against raiders, and who will ask you for help in turn. Each nation remembers your promises, kept and broken, and trusts you accordingly. Skarn war bands come from the warriors they actually have, so every raider you defeat weakens them.</p>
+    <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }
@@ -1154,6 +1216,16 @@ $main.addEventListener('change', (e) => {
     if (msg) announce(msg);
     return;
   }
+  const policySel = e.target.closest('select[data-settlement-policy]');
+  if (policySel) {
+    const msg = act({ type: 'setSettlementPolicy', settlementId: Number(policySel.dataset.settlementPolicy), policy: policySel.value });
+    if (msg) {
+      const about = document.getElementById(`policy-${policySel.dataset.settlementPolicy}-about`);
+      if (about) about.textContent = ` ${POLICIES[policySel.value].about}`;
+      announce(msg);
+    }
+    return;
+  }
   const priority = e.target.closest('select[data-priority]');
   if (priority) {
     const msg = act({ type: 'setPriority', area: priority.dataset.priority, level: priority.value });
@@ -1196,6 +1268,23 @@ $main.addEventListener('submit', (e) => {
     }
     const msg = act({ type: 'resolveEvent', choice: picked.value });
     if (msg) show('report');
+    return;
+  }
+  if (e.target.id === 'settlementForm') {
+    const place = e.target.querySelector('input[name="settlementPlace"]:checked');
+    const policy = e.target.querySelector('input[name="settlementPolicy"]:checked');
+    const msg = act({
+      type: 'foundSettlement',
+      placeId: place ? place.value : null,
+      name: document.getElementById('settlementName').value,
+      settlers: Number(document.getElementById('settlementCount').value),
+      governorId: Number(document.getElementById('settlementGovernor').value),
+      policy: policy ? policy.value : 'grow',
+    });
+    if (msg) {
+      show('people');
+      announce(msg);
+    }
     return;
   }
   if (e.target.id === 'deployForm') {

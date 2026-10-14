@@ -30,12 +30,12 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 ## Done in Phase 2 (Settlement era)
 
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
+- Part 4, the second settlement: founding it (where, name, settlers, governor, policy), shipments home, growth, Skarn skirmishes, and the start of the Nation era.
 - Part 3, the valley peoples as nations: growth, territory and claims, treaties (trade pact, open lands, alliance), trust and memory, ally calls, Skarn war bands from real warriors, skirmishers, and great hosts.
 - Part 2, stone and crafts: quarrying and the Grey cliffs, crafting goods, goods trades and gifts, a research tree in five branches (12 new discoveries, one either-or choice), and six village buildings.
 
-## Toward Phase 2 (Settlement era)
+## Still open in Phase 2 (Settlement era)
 
-- [ ] Part 4: founding a second settlement ends the era and opens the Nation era.
 - [ ] Balance: a village run on the default priorities grows to about 70 people in 20 years and stores well over a thousand food. Part 3 made the Skarn a growing power with skirmishers and great hosts, but a village behind a palisade still wins nearly every battle. Options: battles that scale less in the defenders' favor, sieges that cut off work outside the walls, harder starting regions. Goods also pile up if the player never trades; more uses for goods (upkeep, festivals, hiring) may help.
 - [ ] More either-or choices in the research tree, and laws or customs the village can adopt.
 - [ ] Nations, deeper: relations between the nations themselves, nations proposing treaties and making demands, the council moving work away from foreign land, and the Velari and Tellani contesting land with each other.
@@ -44,3 +44,11 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - [ ] More traditions over the eras, and traditions that can fade if neglected.
 - [ ] Battles, deeper: commanders, unit types (archers, spearmen), weather and seasons on the battlefield, and balance as raids grow (raider numbers rise by 2 a year with no cap).
 - [ ] The other four starting regions, each with its own local map.
+
+## Toward Phase 3 (Nation era)
+
+- [ ] Plan the Nation era together first: what managing several settlements feels like, what governors decide, and what the player decides.
+- [ ] More settlements, each with its own governor, priorities, and buildings.
+- [ ] Armies as units on the zone battlefield, and campaigns away from home.
+- [ ] Laws and the shape of government.
+- [ ] The valley nations as full rivals with their own settlements and wars, and the first of the 7 great nations beyond the valley.

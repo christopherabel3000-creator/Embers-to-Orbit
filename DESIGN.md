@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceOver, and the first part of the Settlement era is built on top of it. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and a campaign can now reach the start of the Nation era. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -30,6 +30,7 @@ Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceO
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 - **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
 - **The valley peoples as nations:** population, warriors, and land that grow each spring; territory and claims on the map; treaties; trust and remembered promises; Skarn war bands, skirmishers, and great hosts drawn from their real strength.
+- **A second settlement** under a governor, which sends home food, wood, or stone, and whose founding begins the Nation era.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
 
@@ -100,7 +101,7 @@ The game unfolds in eras. Each era layers new systems on top of the old ones, so
 
 Era advancement is driven by research and growth, not a fixed timer, and the player chooses when to take each step. The Settlement era begins when the player chooses to become a village, any time after the camp has 16 people, a storehouse, a palisade, and farming. It ends, and the Nation era begins, when the village founds a second settlement.
 
-## The Settlement era (parts 1 to 3 built)
+## The Settlement era (built)
 
 Decisions made with Christopher, October 2026:
 
@@ -174,7 +175,13 @@ When the camp becomes a village, the Velari, Tellani, and Skarn become nations. 
 
 **Balance so far:** in simulated villages run on default priorities, with no diplomacy, the Skarn grow to 30 to 50 warriors, gather about four great hosts in 15 years, and send skirmishers about once every two years, which guards mostly drive off. A village behind a palisade still wins its battles, so the threat bites hardest on villages without walls or guards, on work out in the open, and on allies.
 
-**Still to build:** part 4, founding a second settlement, which ends the era.
+**Built so far (part 4: the second settlement)**
+
+- **When.** A village of at least 40 people that holds a place beyond its camp, and has 80 food, 60 wood, and 30 stone, can found a second settlement. The Report screen says when it is ready, or what is missing.
+- **The founding screen** asks where (any place the village holds), its name, how many settlers go (10 to 20, keeping at least 30 at home), who governs (one of the notable people), and its first policy. It cannot be undone. The council picks a fair mix of able adults aged 16 to 50 and stays at home itself; if a council member governs, a successor takes their post.
+- **The settlement runs itself.** It sends home what its land is best for: stone from a quarry place, wood from a wood place, otherwise food. Under the supply policy that is 1 food, 0.8 wood, or 0.6 stone per settler each season (food is halved in winter), and it grows 3 percent each spring; under grow it sends 40 percent of that and grows 8 percent. Skarn skirmishers may fall on it, killing a settler or two, unless it is large enough to drive them off. Each settlement lets the village hold 2 more places, and its land counts for claiming what borders it.
+- **The Nation era begins** the moment the settlement is founded. Its own systems (more cities, governors, armies, laws) come later; until then, everything from the Settlement era goes on, and the Chronicle names the era.
+- **Pacing.** In simulated campaigns that become a village as soon as they can, the camp becomes a village in about year 5, and the second settlement comes in about year 15 or 16.
 
 ## Population and resources
 
@@ -382,7 +389,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, keyboard shortcuts, and audio cues (see BACKLOG.md).
-2. **Phase 2: Settlement era (in progress).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power. Still to build: a second settlement to end the era, the other four starting regions, and unit types in battle.
+2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still to build to end the era, the other four starting regions, and unit types in battle.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.

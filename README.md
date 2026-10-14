@@ -12,7 +12,7 @@ https://christopherabel3000-creator.github.io/Embers-to-Orbit/
 
 ## Current state
 
-Phase 1, the Survival era, and the start of the Settlement era: twelve named survivors in a forest valley. Assign tasks each season, build shelter and defenses, scout the land, survive winters and raids, and listen to your advisors. Grow strong enough and your camp can become a village run by its council. See [DESIGN.md](DESIGN.md) for the full design.
+The Survival era and the Settlement era: twelve named survivors in a forest valley. Assign tasks each season, build shelter and defenses, scout the land, survive winters and raids, and listen to your advisors. Grow strong enough and your camp can become a village run by its council, deal with the rising nations of the valley, and found a second settlement to begin the Nation era. See [DESIGN.md](DESIGN.md) for the full design.
 
 ## Development
 

@@ -473,8 +473,8 @@ export const BABY_NAMES = [
 // ----- The Settlement era -----
 
 // The eras in order. A camp becomes a village by the player's choice.
-export const ERAS = ['camp', 'village'];
-export const ERA_NAMES = { camp: 'the Survival era', village: 'the Settlement era' };
+export const ERAS = ['camp', 'village', 'nation'];
+export const ERA_NAMES = { camp: 'the Survival era', village: 'the Settlement era', nation: 'the Nation era' };
 
 // What the player can push the council toward in a village.
 export const PRIORITY_AREAS = {

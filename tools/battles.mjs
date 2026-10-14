@@ -25,6 +25,10 @@ function trial({ raiders, warned = true, palisade = false, side = 'defend', figh
     const m = text.match(/lasted (\d+)/); rounds += m ? Number(m[1]) : 0;
   }
   const s0 = newGame({ seed: 1 }); s0.people = s0.people.slice(0, fighters); if (palisade) s0.buildings.palisade = 1;
+  // The war chief judges the same battle: an attack or a defense.
+  s0.neighbors.skarn.known = true;
+  const ev0 = { type: 'raid', raiders, warned, from: 'skarn', side };
+  s0.pendingEvent = { ...ev0, battle: createBattle(s0, ev0) };
   const odds = raidOdds(s0, living(s0), warned, raiders).word;
   return `${side} ${raiders} raiders vs ${fighters}${palisade ? ' +palisade' : ''}${warned ? '' : ' surprised'}${spears ? ' +spears' : ''}: win ${(100 * wins / N).toFixed(0)}% | deaths ${(deaths / N).toFixed(2)} | wounded ${(wounded / N).toFixed(1)} | rounds ${(rounds / N).toFixed(1)} | advisor says "${odds}"`;
 }

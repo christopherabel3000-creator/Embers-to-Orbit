@@ -22,6 +22,7 @@ export function queueBlocker(state, id) {
   if (b.requires && !hasKnowledge(state, b.requires)) return `Building a ${b.name.toLowerCase()} needs ${KNOWLEDGE[b.requires].name}.`;
   if (!b.repeatable && state.buildings[id] > 0) return `You already have a ${b.name.toLowerCase()}.`;
   if (!b.repeatable && queuedCount(state, id) > 0) return `A ${b.name.toLowerCase()} is already in the queue.`;
+  if (b.max && state.buildings[id] + queuedCount(state, id) >= b.max) return `Your camp has room for ${b.max} at most${queuedCount(state, id) ? ', counting those in the queue' : ''}.`;
   return null;
 }
 

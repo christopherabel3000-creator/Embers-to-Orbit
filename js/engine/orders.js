@@ -3,12 +3,13 @@
 
 import { TASKS, SHELTER_PER_LEAN_TO } from './data.js';
 import {
-  living, seasonIndex, canFight, allowedTasksFor, hasKnowledge, shelterNeeded, shelterCapacity,
+  living, seasonIndex, canFight, allowedTasksFor, hasKnowledge, shelterNeeded, shelterCapacity, foodNeeded,
 } from './state.js';
 import { advisorPerson, ADVISOR_ROLES, forecastFood, raidOdds } from './advisors.js';
 import { expectedFood, farmersNeeded } from './rules.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
+import { feastBlocker, feastCost, holdFeast } from './stores.js';
 
 function listNames(people) {
   const names = people.map((p) => p.name);
@@ -48,6 +49,9 @@ function returnFrom(person, reason, currentTask) {
   person.orderReturn = null;
   return true;
 }
+
+// The harvest feast only goes ahead if this many seasons of food remain.
+export const HARVEST_FEAST_RESERVE = 3;
 
 // Returns { urgent: [...], orders: [...] } lines for the season report.
 export function applyStandingOrders(state) {
@@ -178,6 +182,15 @@ export function applyStandingOrders(state) {
       const at = state.buildQueue.findIndex((item) => !item.paid);
       state.buildQueue.splice(at === -1 ? state.buildQueue.length : at, 0, { id: 'leanTo', progress: 0, paid: false });
       say('healer', 'the shelters are nearly full, so a lean-to went to the front of the build queue.');
+    }
+  }
+
+  // Steward: a feast after the harvest, when there is food to spare.
+  if (orders.harvestFeast && s === 3 && !feastBlocker(state)) {
+    const cost = feastCost(state);
+    if (state.resources.food - cost >= foodNeeded(people) * HARVEST_FEAST_RESERVE) {
+      holdFeast(state);
+      say('steward', `the harvest is in, so we held a feast with ${cost} food to spare. Spirits are high.`);
     }
   }
 

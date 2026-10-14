@@ -1,13 +1,14 @@
 // Resolving the end of a season: work, food, warmth, health, events.
 
 import {
-  BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, KNOWLEDGE, TASKS,
+  BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, KNOWLEDGE, TASKS, LEAN_TIMES,
 } from './data.js';
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
-  hasKnowledge, fieldPlots, shelterNeeded,
+  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity,
 } from './state.js';
+import { overflowRot } from './stores.js';
 import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
 import { applyStudy } from './study.js';
@@ -266,7 +267,7 @@ export function resolveSeason(state) {
 
   // 6. Warmth and shelter.
   const cold = new Set();
-  const woodNeed = woodNeededForWarmth(s, people.length);
+  const woodNeed = woodNeededForWarmth(s, people.length, hasCondition(state, 'hardWinter'));
   if (woodNeed > 0) {
     if (state.resources.wood >= woodNeed) {
       state.resources.wood -= woodNeed;
@@ -304,8 +305,9 @@ export function resolveSeason(state) {
       p.morale = clamp(p.morale + 12);
     }
     if (state.buildings.healersHut > 0 && p.health < 75) p.health = clamp(p.health + 5);
+    // Spirits settle back toward steady: high spirits fade faster the higher they are.
     if (p.morale < 55) p.morale = clamp(p.morale + 3);
-    else if (p.morale > 55) p.morale = clamp(p.morale - 3);
+    else if (p.morale > 55) p.morale = clamp(p.morale - 3 - (p.morale - 55) * 0.2);
   }
 
   // 8. Spoilage.
@@ -313,6 +315,14 @@ export function resolveSeason(state) {
   if (spoiled > 0) {
     state.resources.food -= spoiled;
     events.push(`${spoiled} food spoiled in storage.`);
+  }
+  // Food beyond the room in the stores rots quickly.
+  const rotted = overflowRot(state);
+  if (rotted > 0) {
+    state.resources.food -= rotted;
+    const line = `The stores were overflowing, and ${rotted} food rotted. They hold ${storageCapacity(state)}.`;
+    if (rotted >= 15) urgent.push(`${line} A feast, gifts, trade, or another storehouse would put the extra to use.`);
+    else events.push(line);
   }
 
   // 9. Deaths.
@@ -324,6 +334,15 @@ export function resolveSeason(state) {
   if (dead.length) {
     for (const p of living(state)) p.morale = clamp(p.morale - 12 * dead.length);
   }
+
+  // Hard winters and droughts pass.
+  for (const c of state.conditions) {
+    if (LEAN_TIMES[c.id]) c.seasonsLeft -= 1;
+  }
+  for (const c of state.conditions.filter((x) => LEAN_TIMES[x.id] && x.seasonsLeft <= 0)) {
+    events.push(LEAN_TIMES[c.id].ends);
+  }
+  state.conditions = state.conditions.filter((c) => !(LEAN_TIMES[c.id] && c.seasonsLeft <= 0));
 
   // 10. Advance the calendar.
   state.turn += 1;
@@ -337,8 +356,9 @@ export function resolveSeason(state) {
     urgent.unshift(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
   } else {
     // Plenty of food lifts spirits.
+    // Plenty keeps spirits steady, but only a feast lifts them high.
     if (state.resources.food >= foodNeeded(survivors) * 2) {
-      for (const p of survivors) p.morale = clamp(p.morale + 3);
+      for (const p of survivors) if (p.morale < 62) p.morale = clamp(p.morale + 3);
     }
     const life = advanceLife(state);
     urgent.push(...life.urgent);
@@ -365,6 +385,7 @@ export function resolveSeason(state) {
     events.push(`${state.campName} now has ${survivors.length} people.`);
   }
 
+  state.feastThisSeason = false;
   state.report = { title: dateLabel(state), finished: finishedLabel, urgent, events, orders: ordersDone };
   for (const line of [...urgent, ...events, ...ordersDone]) {
     state.log.push({ turn: state.turn - 1, date: finishedLabel, text: line });
@@ -375,13 +396,16 @@ export function resolveSeason(state) {
 function maybeStartRaid(state, scoutsOut, urgent) {
   if (state.turn < 2) return;
   const y = year(state);
-  let p = 0.1 + 0.02 * y;
+  let p = 0.1 + 0.02 * Math.min(y, 10);
+  // Full stores draw raiders: word gets around.
   if (state.resources.food > 80) p += 0.05;
+  p += Math.min(0.1, Math.max(0, state.resources.food - WEALTH_START) / 3000);
   p *= raidModifier(state);
   if (!chance(state, Math.min(state.raidThreat ? 0.8 : 0.35, p))) return;
   // With peace or a truce, the only raiders are small bands of outlaws.
   const from = skarnAtPeace(state) ? 'outlaws' : 'skarn';
-  let raiders = randomInt(state, 4, 7) + 2 * (y - 1);
+  const lure = wealthLure(state);
+  let raiders = randomInt(state, 4, 7) + raidGrowth(y) + lure;
   if (from === 'outlaws') raiders = Math.max(3, Math.ceil(raiders / 2));
   const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail')
     || (scoutsOut && chance(state, 0.6));
@@ -389,7 +413,23 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   state.pendingEvent = { type: 'raid', raiders, warned, from };
   state.pendingEvent.battle = createBattle(state, state.pendingEvent);
   const who = from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed strangers';
+  const drawn = lure >= 2 ? ' Word of your full stores has drawn more of them.' : '';
   urgent.unshift(warned
-    ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp. Decide how to respond before anything else.`
-    : `Raiders are at the edge of camp! About ${raiders} ${who} caught you by surprise. Decide how to respond before anything else.`);
+    ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp.${drawn} Decide how to respond before anything else.`
+    : `Raiders are at the edge of camp! About ${raiders} ${who} caught you by surprise.${drawn} Decide how to respond before anything else.`);
+}
+
+// Raiders grow bolder over the years: quickly at first, then more slowly.
+// Two more raiders a year for five years, then one more every two years,
+// leveling off at 16 more than the first raids.
+export function raidGrowth(y) {
+  if (y <= 6) return 2 * (y - 1);
+  return Math.min(16, 10 + Math.floor((y - 6) / 2));
+}
+
+// Extra raiders drawn by a well-stocked camp.
+// Stores beyond an ordinary reserve start to draw notice.
+const WEALTH_START = 200;
+export function wealthLure(state) {
+  return Math.min(5, Math.floor(Math.max(0, state.resources.food - WEALTH_START) / 120));
 }

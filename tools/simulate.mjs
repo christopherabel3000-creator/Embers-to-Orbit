@@ -4,8 +4,9 @@
 import { newGame, applyAction } from '../js/engine/game.js';
 import {
   living, shelterCapacity, seasonIndex, knownPlaces, unexploredNeighbors, hasKnowledge,
-  knowledgeBlocker, fieldPlots, allowedTasksFor,
+  knowledgeBlocker, fieldPlots, allowedTasksFor, storageCapacity, foodNeeded,
 } from '../js/engine/state.js';
+import { feastBlocker, feastCost } from '../js/engine/stores.js';
 import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
 import { describePending } from '../js/engine/events.js';
@@ -68,7 +69,11 @@ function chooseProject(state) {
   for (const id of wants) {
     const b = BUILDINGS[id];
     if (!b.repeatable && state.buildings[id] > 0) continue;
-    if (state.resources.wood >= b.cost + 10) return id;
+    // Another storehouse only once the stores are getting full.
+    if (id === 'storehouse' && state.buildings.storehouse > 0 && state.resources.food < storageCapacity(state) * 0.7) continue;
+    if (b.max && state.buildings[id] >= b.max) continue;
+    // Keep enough wood back for the winter fires.
+    if (state.resources.wood >= b.cost + 10 + (seasonIndex(state) >= 1 ? people * 1.5 : 0)) return id;
   }
   return null;
 }
@@ -80,10 +85,12 @@ function chooseStudy(state) {
   return next ? act(state, { type: 'setStudy', knowledgeId: next }) : state;
 }
 
+let feasts = 0;
+let tally = {};
 function play(seed, strategy) {
   let state = newGame({ seed });
-  if (strategy === 'orders') {
-    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto'], ['autoAssign', true]]) {
+  if (strategy.startsWith('orders')) {
+    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto'], ['autoAssign', true], ['harvestFeast', strategy !== 'ordersNoFeast']]) {
       state = act(state, { type: 'setOrder', id, value });
     }
   }
@@ -101,13 +108,19 @@ function play(seed, strategy) {
         : act(state, { type: 'resolveRaid', plan: 'hide' });
       if (state.gameOver) break;
     }
-    if (strategy === 'orders') {
+    if (strategy.startsWith('orders')) {
       state = chooseSites(state);
       state = chooseStudy(state);
       const project = chooseProject(state);
       if (project) state = act(state, { type: 'queueBuilding', buildingId: project });
     }
     if (strategy === 'sensible') {
+      // Feast when the stores are getting full and food is to spare.
+      if (!feastBlocker(state) && state.resources.food >= storageCapacity(state) * 0.75
+          && state.resources.food - feastCost(state) >= foodNeeded(living(state)) * 3) {
+        state = act(state, { type: 'holdFeast' });
+        feasts++;
+      }
       state = chooseSites(state);
       state = chooseStudy(state);
       for (const [personId, task] of sensiblePlan(state)) state = act(state, { type: 'assign', personId, task });
@@ -115,6 +128,29 @@ function play(seed, strategy) {
       if (project) state = act(state, { type: 'queueBuilding', buildingId: project });
     }
     state = act(state, { type: 'endTurn' });
+    const lines = [...state.report.urgent, ...state.report.events, ...(state.report.decisions || [])];
+    const alive = living(state).filter((p) => p.age >= 16 && p.task !== 'rest');
+    if (alive.length) {
+      tally.morale += alive.reduce((sum, p) => sum + p.morale, 0) / alive.length;
+      tally.high += alive.filter((p) => p.morale >= 70).length / alive.length;
+      tally.turns++;
+    }
+    if (process.env.TRACE && Number(process.env.TRACE) === seed) {
+      const shown = lines.filter((l) => new RegExp(process.env.TRACE_MATCH || '.').test(l));
+      if (shown.length) console.log(`${state.report.finished} (${living(state).length} people, ${state.resources.food} food): ${shown.join(' | ')}`);
+    }
+    for (const l of lines) {
+      const m = l.match(/(\d+) food rotted/);
+      if (m && l.startsWith('The stores were overflowing')) tally.rotted += Number(m[1]);
+      if (/not enough firewood/.test(l)) tally.cold++;
+      if (/hard winter has come|^Drought|herds have moved/.test(l)) tally.lean++;
+      if (/^Raiders are/.test(l)) tally.raids++;
+      if (/ has died\.$/.test(l)) tally.deaths++;
+      const killed = l.match(/Killed: ([^.]+)\./);
+      if (killed) tally.killed += killed[1].split(/, | and /).length;
+      if (/ was killed\.$/.test(l)) tally.killed++;
+      if (/died peacefully|old age/.test(l)) tally.oldAge++;
+    }
   }
   return state;
 }
@@ -130,10 +166,16 @@ for (const strategy of STRATEGIES) {
   let palisades = 0;
   let born = 0;
   let firstWipeYear = [];
+  let feastsHeld = 0;
+  let morale = 0;
+  tally = { rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, morale: 0, high: 0, turns: 0 };
   for (let i = 0; i < GAMES; i++) {
     const end = play(1000 + i, strategy);
     if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); }
     pop += living(end).length;
+    tally.lost += end.people.length - living(end).length;
+    feastsHeld += end.deeds.feasts || 0;
+
     kids += living(end).filter((p) => p.age < 16).length;
     born += end.people.filter((p) => p.parent).length;
     food += end.resources.food;
@@ -142,5 +184,5 @@ for (const strategy of STRATEGIES) {
     if (hasKnowledge(end, 'farming')) farmed++;
   }
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';
-  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)}`);
+  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)} | rotted ${(tally.rotted / GAMES).toFixed(0)} | feasts ${(feastsHeld / GAMES).toFixed(1)} | lean times ${(tally.lean / GAMES).toFixed(1)} | raids ${(tally.raids / GAMES).toFixed(1)} | firewood shortages ${(tally.cold / GAMES).toFixed(1)} | people lost ${(tally.lost / GAMES).toFixed(1)} (old age ${(tally.oldAge / GAMES).toFixed(1)}) | workers' morale ${(tally.morale / Math.max(1, tally.turns)).toFixed(0)}, in high spirits ${Math.round(100 * tally.high / Math.max(1, tally.turns))}%`);
 }

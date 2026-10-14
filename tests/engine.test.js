@@ -38,7 +38,9 @@ test('buildings wait in a queue and pay their wood when work begins', () => {
   s = act(s, { type: 'queueBuilding', buildingId: 'storehouse' });
   assert.equal(s.buildQueue.length, 2);
   assert.equal(s.resources.wood, 30, 'nothing is paid until work begins');
-  assert.match(applyAction(s, { type: 'queueBuilding', buildingId: 'storehouse' }).error, /already in the queue/);
+  s = act(s, { type: 'queueBuilding', buildingId: 'palisade' });
+  assert.match(applyAction(s, { type: 'queueBuilding', buildingId: 'palisade' }).error, /already in the queue/);
+  s = act(s, { type: 'removeBuilding', index: 2 });
   s = act(s, { type: 'moveBuilding', index: 1, by: -1 });
   assert.equal(s.buildQueue[0].id, 'storehouse');
   s = act(s, { type: 'removeBuilding', index: 0 });

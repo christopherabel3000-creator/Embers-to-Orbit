@@ -5,7 +5,7 @@
 import { WANDERERS, PLACES, NEIGHBORS, NEIGHBOR_RECRUITS, NEIGHBOR_ORDER } from './data.js';
 import {
   living, seasonIndex, shelterCapacity, placeName, knownPlaces, makePerson,
-  personById, wolvesAt, hasKnowledge, shelterNeeded, isKnown,
+  personById, wolvesAt, hasKnowledge, shelterNeeded, isKnown, hasCondition,
 } from './state.js';
 import { siteFor } from './rules.js';
 import { refreshAdvisors, advisorPerson, ADVISOR_ROLES } from './advisors.js';
@@ -621,12 +621,58 @@ function wolfPlaces(state) {
   return knownPlaces(state).filter((id) => id !== 'camp' && PLACES[id].tasks.includes('hunt') && !wolvesAt(state, id));
 }
 
+// Lean times come on their own, apart from other events, so that keeping a
+// reserve always matters. Each has a chance at the start of a season.
+const HARD_WINTER_CHANCE = 0.25;
+const DROUGHT_CHANCE = 0.2;
+const HERDS_CHANCE = 0.05;
+
+const LEAN_EVENTS = {
+  hardWinter: {
+    // Only at the start of winter, and not in the first winter.
+    chance: (state) => (seasonIndex(state) === 3 && state.turn > 4 && !hasCondition(state, 'hardWinter') ? HARD_WINTER_CHANCE : 0),
+    apply(state) {
+      state.conditions.push({ id: 'hardWinter', seasonsLeft: 1 });
+      return { urgent: [`A hard winter has come: deep snow and bitter cold. This winter the fires will burn about ${Math.ceil(living(state).length * 1.5)} wood instead of ${living(state).length}, and hunting will bring in less.`] };
+    },
+  },
+  drought: {
+    // At the start of summer, after the first year.
+    chance: (state) => (seasonIndex(state) === 1 && state.turn > 4 && !hasCondition(state, 'drought') ? DROUGHT_CHANCE : 0),
+    apply(state) {
+      state.conditions.push({ id: 'drought', seasonsLeft: 2 });
+      const fields = state.buildings.fields > 0 ? ' The grain in the fields is wilting, and the harvest will be smaller.' : '';
+      return { urgent: [`Drought: no rain has fallen in weeks. Foraging will bring in less this summer and autumn.${fields}`] };
+    },
+  },
+  herdsMove: {
+    chance: (state) => (seasonIndex(state) !== 3 && state.turn > 4 ? HERDS_CHANCE : 0),
+    apply(state) {
+      for (const id of knownPlaces(state)) {
+        const a = state.places[id].abundance;
+        a.hunt = Math.max(0, a.hunt - 35);
+      }
+      return { urgent: ['The deer herds have moved away from the valley. Game is scarce everywhere for now, and will slowly return.'] };
+    },
+  },
+};
+
+function maybeLeanTimes(state, out) {
+  for (const ev of Object.values(LEAN_EVENTS)) {
+    if (!chance(state, ev.chance(state))) continue;
+    const lines = ev.apply(state);
+    out.urgent.push(...(lines.urgent || []));
+    out.events.push(...(lines.events || []));
+  }
+}
+
 // ---------- running events ----------
 
 // Called at the start of each new season. Returns report lines.
 export function maybeStartEvent(state) {
   const out = { urgent: [], events: [] };
   if (state.pendingEvent || state.gameOver || state.turn < 1) return out;
+  maybeLeanTimes(state, out);
   // Meeting a new people comes before anything else.
   if (NEIGHBOR_ORDER.some((id) => state.neighbors[id].contactPending)) {
     const ev = EVENTS.firstContact;

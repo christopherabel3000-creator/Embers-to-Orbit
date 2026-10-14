@@ -31,6 +31,7 @@ export function birthOutlook(state) {
     p *= 0.6;
     reasons.push('spirits are low');
   }
+  if (state.feastThisSeason) p *= 1.5; // A feast brings families together.
   return { chance: p, reasons };
 }
 

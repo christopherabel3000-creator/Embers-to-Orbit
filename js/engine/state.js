@@ -5,11 +5,11 @@ import {
   FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, BUILDING_ORDER,
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
-  NEIGHBORS, NEIGHBOR_ORDER,
+  NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, LEAN_TIMES,
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 
 const STARTING_TASKS = {
   Aric: 'hunt', Brenna: 'forage', Corvin: 'wood', Dalia: 'forage', Esker: 'scout',
@@ -26,6 +26,7 @@ export const DEFAULT_ORDERS = {
   autoAssign: false, // Put everyone on their best work each season.
   staffFields: false, // Move people to and from the fields as the year requires.
   autoShelter: false, // Queue a lean-to when the shelters are nearly full.
+  harvestFeast: false, // Hold a feast after the harvest when there is food to spare.
   raidPolicy: 'ask', // 'ask', 'fightIfLikely', or 'auto'.
 };
 
@@ -90,6 +91,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     workSites: { hunt: 'camp', forage: 'camp', wood: 'camp', scout: 'camp' },
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
+    lastFeast: -99, // The turn of the last feast. One a year.
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -200,6 +202,12 @@ export function migrate(data) {
     data.traditions = [];
     data.version = 11;
   }
+  if (data.version === 11) {
+    data.lastFeast = -99;
+    data.orders.harvestFeast = false;
+    if (data.deeds && data.deeds.feasts === undefined) data.deeds.feasts = 0;
+    data.version = 12;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -229,6 +237,12 @@ export function personById(state, id) {
 
 export function shelterCapacity(state) {
   return STARTING_SHELTER + state.buildings.leanTo * SHELTER_PER_LEAN_TO;
+}
+
+// How much food the stores can hold. Food beyond this rots quickly.
+export function storageCapacity(state) {
+  const room = BASE_STORAGE + (state.buildings.storehouse || 0) * STORAGE_PER_STOREHOUSE;
+  return Math.round(room * (hasKnowledge(state, 'pottery') ? 1.5 : 1));
 }
 
 export function isKnown(state, placeId) {
@@ -322,10 +336,19 @@ export function canFight(person) {
   return person.alive && person.age >= AGES.youth && person.health >= 40;
 }
 
-export function woodNeededForWarmth(seasonIdx, count) {
-  if (seasonIdx === 3) return count;
+export function woodNeededForWarmth(seasonIdx, count, hardWinter = false) {
+  if (seasonIdx === 3) return hardWinter ? Math.ceil(count * 1.5) : count;
   if (seasonIdx === 2) return Math.ceil(count / 2);
   return 0;
+}
+
+export function leanTimesNow(state) {
+  return (state.conditions || []).filter((c) => LEAN_TIMES[c.id]);
+}
+
+// Whether an ongoing condition (a hard winter, a drought) is in force.
+export function hasCondition(state, id) {
+  return Boolean(state.conditions && state.conditions.some((c) => c.id === id));
 }
 
 export function spoilageRate(state) {

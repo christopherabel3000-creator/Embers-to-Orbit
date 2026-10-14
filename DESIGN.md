@@ -18,14 +18,14 @@ Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceO
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
-- **Food, shelter, and winter:** eating, spoilage, fires, exposure, and six buildings worked through a build queue.
+- **Food, shelter, and winter:** eating, spoilage, limited storage, feasts, lean times, fires, exposure, and six buildings worked through a build queue.
 - **A local map** of 14 places with work sites, wear and recovery, and scouting outward.
 - **Knowledge:** seven discoveries through a study queue, including farming with fields.
-- **Events:** 17 instant and choice events, plus fever and wolves as ongoing conditions.
+- **Events:** 17 instant and choice events, three kinds of lean times, plus fever and wolves as ongoing conditions.
 - **Three neighboring peoples** with relations, first contact, envoys, trade, tribute, and peace.
 - **Tactical battles** for raids and for an attack on the Skarn hold.
 - **Five advisors** who give ranked advice, forecasts, and odds, and carry out standing orders.
-- **Traditions and reputation** that grow from what the camp actually does.
+- **Traditions** (ten) **and reputation** that grow from what the camp actually does.
 - **The Chronicle** of the campaign, a turn report each season, autosave, and save export and import.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
@@ -108,6 +108,9 @@ People start as individuals and become groups as the settlement grows, so manage
 - **Skills grow with practice.** Every season at a task earns experience in that task's skill (half as much while badly hurt or sick). Going from level L to L+1 takes 3 + 2L seasons, so early levels come quickly and reaching 5 takes years. Defending against a raid counts as two seasons of hunting practice. The People screen shows each person's progress toward their next level.
 - **Settlement era onward:** population is tracked in groups by profession (farmers, builders, soldiers, scholars), with overall happiness and loyalty.
 - **Food (built).** Each adult eats 2 food a season and each child under 12 eats 1. Stored food spoils 12 percent a season, 4 percent with a storehouse; smoking cuts that by a third and pottery halves it again.
+- **Storage (built).** The stores hold 100 food in baskets and pits, plus 150 for each storehouse (up to 3), and half again with pottery. Half of any food beyond that room rots each season. Big reserves are a choice the player builds for, not something that piles up for free.
+- **Feasts (built).** Once a year the player can hold a feast from the Report screen for 3 food a person. It lifts everyone's spirits by 15, and people in high spirits (70 or more) work 10 percent better. Families grow closer, so a birth that season is half again as likely. Inviting a neighboring people costs 15 food more and wins 8 goodwill (counted as a gift). High spirits fade faster the higher they are, so a feast lasts about half a year, and plenty of food alone only keeps spirits steady. The steward can hold a harvest feast at the start of each winter if at least 3 seasons of food would be left.
+- **Lean times (built).** They come on their own, apart from other events, so a reserve always matters: a hard winter (a 25 percent chance each winter after the first; fires burn half again as much wood and hunting yields 30 percent less), drought (20 percent each summer after the first; foraging and the harvest yield 40 percent less for summer and autumn), and herds moving away (5 percent each season; game drops sharply everywhere and slowly returns). The steward warns while one lasts, and forecasts account for it.
 - **Shelter and warmth (built).** The starting tent and each lean-to shelter 4 people. In autumn and winter the camp burns wood for its fires; anyone without shelter, or left cold when the wood runs out, loses health.
 - **Early resources:** food and wood are built; water, stone, and later metal are planned. Food must be stored to survive winter.
 - **Later resources** unlock by era: gold and trade goods, iron, then fuel, electricity, and rare minerals; in the space age, off-world materials.
@@ -134,7 +137,7 @@ Advisors always follow orders, but they actively give recommendations and warn t
 | --- | --- | --- | --- |
 | Lean-to | 15 | 8 | Shelters 4 more people; can be built many times |
 | Field | 15 | 10 | 6 plots of grain; needs Farming; can be built many times |
-| Storehouse | 25 | 12 | Spoilage falls from 12 to 4 percent; stops mice |
+| Storehouse | 25 | 12 | Room for 150 more food, up to 3; the first cuts spoilage from 12 to 4 percent and stops mice |
 | Healer's hut | 15 | 8 | Healing half again as effective; faster fever recovery |
 | Watchtower | 20 | 10 | Raiders are always spotted early |
 | Palisade | 40 | 20 | Covers every zone in battles at the camp |
@@ -180,7 +183,7 @@ Three hand-crafted peoples live around the forest valley. Each has a home on the
 
 ## Traditions and reputation (built)
 
-The camp keeps count of its deeds: battles won, seasons of hunting, harvests, strangers taken in or turned away, gifts and help given, trades, discoveries, buildings finished, raids hidden from, and attacks launched. Nothing is chosen from a menu.
+The camp keeps count of its deeds: battles won, seasons of hunting, harvests, strangers taken in or turned away, gifts and help given, trades, discoveries, buildings finished, feasts held, raids hidden from, and attacks launched. Nothing is chosen from a menu.
 
 | Tradition | Grows from | Effect |
 | --- | --- | --- |
@@ -192,6 +195,7 @@ The camp keeps count of its deeds: battles won, seasons of hunting, harvests, st
 | Trading ways | 5 trades | +3 food or wood on every trade |
 | Love of learning | 4 discoveries | +1 study point per studier |
 | Master builders | 8 buildings finished | +1 work per builder |
+| Feasting days | 4 feasts | Feasts lift spirits 10 more, and guests leave twice as pleased |
 | Hidden ways | 3 raids hidden from | Hiding from raiders loses half as much |
 
 **Reputation** has four parts, each 0 to 30: fierce fighters (battles won and attacks), generous friends (gifts), welcoming to strangers (taken in minus turned away), and honest traders (trades). Each people weighs them differently: the Velari like generosity and welcome and dislike fierceness; the Tellani like honest trading and some generosity; the Skarn respect fierceness and see generosity as softness. Relations drift toward each people's nature plus these shifts. The Chronicle screen shows traditions, those taking shape, and your reputation; the Neighbors screen shows how each people sees you.
@@ -247,7 +251,7 @@ Battles happen on a battlefield split into zones, and both sides make tactical d
 - **Breaking:** a group that loses more than 60 percent of its strength breaks and flees; the enemy gives up when it is down to 35 percent of its fighters, and after 4 rounds they pull back with what they took.
 - **Wounds and deaths** fall on the people who fought. Every fighter gains two seasons of hunting practice.
 - **The war chief** suggests orders each round and can finish the battle at any time; their estimate of the odds comes from quietly fighting the battle many times in their head.
-- **Strength:** each raider fights with a strength of 6; defenders fight by their hunting skill and health, with bonuses from fire-hardened spears and the Warrior tradition. Raids grow by 2 raiders a year. Surprise (no warning from scouts or the watchtower) weakens the defenders and strengthens the raiders in the first round.
+- **Strength:** each raider fights with a strength of 6; defenders fight by their hunting skill and health, with bonuses from fire-hardened spears and the Warrior tradition. Raids grow by 2 raiders a year for five years, then by 1 every two years, leveling off at 16 more than the first raids. Full stores draw notice: beyond 200 food, raids come a little more often (up to 10 percent more) and bring 1 more raider for every 120 food (up to 5 more). Surprise (no warning from scouts or the watchtower) weakens the defenders and strengthens the raiders in the first round.
 - **Attacking Skarn hold** (from the Neighbors screen, once your scouts have found it): 8 warriors plus 1 per year defend it. Victory brings their stores (30 food and 20 wood), two years of truce, and enough respect for a lasting peace. Defeat brings revenge raids.
 - **Raid choices:** before a raid the player can deploy and fight, let the war chief command, or hide in the woods and lose some stores. A standing order can decide for them.
 
@@ -298,7 +302,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
-1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, and traditions and reputation. Still to do: families and relationships, more events, keyboard shortcuts, audio cues, and balance (see BACKLOG.md).
+1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, keyboard shortcuts, and audio cues (see BACKLOG.md).
 2. **Phase 2: Settlement era.** Started early: zone-based combat, buildings, the first research, trade, and neighboring peoples exist in Survival-era form. Still to build: population groups by profession, the full research tree, the other four starting regions, the first rival nations, deeper trade and diplomacy, and unit types in battle.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.

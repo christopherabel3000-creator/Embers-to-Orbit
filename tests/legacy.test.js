@@ -93,7 +93,7 @@ test('version 10 saves gain deeds from what was already done', () => {
   delete old.deeds;
   delete old.traditions;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 11);
+  assert.equal(s.version, 12);
   assert.equal(s.deeds.built, 2);
   assert.equal(s.deeds.discoveries, 1);
   assert.equal(living(s).length, 12);

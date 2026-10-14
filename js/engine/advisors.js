@@ -1,13 +1,17 @@
 // Advisors: who holds each role, and the recommendations they make.
 // Advisors never act on their own; they only warn and suggest.
 
-import { BUILDINGS, SEASONS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER } from './data.js';
+import {
+  BUILDINGS, SEASONS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, OVERFLOW_ROT, LEAN_TIMES,
+} from './data.js';
 import {
   living, personById, seasonIndex, foodNeeded, woodNeededForWarmth,
   spoilageRate, shelterCapacity, isBadlyHurt, isKnown, placeName, shelterNeeded, canFight,
   unexploredNeighbors, knownPlaces, abundanceWord, wolvesAt, hasKnowledge,
-  knowledgeBlocker, fieldPlots, metNeighbors,
+  knowledgeBlocker, fieldPlots, metNeighbors, storageCapacity, hasCondition, leanTimesNow,
 } from './state.js';
+import { feastBlocker, feastCost } from './stores.js';
+import { HIGH_SPIRITS } from './rules.js';
 import {
   expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
   expectedHarvest, farmerCapacity, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
@@ -57,6 +61,8 @@ export function forecastFood(state) {
     stock -= foodNeeded(people);
     if (stock < 0) return { emptyIn: i, season: SEASONS[s] };
     stock -= stock * spoilageRate(state);
+    const room = storageCapacity(state);
+    if (stock > room) stock -= (stock - room) * OVERFLOW_ROT;
   }
   return { emptyIn: null, endStock: Math.round(stock) };
 }
@@ -97,13 +103,27 @@ export function getAdvice(state) {
   } else {
     add('steward', 'note', `Food should last through the coming year at this pace. We expect about ${forecast.endStock} food in store a year from now.`);
   }
+  // Steward: lean times, and what to do with plenty.
+  for (const c of leanTimesNow(state)) {
+    add('steward', 'warning', `${LEAN_TIMES[c.id].name} is upon us. ${LEAN_TIMES[c.id].effect}`);
+  }
+  const room = storageCapacity(state);
+  const food = state.resources.food;
+  if (food > room) {
+    add('steward', 'urgent', `Our stores are overflowing: ${food} food, with room for ${room}. About half the extra will rot this season. Hold a feast from the Report screen, send gifts or trade on the Neighbors screen, or build another storehouse.`);
+  } else if (food >= room * 0.85) {
+    add('steward', 'warning', `Our stores are nearly full: ${food} food, with room for ${room}. Anything beyond that will rot. A feast, gifts or trade, or another storehouse would help.`);
+  } else if (!feastBlocker(state) && food - feastCost(state) >= foodNeeded(people) * 4) {
+    const spirits = people.reduce((sum, p) => sum + p.morale, 0) / people.length;
+    if (spirits < HIGH_SPIRITS) add('steward', 'note', `We have food to spare for a feast, which would cost ${feastCost(state)}. It would lift everyone's spirits, and people in high spirits work better.`);
+  }
   if (s === 3 && count('forage') > 0) {
     add('steward', 'warning', `${count('forage')} ${count('forage') === 1 ? 'person is' : 'people are'} set to forage, but nothing grows in winter. They would be more useful hunting or gathering wood.`);
   }
   const untilWinter = seasonsUntilWinter(state);
   if (untilWinter <= 2) {
     let woodNeed = 0;
-    for (let i = 0; i <= untilWinter; i++) woodNeed += woodNeededForWarmth((s + i) % 4, people.length);
+    for (let i = 0; i <= untilWinter; i++) woodNeed += woodNeededForWarmth((s + i) % 4, people.length, hasCondition(state, 'hardWinter'));
     let woodComing = 0;
     for (const p of people) woodComing += expectedWood(state, p, p.task, s) * (untilWinter + 1);
     if (state.resources.wood + woodComing < woodNeed) {

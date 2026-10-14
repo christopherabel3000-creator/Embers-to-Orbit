@@ -16,6 +16,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Neighbors: the Velari, Tellani, and Skarn, with first contact, relations, diplomacy, and events.
 - Tactical battles: zones, formations, simultaneous orders, terrain, morale, and an attack on Skarn hold.
 - Traditions (nine) and reputation (four parts) grown from the camp's deeds.
+- Uses for surplus food and balance: storage limits with rot, up to three storehouses, feasts (with guests, a standing order, and the Feasting days tradition), high spirits that help work, lean times (hard winters, droughts, herds moving away), raids drawn by full stores, and raid growth that levels off.
 
 ## Next in the Survival era
 
@@ -24,7 +25,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - [ ] Desktop keyboard shortcuts that don't clash with screen reader keys.
 - [ ] Optional audio cues (decide which ones first).
 
-- [ ] Balance: a hands-off camp using every standing order thrives (about 36 people and thousands of stored food after 20 years). Harder starting regions, bigger raids, and a use for surplus food (trade, feasts, rot) should push back.
+- [ ] Balance, still open: a camp run on standing orders, with sensible building, still does well in the forest valley (about 26 people after 20 years, never wiped out). Food no longer piles up past the stores, but most late surplus now rots. The harder starting regions are the main answer; more uses for food (bulk trade with the Tellani, feeding specialists in the Settlement era) would also help.
 
 ## Toward Phase 2 (Settlement era)
 

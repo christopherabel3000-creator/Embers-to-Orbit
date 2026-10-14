@@ -16,6 +16,7 @@ export const DEED_NAMES = {
   built: 'buildings finished',
   hid: 'raids hidden from',
   attacks: 'attacks launched',
+  feasts: 'feasts held',
 };
 
 export function emptyDeeds() {
@@ -84,6 +85,13 @@ export const TRADITIONS = {
     need: 8,
     effect: 'Every builder gets 1 more work done each season.',
     story: 'Your people take pride in raising things that last.',
+  },
+  feasting: {
+    name: 'Feasting days',
+    deed: 'feasts',
+    need: 4,
+    effect: 'Feasts lift spirits even higher, and guests leave twice as pleased.',
+    story: 'The feast days have become the bright marks of the year, remembered and looked forward to.',
   },
   hidden: {
     name: 'Hidden ways',

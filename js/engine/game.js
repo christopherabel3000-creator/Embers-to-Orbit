@@ -17,6 +17,7 @@ import {
   createBattle, deploy, resolveRound, finishBattle, autoBattle, summarize,
 } from './battle.js';
 import { resolveStoryEvent } from './events.js';
+import { holdFeast } from './stores.js';
 
 export { newGame } from './state.js';
 
@@ -227,6 +228,11 @@ const handlers = {
     if (i === -1) return { error: 'That is not in the study queue.' };
     k.queue.splice(i, 1);
     return { message: `Removed ${KNOWLEDGE[knowledgeId].name.toLowerCase()} from the study queue.` };
+  },
+
+  holdFeast(state, { guest = null }) {
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return holdFeast(state, guest);
   },
 
   diplomacy(state, { neighborId, act }) {

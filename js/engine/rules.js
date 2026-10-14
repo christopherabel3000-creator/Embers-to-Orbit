@@ -4,7 +4,7 @@
 import { PLACES } from './data.js';
 import { hasTradition } from './legacy.js';
 import {
-  isKnown, wolvesAt, hasKnowledge, living, seasonIndex, fieldPlots,
+  isKnown, wolvesAt, hasKnowledge, living, seasonIndex, fieldPlots, hasCondition,
 } from './state.js';
 
 const HUNT_SEASON = [1, 1, 1.1, 0.6];
@@ -16,7 +16,10 @@ const WOOD_SEASON = [1, 1, 1, 0.8];
 export const DEPLETION = { hunt: 6, forage: 5 };
 export const RECOVERY = { hunt: [10, 10, 8, 4], forage: [12, 12, 6, 0] };
 
-// How effectively someone works, from 0 (an infant) to 1.
+// People in high spirits work a little better.
+export const HIGH_SPIRITS = 70;
+
+// How effectively someone works, from 0 (an infant) to 1.1.
 export function workFactor(person) {
   let f = 1;
   if (person.health < 40) f *= 0.5;
@@ -31,6 +34,7 @@ export function workFactor(person) {
   else if (age >= 55) f *= 0.85;
   if (person.morale < 25) f *= 0.7;
   else if (person.morale < 45) f *= 0.85;
+  else if (person.morale >= HIGH_SPIRITS) f *= 1.1;
   return f;
 }
 
@@ -65,11 +69,13 @@ export function expectedFood(state, person, task, seasonIdx) {
     if (hasTradition(state, 'hunting')) amount += 1;
     amount *= abundanceFactor(state, site, 'hunt') * distanceFactor(site);
     if (wolvesAt(state, site)) amount *= 0.7; // Wolves scare off and take the game.
+    if (hasCondition(state, 'hardWinter')) amount *= 0.7; // Deep snow; the game hides.
   } else if (task === 'forage') {
     if (seasonIdx === 3) return 0;
     const site = siteFor(state, 'forage');
     amount = FORAGE_BASE[seasonIdx] + s.foraging * 0.6 + bonus(site, 'forage');
     amount *= abundanceFactor(state, site, 'forage') * distanceFactor(site);
+    if (hasCondition(state, 'drought')) amount *= 0.6;
   }
   return amount * workFactor(person);
 }
@@ -118,7 +124,8 @@ export function farmersNeeded(state) {
 }
 
 export function foodPerPlot(tendedFraction, state = null) {
-  return 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0);
+  const base = 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0);
+  return state && hasCondition(state, 'drought') ? base * 0.6 : base;
 }
 
 // Food the coming autumn harvest should bring, with current farmers.

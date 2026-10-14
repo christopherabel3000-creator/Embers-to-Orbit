@@ -31,8 +31,9 @@ export const BUILDINGS = {
     name: 'Storehouse',
     cost: 25,
     work: 12,
-    repeatable: false,
-    description: 'Cuts food spoilage from 12 percent to 4 percent each season.',
+    repeatable: true,
+    max: 3,
+    description: 'Room to store 150 more food. Your first storehouse also cuts spoilage from 12 percent to 4 percent each season.',
   },
   healersHut: {
     name: "Healer's hut",
@@ -71,6 +72,27 @@ export const PLOTS_PER_FIELD = 6;
 
 // The tent the survivors arrive with.
 export const STARTING_SHELTER = 4;
+
+// How much food the camp can store. Food beyond this rots quickly.
+export const BASE_STORAGE = 100; // Baskets, pits, and smoking racks.
+export const STORAGE_PER_STOREHOUSE = 150;
+export const OVERFLOW_ROT = 0.5; // Share of the food beyond the room that rots each season.
+
+// Lean times: conditions that make a season harder, so a reserve of food
+// and wood matters. Each lasts a set number of seasons.
+export const LEAN_TIMES = {
+  hardWinter: {
+    name: 'A hard winter',
+    effect: 'The fires burn half again as much wood, and hunting is poor.',
+    ends: 'The hard winter has broken.',
+  },
+  drought: {
+    name: 'Drought',
+    effect: 'Foraging brings in less, and the harvest will be smaller.',
+    ends: 'Rain has come at last. The drought is over.',
+  },
+};
+
 export const SHELTER_PER_LEAN_TO = 4;
 
 // Hand-crafted founding survivors. Skills run from 0 to 5.

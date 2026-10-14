@@ -6,10 +6,10 @@ import {
   living, dateLabel, shelterCapacity, healthWord, moraleWord, seasonIndex,
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
   isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
-  allowedTasksFor, lifeStage, canFight, metNeighbors, relationWord,
+  allowedTasksFor, lifeStage, canFight, metNeighbors, relationWord, storageCapacity, leanTimesNow,
 } from '../engine/state.js';
 import {
-  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS,
+  TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -25,6 +25,9 @@ import {
   remainingQueueWork, queueBlocker, queuedCount, refundFor,
 } from '../engine/building.js';
 import { seasonsToNextLevel } from '../engine/skills.js';
+import {
+  feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD,
+} from '../engine/stores.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -104,7 +107,7 @@ function updateStatus() {
   }
   const people = living(state).length;
   $status.textContent = `${state.campName}. ${dateLabel(state)}. ${plural(people, 'person', 'people')}, `
-    + `food ${state.resources.food}, wood ${state.resources.wood}, shelter for ${shelterCapacity(state)}.`;
+    + `food ${state.resources.food} of ${storageCapacity(state)}, wood ${state.resources.wood}, shelter for ${shelterCapacity(state)}.`;
 }
 
 function show(name, { focus = true } = {}) {
@@ -214,7 +217,31 @@ function reportScreen() {
     html += `<h2>Standing orders carried out</h2><ul>${r.orders.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   }
   html += `<h2>Advisors</h2>${adviceList(getAdvice(state))}`;
+  html += storesSection();
   html += `<div class="actions"><button type="button" data-nav="people">Assign people</button><button type="button" data-nav="build">Build</button></div>`;
+  return html;
+}
+
+// The food stores, lean times, and feasts.
+function storesSection() {
+  const people = living(state);
+  const food = state.resources.food;
+  const room = storageCapacity(state);
+  const need = foodNeeded(people);
+  const seasons = need ? Math.floor(food / need) : 0;
+  let html = `<h2 id="storesHeading">Stores</h2>
+    <p>Food: ${food}, with room for ${room}. That feeds everyone for ${plural(seasons, 'season', 'seasons')}. Food beyond the room rots quickly; each storehouse adds room for 150.</p>`;
+  const lean = leanTimesNow(state);
+  if (lean.length) html += `<ul>${lean.map((c) => `<li>${esc(LEAN_TIMES[c.id].name)}: ${esc(LEAN_TIMES[c.id].effect)}</li>`).join('')}</ul>`;
+  const cost = feastCost(state);
+  const why = feastBlocker(state);
+  html += `<h3>Feast</h3><p>A feast costs ${cost} food, 3 for each person. It lifts everyone's spirits, and people in high spirits work better. Families grow closer, so a child is more likely. You can hold one feast a year, and invite a neighboring people for ${FEAST_GUEST_FOOD} food more to win their goodwill.</p>`;
+  if (why) {
+    html += `<p id="feastStatus">${esc(why)}</p>`;
+  } else {
+    const guests = feastGuests(state).filter((id) => !feastBlocker(state, id));
+    html += `<div class="actions"><button type="button" data-action="holdFeast">Hold a feast for ${cost} food</button>${guests.map((id) => `<button type="button" data-action="holdFeast" data-guest="${id}">Feast with ${esc(NEIGHBORS[id].name)} for ${feastCost(state, id)} food</button>`).join('')}</div>`;
+  }
   return html;
 }
 
@@ -536,7 +563,7 @@ function buildScreen() {
     html += `<li class="card"><h3>${esc(b.name)}</h3>
       <p>${esc(b.description)}</p>
       <p>${status} Costs ${b.cost} wood and ${b.work} work.</p>
-      ${why ? (owned || queuedCount(state, id) ? '' : `<p>${esc(why)}</p>`) : `<p><button type="button" data-action="queueBuilding" data-building="${id}">Add ${esc(b.name.toLowerCase())} to the queue</button></p>`}
+      ${why ? (!b.max && (owned || queuedCount(state, id)) ? '' : `<p>${esc(why)}</p>`) : `<p><button type="button" data-action="queueBuilding" data-building="${id}">Add ${esc(b.name.toLowerCase())} to the queue</button></p>`}
       ${!b.repeatable && queuedCount(state, id) ? '<p>In the build queue.</p>' : ''}
     </li>`;
   }
@@ -556,6 +583,7 @@ function ordersFor(role) {
       <select id="order-food" data-order="foodReserve">${options}</select></p>
       ${checkbox('autoAssign', o.autoAssign, 'At the start of each season, put everyone on their best work, as the button on the People screen does. This also rests the hurt and sick, staffs the fields, and handles winter work and newcomers.')}
       ${checkbox('staffFields', o.staffFields, 'Keep the fields staffed: send people to plant in spring, tend in summer, and harvest in autumn, then send them back to their other work')}
+      ${checkbox('harvestFeast', o.harvestFeast, 'Hold a feast once the harvest is in, at the start of winter, if at least 3 seasons of food would be left')}
       ${checkbox('winterForagers', o.winterForagers, 'Foragers hunt during winter, then go back to foraging in spring')}
       ${checkbox('placeNewcomers', o.placeNewcomers, 'Put newcomers to work at what they do best')}`;
   }
@@ -636,7 +664,8 @@ function menuScreen() {
     <div class="actions"><button type="button" data-action="showNewGame">Start a new game</button></div>
     <h2>How to play</h2>
     <p>Each turn is one season. Assign every person a task on the People screen, add buildings to the queue on the Build screen, then choose End season. Builders work through the queue in order, and work left over from one building goes into the next.</p>
-    <p>Everyone eats 2 food each season. Nothing grows in winter and hunting is poor, so store food during summer and autumn. Food also spoils in storage.</p>
+    <p>Everyone eats 2 food each season. Nothing grows in winter and hunting is poor, so store food during summer and autumn. Food also spoils in storage, and the stores only hold so much: food beyond the room rots quickly. Each storehouse adds room. Some years bring hard winters, droughts, or herds that wander off, so keep a reserve. Full stores also tempt raiders.</p>
+    <p>When there is food to spare, hold a feast from the Report screen, once a year. Feasts lift spirits, and people in high spirits work better. You can invite a neighboring people to win their goodwill.</p>
     <p>Autumn and winter fires burn wood, and anyone without shelter suffers from the cold. Each lean-to shelters 4 more people.</p>
     <p>People get better at whatever they practice. Each season at a task builds that skill, up to 5. Early levels come quickly; mastery takes years. Fighting off raiders hardens defenders fast.</p>
     <p>A well-fed camp with room in its shelters and good spirits will have children. Young children eat half as much and take half a place in the shelters. From 5 they can help with light work, and from 12 they can do anything, including defending the camp. Everyone ages a year each spring, and the old grow weaker and eventually pass away. Young people learn faster, and anyone working beside a skilled mentor learns faster too.</p>
@@ -645,7 +674,7 @@ function menuScreen() {
     <p>Events happen as the seasons pass: storms, fevers, good fortune, and choices only you can make, like whether to take in a sick stranger. When a decision is waiting, it appears before anything else, and your advisors give their view. Fever spreads through a crowded camp; tending the sick helps them recover.</p>
     <p>Set people to Study and choose a discovery on the Knowledge screen. Discoveries improve hunting, building, storage, and health. Farming is the great one: build fields, plant in spring, tend in summer, and harvest in autumn.</p>
     <p>Other peoples live around the valley. Scouts may find their homes, and some will find you. On the Neighbors screen you can send gifts, trade, and make deals, once per people each season. The raiders who trouble your camp are a people too, and they can be bargained with.</p>
-    <p>Your people grow traditions from what they do again and again: win battles, hunt, bring in harvests, welcome strangers, give gifts, trade, study, build, or slip away from raiders. Each tradition gives a lasting benefit. The Chronicle screen shows the traditions you have and the ones taking shape. What you do also earns a reputation, and each neighboring people likes some parts of it and dislikes others, which slowly shifts how they feel about you.</p>
+    <p>Your people grow traditions from what they do again and again: win battles, hunt, bring in harvests, welcome strangers, give gifts, trade, study, build, hold feasts, or slip away from raiders. Each tradition gives a lasting benefit. The Chronicle screen shows the traditions you have and the ones taking shape. What you do also earns a reputation, and each neighboring people likes some parts of it and dislikes others, which slowly shifts how they feel about you.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off. You can let your war chief fight, hide, or command the battle yourself. The field has a left flank, a center, and a right flank, plus a reserve. Place your fighters, then each round give every group an order: hold (safer, especially behind a palisade or in the treeline), attack (hits harder, takes more harm), swing round to hit the enemy center, or fall back to the reserve. The reserve can join any zone. Any zone you leave empty lets raiders reach the stores. Groups that lose too much strength break and flee; the enemy gives up when enough of them have fallen. You can also march on Skarn hold from the Neighbors screen: break through two zones they leave empty, or beat them down, to win.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
@@ -844,6 +873,15 @@ function handleAction(action, btn) {
       if (msg) {
         show('build', { focus: false });
         refocus('#queueHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'holdFeast': {
+      const msg = act({ type: 'holdFeast', guest: btn.dataset.guest || null });
+      if (msg) {
+        show('report', { focus: false });
+        refocus('#feastStatus', '#storesHeading');
         announce(msg);
       }
       break;

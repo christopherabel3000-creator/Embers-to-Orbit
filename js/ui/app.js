@@ -34,7 +34,7 @@ import {
   villageBlocker, groups, notablePeople, GROUP_NAMES,
 } from '../engine/village.js';
 import {
-  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord,
+  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord, valleyLines,
 } from '../engine/nations.js';
 import {
   settlementBlocker, settlementSites, settlerRange, governorChoices, settlementProduct, expectedShipment,
@@ -616,6 +616,12 @@ function neighborsScreen() {
       html += `<p>Not possible now:</p><ul>${notNow.map((o) => `<li>${esc(o.label)}. ${esc(o.why)}</li>`).join('')}</ul>`;
     }
   }
+  const valley = state.neighbors.skarn.nation ? valleyLines(state, relationWord) : [];
+  if (valley.length) {
+    html += `<h2>Between the peoples</h2>
+      <p>How the nations feel about each other. Skarn raids embitter their victims; quarrels can bring the Velari and Tellani to blows.</p>
+      <ul>${valley.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+  }
   return html;
 }
 
@@ -972,6 +978,7 @@ function menuScreen() {
     <p>Goods are worth more than trade. Your steward can share them out as comforts each season, which a big village expects; your war chief can arm the guards with them. On the Village screen, goods hire a master of any skill once a year, or sell-swords who guard the roads for a year. A shrine costs goods too. The Tellani will take a caravan of goods for a bulk price, the Skarn accept tribute in goods, and besiegers can be paid off in goods.</p>
     <p>Once your village knows Oral law, it can make four laws on the Village screen: how food is shared, whether strangers may settle, how people serve, and how wrongs are judged. Each choice has a cost as well as a benefit, some please or offend your neighbors, and each law can change once a year.</p>
     <p>Once the Skarn are a nation, a quarter of their warriors are archers, whose arrows come over walls; archers are weak up close, so charge them. Your own people with hunting 3 or more shoot as archers once you know Bows. Warriors who charge an undermanned stretch of palisade or wall may break through it, and fighters there lose its cover. When the Skarn cannot storm your walls but can hem you in, they lay siege: no one can work outside, and you live on your stores. Wait for their supplies to run out, pay them, or sally out and fight them in the open.</p>
+    <p>The nations act on their own, too. They have feelings about each other, shown on the Neighbors screen, and they come to you: offering treaties, demanding land they wanted, asking you to take sides in their quarrels or guard their caravans, and, in the Skarn's case, offering bargains at another people's expense.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;

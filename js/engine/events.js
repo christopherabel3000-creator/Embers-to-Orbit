@@ -15,6 +15,7 @@ import { meet, changeRelation, skarnAtPeace } from './neighbors.js';
 import { remember, resolveSkarnRaid, nation } from './nations.js';
 import { lawIs } from './laws.js';
 import { VILLAGE_EVENTS } from './villageEvents.js';
+import { NATION_EVENTS } from './nationEvents.js';
 import { recordDeed, hasTradition } from './legacy.js';
 
 const EVENT_CHANCE = 0.4;
@@ -675,7 +676,7 @@ function allyCallFighters(state) {
 }
 
 // Village events join the rest.
-Object.assign(EVENTS, VILLAGE_EVENTS);
+Object.assign(EVENTS, VILLAGE_EVENTS, NATION_EVENTS);
 
 function recruitSources(state) {
   return Object.keys(NEIGHBOR_RECRUITS).filter((id) => {

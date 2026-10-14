@@ -9,7 +9,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -276,6 +276,11 @@ export function migrate(data) {
     data.guardsArmed = false;
     data.buildings.shrine = 0;
     data.version = 20;
+  }
+  if (data.version === 20) {
+    // Relations between the nations start where they would have.
+    if (data.neighbors.skarn.nation && !data.valley) data.valley = { 'tellani|velari': 30, 'skarn|velari': -40, 'skarn|tellani': -20 };
+    data.version = 21;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

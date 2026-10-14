@@ -40,6 +40,58 @@ export function startNations(state) {
     state.places[NEIGHBORS[id].home].owner = id;
   }
   state.places.camp.owner = 'player';
+  state.valley = { ...VALLEY_START };
+}
+
+// ----- Relations between the nations themselves -----
+// The Velari and Tellani start friendly; both are hostile to the Skarn.
+// Relations drift back toward these slowly, and events push them about.
+export const VALLEY_START = { 'tellani|velari': 30, 'skarn|velari': -40, 'skarn|tellani': -20 };
+
+function pairKey(a, b) {
+  return [a, b].sort().join('|');
+}
+
+export function between(state, a, b) {
+  const key = pairKey(a, b);
+  if (!state.valley) state.valley = { ...VALLEY_START };
+  return state.valley[key] ?? VALLEY_START[key] ?? 0;
+}
+
+export function shiftBetween(state, a, b, delta) {
+  const key = pairKey(a, b);
+  if (!state.valley) state.valley = { ...VALLEY_START };
+  state.valley[key] = Math.max(-100, Math.min(100, Math.round(between(state, a, b) + delta)));
+}
+
+// Lines for the Neighbors screen, for the pairs the player knows.
+export function valleyLines(state, word) {
+  const pairs = [['velari', 'tellani'], ['velari', 'skarn'], ['tellani', 'skarn']];
+  return pairs.filter(([a, b]) => state.neighbors[a].known && state.neighbors[b].known)
+    .map(([a, b]) => `${capital(NEIGHBORS[a].name)} and ${NEIGHBORS[b].name}: ${word(between(state, a, b))} (${between(state, a, b)}).`);
+}
+
+// Each year: relations drift home, the Velari and Tellani trade, and two
+// peoples who hate each other come to blows. Returns report lines.
+function valleyRelationsYear(state) {
+  const lines = [];
+  for (const [key, base] of Object.entries(VALLEY_START)) {
+    const [a, b] = key.split('|');
+    const now = between(state, a, b);
+    if (now > base) shiftBetween(state, a, b, -Math.min(3, now - base));
+    else if (now < base) shiftBetween(state, a, b, Math.min(3, base - now));
+  }
+  if (between(state, 'velari', 'tellani') > 0) shiftBetween(state, 'velari', 'tellani', 2); // They trade.
+  if (between(state, 'velari', 'tellani') <= -40) {
+    for (const id of ['velari', 'tellani']) {
+      const nat = nation(state, id);
+      nat.warriors = Math.max(1, nat.warriors - randomInt(state, 1, 2));
+    }
+    if (state.neighbors.velari.known && state.neighbors.tellani.known) {
+      lines.push('News from the valley: the Velari and the Tellani have come to blows along the river. Both lost warriors.');
+    }
+  }
+  return lines;
 }
 
 // ----- Trust and memory -----
@@ -295,6 +347,7 @@ export function valleyYear(state) {
       }
     }
   }
+  lines.push(...valleyRelationsYear(state));
   const sk = nation(state, 'skarn');
   if (state.neighbors.skarn.known) lines.push(`The Skarn now count about ${sk.warriors} warriors among ${sk.population} people.`);
   // A strong Skarn gathers a great host against the village, giving warning.
@@ -312,8 +365,10 @@ function skarnRaidsOthers(state) {
   const lines = [];
   const sk = nation(state, 'skarn');
   if (sk.warriors < 8 || !chance(state, 0.35)) return lines;
-  const targets = ['velari', 'tellani'].sort((a, b) => nation(state, a).warriors - nation(state, b).warriors);
-  const target = targets[0];
+  // The Skarn fall on whoever is weaker and whom they hate more.
+  const score = (id) => nation(state, id).warriors + between(state, 'skarn', id) / 10;
+  const target = ['velari', 'tellani'].sort((a, b) => score(a) - score(b))[0];
+  shiftBetween(state, 'skarn', target, -10);
   const nat = nation(state, target);
   if (nat.treaties.alliance && !state.pendingEvent && living(state).filter(canFight).length >= 3) {
     state.pendingEvent = { type: 'story', id: 'allyCall', target };

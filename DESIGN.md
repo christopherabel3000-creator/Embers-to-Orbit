@@ -30,6 +30,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 - **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
 - **The valley peoples as nations:** population, warriors, and land that grow each spring; territory and claims on the map; treaties; trust and remembered promises; Skarn war bands, skirmishers, and great hosts drawn from their real strength.
+- **Nations that act on their own:** relations between the nations, their own quarrels and clashes, and five kinds of decisions they bring to you.
 - **Uses for goods:** comforts, arms for guards, hired masters and sell-swords, a shrine, caravans, and tribute or ransom paid in goods.
 - **Village events:** eleven events of the village's own, mostly choices, including heroes the Chronicle remembers.
 - **Laws:** four laws a village can make once it knows Oral law, each with two options that trade one benefit for a cost and shift how the neighbors see you.
@@ -177,6 +178,19 @@ When the camp becomes a village, the Velari, Tellani, and Skarn become nations. 
 - **Skirmishers.** Since the Skarn rarely storm a walled village, their skirmishers fall on people working away from camp: one or two are hurt, and work there brings in half for the season. The chance grows with Skarn warriors and falls with every guard on watch, and each guard has a chance (15 percent each, up to 75 percent) of driving them off and killing one or two.
 - **Sieges.** A Skarn band too weak to storm a walled village (smaller than its fighters, or 1.2 times them against a stone wall) but at least half its fighters lays siege instead, as does a great host that cannot storm. While the siege lasts, no one can hunt, forage, farm, cut wood or stone, or scout; pastures give half; nothing comes home from other settlements; no settlers arrive; and the council keeps everyone at work inside, with a quarter of them on the walls. The besiegers have 3 to 5 seasons of supplies and lose a tenth of their number (at least 1) to hunger each season, plus more to allies' harassment; they leave when supplies run out or fewer than 4 remain. On the Report screen the player can wait, pay them 3 food per besieger to leave (which also buys a year's truce), or sally out: a battle in the open against besiegers dug in behind stakes and ditches (they take 55 percent of the harm while they hold). Beating them down, or pushing through two zones they leave empty, breaks the siege; otherwise the survivors fall back inside and the siege goes on.
 - **Great hosts.** Once Skarn warriors reach seven tenths of the village's fighters, they may gather a great host, announced a season ahead. It marches with nine tenths of their warriors, unless peace is made first; allies turn some back.
+
+**Nations that act on their own (built)**
+
+- **Relations between the nations** run from -100 to 100 like yours with them, and show on the Neighbors screen under "Between the peoples." They start with the Velari and Tellani friendly (30), the Velari and Skarn hostile (-40), and the Tellani and Skarn wary (-20), and each spring drift up to 3 back toward those. The Velari and Tellani gain 2 a year from trade while they are on good terms. Each Skarn raid on another people costs 10 between them, and the Skarn pick on whoever is weaker and more hated. If the Velari and Tellani fall to -40 or worse, they come to blows each spring and both lose warriors.
+- **Decisions the nations bring:**
+
+| Event | When | Choices |
+| --- | --- | --- |
+| A treaty offer | The Velari or Tellani would accept a treaty, with relations at least 10 above what it needs | Accept (the treaty is made) or decline (relations fall 3) |
+| A land demand | The Velari or Tellani, at relations below 0, see the village holding a place they wanted | Give it up (relations rise 10, a little trust), refuse (relations and trust fall, remembered), or keep it and send 15 goods |
+| Taking sides | The Velari and Tellani are on bad terms | Back one (they gain 10 and win the quarrel; the other falls 12, and both remember), stay out (both fall 2), or judge between them, with a meeting hall or a speaker of learning 3 (both rise 4, and the two peoples gain 25 toward each other) |
+| A caravan escort | The Tellani are not hostile, the Skarn have 8 or more warriors, and the village has 3 fit fighters | Send the 3 best (20 goods, or 10 goods and some wounds if the Skarn attack; the Tellani remember) or decline |
+| A Skarn bargain | The Skarn are not at peace and not deeply hostile | Stand aside while they raid the Velari (a year's truce; half the time the Velari learn of it, and trust falls 20), refuse, or warn the Velari (they rise 8, the raid fails, and the Skarn fall 12) |
 
 **Balance so far:** in simulated villages run on default priorities, with no diplomacy, that sally out whenever the war chief likes the odds, the Skarn grow to about the village's size (around 70 people at year 20) but are bled to about 20 warriors by lost battles; they lay about six sieges and gather one or two great hosts in 15 village years, and send skirmishers about every two years. Simulated villages break most sieges with a sally in their first season. As the Skarn keep pace with the village in people, a village that loses battles, or leaves its walls thin, faces far larger bands.
 

@@ -30,6 +30,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 ## Done in Phase 2 (Settlement era)
 
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
+- Nations that act on their own: relations between the nations, Velari and Tellani clashes, treaty offers, land demands, taking sides, caravan escorts, and Skarn bargains.
 - Uses for goods: comforts and arms orders, hiring masters and sell-swords, a shrine, Tellani caravans, tribute and siege ransom in goods.
 - Village events: eleven events (rivalries, heroes, fire, herd sickness, a craftsman, council objections, festivals, weddings, herders, refugees, ruins), heroes on the Chronicle, events more frequent in a village.
 - Sieges and combat: walls rebalanced, archers on both sides, breaches, sieges (wait, pay, or sally out against dug-in besiegers), allies harassing besiegers.
@@ -42,8 +43,8 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 
 - [ ] Balance: a village run on the default priorities grows to about 60 to 70 people in 20 years and stores over a thousand food. Walls are weaker, archers and breaches make battles riskier, and sieges cost seasons of work, but a well-run village still wins most fights and breaks sieges quickly. Options: weather and season in battle, Skarn that ally with hill clans for great hosts, harder starting regions. Battle tactics for the player could go further too: spearmen and shield walls as a choice, ambushes on the road.
 - [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
-- [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices, and nations that act on their own.
-- [ ] Nations, deeper: relations between the nations themselves, nations proposing treaties and making demands, the council moving work away from foreign land, and the Velari and Tellani contesting land with each other.
+- [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices.
+- [ ] Nations, deeper: the council moving work away from foreign land, the Velari and Tellani making treaties or wars with each other, and nations reacting to your strength.
 
 - [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.
 - [ ] More traditions over the eras, and traditions that can fade if neglected.

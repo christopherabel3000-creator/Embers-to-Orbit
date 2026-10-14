@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { VILLAGE_EVENTS } from '../js/engine/villageEvents.js';
+import { NATION_EVENTS } from '../js/engine/nationEvents.js';
 import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, wolvesAt, migrate } from '../js/engine/state.js';
@@ -35,7 +36,7 @@ test('every instant event applies cleanly', () => {
 test('every choice event offers options and resolves each one', () => {
   // The ally's call is only started by the nations' year; it has its own test.
   // Village events have their own tests, with a village.
-  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && !(key in VILLAGE_EVENTS))) {
+  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS))) {
     const base = richState();
     if (id === 'firstContact') base.neighbors.skarn.contactPending = true;
     else assert.ok(ev.weight(base) > 0, `${id} should be possible`);

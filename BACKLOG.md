@@ -30,6 +30,7 @@ Set aside: desktop keyboard shortcuts. Not needed for now; a screen reader's own
 
 ## Done in Phase 2 (Settlement era)
 
+- Difficulty: Easy, Normal (the default), Hard, and Insane, with a quarter, half again, and twice as many enemies as Easy in every era; chosen at the start and changeable any time from the Menu screen.
 - Battles that can be lost: weather each season (rain, fog, snow, heat), shield walls and braced spears for both sides, and Skarn ambushes on workers afield. A careful player loses about one battle in ten in the Settlement era. The simulator now counts every fight's outcome.
 - Late game, second pass: feasts become a custom in a village (less lift each year in a row, a disappointment when skipped), and besiegers ravage the land each season. The simulated village now spends its goods and sallies sooner when a crop is at stake.
 - Tidier code: one file per screen, shared helpers in one place, and simulation results moved from DESIGN.md into BALANCE.md.

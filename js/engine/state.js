@@ -9,8 +9,9 @@ import {
   DEFAULT_FOOD_STORES,
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
+import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 28;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -83,7 +84,7 @@ function initialPlaces() {
   return places;
 }
 
-export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
+export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty = DEFAULT_DIFFICULTY } = {}) {
   const people = FOUNDERS.map((f, i) => makePerson(f, i + 1, STARTING_TASKS[f.name] || 'forage'));
   const buildings = {};
   for (const id of BUILDING_ORDER) buildings[id] = 0;
@@ -107,6 +108,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     lastFeast: -99, // The turn of the last feast. One a year.
     feastStreak: 0, // Feasts held in a row, a year or so apart: in a village, a custom.
     weather: 'clear', // This season's weather: clear, rain, fog, snow, or heat.
+    difficulty: DIFFICULTIES[difficulty] ? difficulty : DEFAULT_DIFFICULTY, // How many raiders come; see difficulty.js.
     era: 'camp', // 'camp' (Survival era), 'village' (Settlement era), then 'nation' with a second settlement.
     villageFounded: null, // The turn the camp became a village.
     priorities: { ...DEFAULT_PRIORITIES }, // What the village council pushes for.
@@ -320,6 +322,10 @@ export function migrate(data) {
   if (data.version === 26) {
     data.weather = 'clear';
     data.version = 27;
+  }
+  if (data.version === 27) {
+    data.difficulty = 'easy'; // Games begun before difficulty play on as they did.
+    data.version = 28;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

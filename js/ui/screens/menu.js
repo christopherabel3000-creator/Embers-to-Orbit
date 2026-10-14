@@ -1,5 +1,6 @@
-// The Menu screen: saves and starting over.
+// The Menu screen: saves, difficulty, and starting over.
 
+import { state, difficultyChoices } from '../core.js';
 
 export function menuScreen() {
   return `<h1>Menu</h1>
@@ -11,6 +12,11 @@ export function menuScreen() {
       <button type="button" data-action="importSave">Load a save file</button>
     </div>
     <input type="file" id="importInput" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
+    <h2>Difficulty</h2>
+    <p>How many enemies come against your people. A change takes effect at once, and you can change it at any time.</p>
+    <fieldset><legend>Choose a difficulty</legend>
+      ${difficultyChoices('difficulty', state.difficulty)}
+    </fieldset>
     <h2>New game</h2>
     <div class="actions"><button type="button" data-action="showNewGame">Start a new game</button></div>
     <h2>How to play</h2>

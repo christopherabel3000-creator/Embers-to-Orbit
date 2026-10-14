@@ -3,6 +3,7 @@
 // and great hosts that strip a village that hides.
 
 import { test } from 'node:test';
+import { raidScale } from '../js/engine/difficulty.js';
 import assert from 'node:assert/strict';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, makePerson, migrate } from '../js/engine/state.js';
@@ -51,7 +52,7 @@ test('a small, modest village draws no hill clans; size and full stores draw the
   s.resources.food = 1300;
   assert.ok(clanTarget(s) > bySize + 8, 'full stores draw many more');
   s.resources.food = 99999;
-  assert.equal(clanTarget(s), CLANS_MAX, 'there is a limit to how many come');
+  assert.equal(clanTarget(s), Math.round(CLANS_MAX * raidScale(s)), 'there is a limit to how many come, set by difficulty');
 });
 
 test('the clans come at once, announce themselves once, and drift home slowly', () => {

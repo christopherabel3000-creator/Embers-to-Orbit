@@ -11,8 +11,9 @@ import {
 } from './state.js';
 import { foundVillage, setPriority, setFoodStores } from './village.js';
 import {
-  claimPlace, nationsActive, freeToWork, owner,
+  claimPlace, nationsActive, freeToWork, owner, rescaleSkarn,
 } from './nations.js';
+import { DIFFICULTIES, raidScale } from './difficulty.js';
 import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
 import { hireMaster, hireSwords } from './goods.js';
@@ -351,6 +352,17 @@ const handlers = {
     }
     delete state.foreignWorkOk[task];
     return { message: `${verb} ${placeName(state, placeId)}.` };
+  },
+
+  // Allowed at any time, even mid-battle: it shapes what comes next.
+  setDifficulty(state, { level }) {
+    if (!DIFFICULTIES[level]) return { error: 'Choose easy, normal, hard, or insane.' };
+    const d = DIFFICULTIES[level];
+    if (state.difficulty === level) return { message: `Difficulty: ${d.name}.` };
+    const before = raidScale(state);
+    state.difficulty = level;
+    rescaleSkarn(state, raidScale(state) / before);
+    return { message: `Difficulty: ${d.name}. ${d.about}` };
   },
 
   setOrder(state, { id, value }) {

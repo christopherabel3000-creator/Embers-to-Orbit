@@ -2,7 +2,8 @@
 
 import { dateLabel } from '../../engine/state.js';
 import { storage } from '../../storage.js';
-import { esc } from '../core.js';
+import { DEFAULT_DIFFICULTY } from '../../engine/difficulty.js';
+import { esc, difficultyChoices } from '../core.js';
 
 export function titleScreen() {
   const saved = storage.load();
@@ -27,6 +28,10 @@ export function newGameScreen() {
       <p><label for="campName">Name your camp</label></p>
       <p><input type="text" id="campName" value="Emberhold" maxlength="30" autocomplete="off"></p>
       <p>Starting region: Forest valley. Mild seasons and plenty of food and timber. Harder regions will come in a later update.</p>
+      <fieldset><legend>Difficulty</legend>
+        ${difficultyChoices('newDifficulty', DEFAULT_DIFFICULTY)}
+        <p>You can change it at any time from the Menu screen.</p>
+      </fieldset>
       ${saved ? '<p class="warning">Starting a new game replaces your current saved game.</p>' : ''}
       <div class="actions">
         <button type="submit" class="primary">Start</button>

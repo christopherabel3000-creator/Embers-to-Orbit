@@ -6,11 +6,39 @@ What the simulator says about the game's balance. [DESIGN.md](DESIGN.md) says ho
 
 - `npm run simulate` plays 200 five-year campaigns with each of three strategies. `node tools/simulate.mjs [games] [years] [strategies]` changes the count, the length, and the strategies (comma-separated).
 - Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds a second settlement when ready, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
+- `DIFFICULTY=easy` (or normal, hard, insane) sets the difficulty; runs use Normal, the default for a new game, unless told otherwise. Notes before October 14, 2026 were measured on what is now Easy.
 - Settings for the village strategy, as environment variables: `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
 - `npm run battles` fights hundreds of battles to check combat odds.
 - Each run counts fights won and not won (raids, sallies, ambushes, and attacks on Skarn hold) and ambushes scattered from. Before October 14, 2026, the count missed sallies and raids the simulated player answered itself, so older notes undercount lost fights.
 
-## Where things stand (October 14, 2026)
+## By difficulty (October 14, 2026)
+
+Five-year camps run on standing orders, 200 of each:
+
+| Difficulty | Wiped out | People at year 5 | Food | People lost | Fights not won |
+| --- | --- | --- | --- | --- | --- |
+| Easy | 0 | 22.5 | 173 | 0.3 | 0% |
+| Normal | 0 | 22.2 | 168 | 0.6 | 0% |
+| Hard | 0 | 21.3 | 167 | 1.0 | 4% |
+| Insane | 0 | 20.1 | 146 | 2.1 | 8% |
+
+A camp played by hand (the sensible strategy) is wiped out 1, 1, 2, and 3 times in 200 from Easy to Insane.
+
+Twenty-year villages, 200 of each, with the simulated village answering raids itself (fight at even odds or better, otherwise hide or scatter):
+
+| Difficulty | Wiped out | People at year 20 | Food | Seasons of hunger | Killed in raids and battles | Fights lost, camp years | Fights lost, village years | Hid or scattered, village years | Sieges | Reach the Nation era |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Easy | 0 | 61 | 653 | 0.1 | 2.1 | 0% | 9% | 1.0 | 2.1 | 194 |
+| Normal | 2 | 58 | 642 | 1.0 | 2.8 | 0% | 8% | 2.2 | 2.7 | 162 |
+| Hard | 5 | 50 | 551 | 1.8 | 4.4 | 4% | 11% | 2.9 | 3.2 | 136 |
+| Insane | 17 | 43 | 408 | 3.0 | 6.3 | 11% | 15% | 8.2 | 3.1 | 78 |
+
+- **The steps grow in the village years.** A Skarn nation with more warriors crosses its thresholds more often: it besieges instead of waiting (sieges last 3.4 seasons in all on Easy, 5.2 on Normal, 6.7 on Insane) and gathers great hosts (0.8, 1.3, 1.5, 2.9 a campaign). Hunger comes mostly from sieges and from hiding.
+- **Normal** costs little in the camp years (0.6 people lost in five years instead of 0.3) but brings about ten times the hunger of Easy in a village, and 2 villages in 200 are wiped out, around year 12.
+- **Insane** villages hide from most fights (8 a campaign), and 17 in 200 are wiped out, around year 12; fewer than half reach the Nation era in 20 years.
+- The Skarn's own numbers at year 20 change less than the multiplier suggests, because they lose far more warriors and people in battle on harder levels: about 42 warriors among 108 people on Easy, 41 among 68 on Hard, and 64 among 78 on Insane.
+
+## Where things stand (October 14, 2026, Easy)
 
 Five-year campaigns, 200 of each:
 

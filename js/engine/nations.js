@@ -18,6 +18,7 @@ import { lawIs } from './laws.js';
 import { swordsHelp } from './goods.js';
 import { skarnStrength, clanLosses, clansYear, clansMarching } from './clans.js';
 import { skarnApproach } from './siege.js';
+import { raidScale } from './difficulty.js';
 
 const WORK_TASKS = ['hunt', 'forage', 'wood', 'quarry'];
 
@@ -29,6 +30,23 @@ export function nation(state, id) {
   return state.neighbors[id].nation || null;
 }
 
+// The share of a nation's people under arms. The Skarn keep more on harder
+// difficulties (see difficulty.js).
+export function underArms(state, id) {
+  return NATIONS[id].warriors * (id === 'skarn' ? raidScale(state) : 1);
+}
+
+// When the difficulty changes, the Skarn and the hill clans with them grow
+// or shrink at once by the ratio between the new and the old.
+export function rescaleSkarn(state, ratio) {
+  const nat = nation(state, 'skarn');
+  if (nat) {
+    nat.warriors = Math.max(0, Math.round(nat.warriors * ratio));
+    nat.population = Math.max(nat.population, nat.warriors);
+  }
+  if (state.clans) state.clans.warriors = Math.max(0, Math.round(state.clans.warriors * ratio));
+}
+
 // Sets the nations up when the village is founded.
 export function startNations(state) {
   const y = year(state);
@@ -37,7 +55,7 @@ export function startNations(state) {
     const population = def.start(y);
     state.neighbors[id].nation = {
       population,
-      warriors: Math.round(population * def.warriors),
+      warriors: Math.round(population * underArms(state, id)),
       wealth: population * 2,
       treaties: { trade: false, openLands: false, alliance: false },
       trust: 50,
@@ -388,7 +406,7 @@ export const AMBUSH_SIZE = [1.8, 3];
 export function ambushBand(state, workers) {
   const prey = workers.reduce((sum, p) => sum + fighterStrength(state, p), 0);
   const foe = foeStrengthFor(state, { from: 'skarn' }, 'defend');
-  const wanted = Math.round(prey * randomBetween(state, AMBUSH_SIZE[0], AMBUSH_SIZE[1]) / foe);
+  const wanted = Math.round(prey * randomBetween(state, AMBUSH_SIZE[0], AMBUSH_SIZE[1]) * raidScale(state) / foe);
   return Math.max(4, Math.min(Math.round(nation(state, 'skarn').warriors * AMBUSH_MAX_SHARE), wanted));
 }
 
@@ -452,7 +470,7 @@ export function valleyYear(state) {
       if (village * 1.2 > nat.population) nat.population += Math.round((village * 1.2 - nat.population) * 0.4);
     }
     // Losses are made good quickly: young people take up arms.
-    const target = Math.round(nat.population * def.warriors);
+    const target = Math.round(nat.population * underArms(state, id));
     const step = Math.max(3, Math.round(target * 0.35));
     nat.warriors += Math.max(-step, Math.min(step, target - nat.warriors));
     nat.wealth += Math.round(nat.population / 2);

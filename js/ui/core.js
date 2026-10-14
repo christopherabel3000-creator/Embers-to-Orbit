@@ -7,6 +7,7 @@ import {
   living, dateLabel, shelterCapacity, storageCapacity, inVillage, taskAvailable,
 } from '../engine/state.js';
 import { storage } from '../storage.js';
+import { DIFFICULTIES, DIFFICULTY_ORDER } from '../engine/difficulty.js';
 import { capital as capitalize, listWords, plural } from '../engine/util.js';
 
 export { capitalize, listWords, plural };
@@ -140,4 +141,10 @@ export function adviceList(advice) {
     const label = a.severity === 'urgent' ? 'Urgent' : a.severity === 'warning' ? 'Warning' : 'Note';
     return `<li class="${a.severity === 'note' ? '' : a.severity}"><span>${label} from ${esc(a.name)}, ${esc(a.title.toLowerCase())}:</span> ${esc(a.text)}</li>`;
   }).join('')}</ul>`;
+}
+
+// The four difficulties as a group of radio buttons named `name`.
+export function difficultyChoices(name, selected) {
+  return DIFFICULTY_ORDER.map((id) => `<p><input type="radio" name="${name}" id="${name}-${id}" value="${id}"${id === selected ? ' checked' : ''}>
+    <label for="${name}-${id}">${esc(DIFFICULTIES[id].name)}: ${esc(DIFFICULTIES[id].about)}</label></p>`).join('');
 }

@@ -34,6 +34,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Uses for goods:** comforts, arms for guards, hired masters and sell-swords, a shrine, caravans, and tribute or ransom paid in goods.
 - **Village events:** eleven events of the village's own, mostly choices, including heroes the Chronicle remembers.
 - **Laws:** four laws a village can make once it knows Oral law, each with two options that trade one benefit for a cost and shift how the neighbors see you.
+- **Four difficulty levels**, chosen at the start and changeable at any time from the Menu screen.
 - **A second settlement** under a governor, which sends home food, wood, or stone, and whose founding begins the Nation era.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
@@ -91,6 +92,24 @@ Each starting region has a hand-crafted local map of connected places. The fores
 - **Wear and recovery.** Hunting and foraging use up a place's game and wild food; places recover each season (slowly in winter). Worn places yield as little as 60 percent, which pushes players to rotate sites.
 - **Scouting.** Scouts explore the unexplored paths leading from a chosen place, so exploration spreads outward. Some places have special effects: herbs improve healing, the raider trail means raids are always spotted, and the abandoned camp gives one-time supplies.
 - The map screen describes each place by its condition, its paths, and who works there.
+
+## Difficulty (built)
+
+Decided with Christopher, October 14, 2026. Difficulty sets how many enemies come against the player's people, in every era. It is part of the saved game, chosen on the New game screen, and can be changed at any time from the Menu screen; a change takes effect at once.
+
+| Level | Enemies, compared with Easy |
+| --- | --- |
+| Easy | As the game was first balanced |
+| Normal (the default for a new game) | A quarter more |
+| Hard | Half again as many |
+| Insane | Twice as many |
+
+- **Raids on the camp and outlaw bands** are that much larger when they set out.
+- **The Skarn nation** keeps that many more warriors under arms (45 percent of its people on Easy, up to 90 percent on Insane), and that many more hill clansmen join it, up to that much more than the usual 40. Its war bands, great hosts, sieges, and ambushes, and the defenders of Skarn hold, grow in step, so the numbers on the Neighbors screen are always the warriors who can come. Ambush bands are also that much larger for the workers they fall on. The Velari and Tellani are unchanged.
+- **Changing difficulty** grows or shrinks the Skarn's warriors and the hill clansmen with them at once, by the ratio between the new level and the old.
+- Games saved before difficulty existed play on as Easy.
+
+How each level plays in simulated campaigns is in BALANCE.md.
 
 ## Turns and eras
 

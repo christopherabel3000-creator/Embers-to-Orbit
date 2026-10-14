@@ -45,6 +45,7 @@ import {
 } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
 import { drawWeather } from './weather.js';
+import { raidScale } from './difficulty.js';
 import { incomeLine, upkeepLine, skillLine } from './report.js';
 import { shuffle, listNames, clamp } from './util.js';
 
@@ -522,6 +523,9 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     if (approach === 'wait') return;
   }
   if (from === 'outlaws') raiders = Math.max(3, Math.ceil((randomInt(state, 4, 7) + raidGrowth(y)) / 2));
+  // Harder difficulties send more. (A Skarn nation's bands already come from
+  // the warriors it keeps under arms, which difficulty sets.)
+  if (!(nationsActive(state) && from === 'skarn')) raiders = Math.round(raiders * raidScale(state));
   // Allies send warriors, who meet some of the raiders on the way.
   let allyNote = '';
   const helpers = from === 'skarn' && nationsActive(state) ? alliedHelpers(state) : 0;

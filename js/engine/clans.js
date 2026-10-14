@@ -6,6 +6,7 @@
 
 import { living, year } from './state.js';
 import { skarnAtPeace } from './neighbors.js';
+import { raidScale } from './difficulty.js';
 
 export const CLANS_FROM_PEOPLE = 30; // People beyond this many draw the clans.
 export const CLANS_PER_PERSON = 0.3; // Clansmen drawn by each person beyond that.
@@ -27,7 +28,7 @@ export function clanTarget(state) {
   const wealth = (state.resources.food || 0) + (state.resources.goods || 0);
   const drawn = Math.max(0, people - CLANS_FROM_PEOPLE) * CLANS_PER_PERSON
     + Math.max(0, wealth - CLANS_WEALTH_START) / CLANS_WEALTH_PER;
-  return Math.min(CLANS_MAX, Math.round(drawn));
+  return Math.min(Math.round(CLANS_MAX * raidScale(state)), Math.round(drawn * raidScale(state)));
 }
 
 export function clansQuiet(state) {
@@ -69,7 +70,7 @@ export function clansYear(state) {
   // There are always more in the hills: those who fell are replaced by spring.
   if (target > c.warriors) c.warriors = target;
   else if (target < c.warriors) c.warriors -= Math.max(1, Math.ceil((c.warriors - target) / 4));
-  c.warriors = Math.max(0, Math.min(CLANS_MAX, c.warriors));
+  c.warriors = Math.max(0, Math.min(Math.round(CLANS_MAX * raidScale(state)), c.warriors));
   if (!state.neighbors.skarn.known) return [];
   if (c.warriors >= 3 && !c.arrived) {
     c.arrived = true;

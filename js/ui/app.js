@@ -44,8 +44,8 @@ registerScreens({
 
 // ---------- events ----------
 
-function startNewGame(campName) {
-  setState(newGame({ seed: (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0, campName }));
+function startNewGame(campName, difficulty) {
+  setState(newGame({ seed: (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0, campName, difficulty }));
   storage.save(state);
   show('report');
 }
@@ -288,6 +288,11 @@ $main.addEventListener('change', (e) => {
     announce(e.target.value === 'compact' ? 'Compact list.' : 'Detailed list.');
     return;
   }
+  if (e.target.name === 'difficulty') {
+    const msg = act({ type: 'setDifficulty', level: e.target.value });
+    if (msg) announce(msg);
+    return;
+  }
   const site = e.target.closest('select[data-site]');
   if (site) {
     const msg = act({ type: 'setWorkSite', task: site.dataset.site, placeId: site.value });
@@ -359,7 +364,8 @@ $main.addEventListener('change', (e) => {
 $main.addEventListener('submit', (e) => {
   e.preventDefault();
   if (e.target.id === 'newGameForm') {
-    startNewGame(document.getElementById('campName').value);
+    const level = e.target.querySelector('input[name="newDifficulty"]:checked');
+    startNewGame(document.getElementById('campName').value, level ? level.value : undefined);
     return;
   }
   if (e.target.id === 'storyForm') {

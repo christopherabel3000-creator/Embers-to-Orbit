@@ -6,6 +6,7 @@ import {
   hasKnowledge, isKnown, living, canFight, year,
 } from './state.js';
 import { createBattle } from './battle.js';
+import { raidScale } from './difficulty.js';
 import { honorPeace, honorCost, honored } from './peace.js';
 import { recordDeed, hasTradition, effectiveBaseline } from './legacy.js';
 import { TREATIES, TREATY_ORDER } from './data.js';
@@ -17,7 +18,7 @@ import {
 export function skarnGarrison(state) {
   const nat = state.neighbors.skarn.nation;
   if (nat) return Math.max(6, Math.round(nat.warriors * 0.7)); // Most of their warriors stay home to defend it.
-  return 8 + year(state);
+  return Math.round((8 + year(state)) * raidScale(state));
 }
 
 export function neighbor(state, id) {

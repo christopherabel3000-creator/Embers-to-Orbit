@@ -9,7 +9,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -31,6 +31,8 @@ export const DEFAULT_ORDERS = {
   staffFields: false, // Move people to and from the fields as the year requires.
   autoShelter: false, // Queue a lean-to when the shelters are nearly full.
   harvestFeast: false, // Hold a feast after the harvest when there is food to spare.
+  comforts: false, // Share out goods as comforts each season (a village).
+  armGuards: false, // Spend goods on arms for the guards each season (a village).
   raidPolicy: 'ask', // 'ask', 'fightIfLikely', or 'auto'.
 };
 
@@ -106,6 +108,9 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
     heroes: [], // { id, name, deed, year }: people the village remembers for a great deed.
+    lastHire: -99, // The turn a master was last hired.
+    swordsUntil: -1, // Sell-swords guard the roads until this turn.
+    guardsArmed: false, // Whether the guards were armed with goods this season.
     eventHistory: {}, // Event id to the turn it last happened.
     knowledge: { learned: [], progress: {}, current: null, queue: [] },
     farm: { planted: 0, tended: 0 }, // Plots planted this year, and plots tended.
@@ -262,6 +267,15 @@ export function migrate(data) {
   if (data.version === 18) {
     data.heroes = [];
     data.version = 19;
+  }
+  if (data.version === 19) {
+    data.orders.comforts = false;
+    data.orders.armGuards = false;
+    data.lastHire = -99;
+    data.swordsUntil = -1;
+    data.guardsArmed = false;
+    data.buildings.shrine = 0;
+    data.version = 20;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

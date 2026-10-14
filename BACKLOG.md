@@ -30,6 +30,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 ## Done in Phase 2 (Settlement era)
 
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
+- Uses for goods: comforts and arms orders, hiring masters and sell-swords, a shrine, Tellani caravans, tribute and siege ransom in goods.
 - Village events: eleven events (rivalries, heroes, fire, herd sickness, a craftsman, council objections, festivals, weddings, herders, refugees, ruins), heroes on the Chronicle, events more frequent in a village.
 - Sieges and combat: walls rebalanced, archers on both sides, breaches, sieges (wait, pay, or sally out against dug-in besiegers), allies harassing besiegers.
 - Laws: four laws (sharing food, strangers, service, justice), two options each, changeable once a year, with neighbors' reactions.
@@ -39,9 +40,9 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 
 ## Still open in Phase 2 (Settlement era)
 
-- [ ] Balance: a village run on the default priorities grows to about 60 to 70 people in 20 years and stores over a thousand food. Walls are weaker, archers and breaches make battles riskier, and sieges cost seasons of work, but a well-run village still wins most fights and breaks sieges quickly. Options: weather and season in battle, Skarn that ally with hill clans for great hosts, harder starting regions. Battle tactics for the player could go further too: spearmen and shield walls as a choice, ambushes on the road. Goods also pile up if the player never trades; more uses for goods (upkeep, festivals, hiring) may help.
+- [ ] Balance: a village run on the default priorities grows to about 60 to 70 people in 20 years and stores over a thousand food. Walls are weaker, archers and breaches make battles riskier, and sieges cost seasons of work, but a well-run village still wins most fights and breaks sieges quickly. Options: weather and season in battle, Skarn that ally with hill clans for great hosts, harder starting regions. Battle tactics for the player could go further too: spearmen and shield walls as a choice, ambushes on the road.
 - [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
-- [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices, more uses for goods (comforts, hiring, shrines, bulk trade), and nations that act on their own.
+- [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices, and nations that act on their own.
 - [ ] Nations, deeper: relations between the nations themselves, nations proposing treaties and making demands, the council moving work away from foreign land, and the Velari and Tellani contesting land with each other.
 
 - [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.

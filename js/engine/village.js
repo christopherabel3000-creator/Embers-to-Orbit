@@ -50,6 +50,7 @@ export function foundVillage(state) {
   state.villageFounded = state.turn;
   startNations(state);
   state.orders.autoAssign = true;
+  state.orders.comforts = true; // Once there are goods, share some out.
   for (const p of living(state)) p.morale = clamp(p.morale + 10);
   const plan = bestWorkPlan(state);
   for (const p of living(state)) {

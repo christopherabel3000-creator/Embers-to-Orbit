@@ -86,6 +86,16 @@ export const BUILDINGS = {
     requires: 'oralLaw',
     description: 'A great hall where the village gathers and the council meets. Spirits settle higher, and quarrels are rarer.',
   },
+  shrine: {
+    name: 'Shrine',
+    cost: 30,
+    stone: 30,
+    goods: 30,
+    work: 20,
+    repeatable: false,
+    requires: 'oralLaw',
+    description: 'A shrine to the old powers, hung with offerings. Spirits settle 2 higher, fever takes hold less often, and deaths weigh less on the village.',
+  },
   stoneWall: {
     name: 'Stone wall',
     cost: 20,
@@ -135,7 +145,7 @@ export const BUILDINGS = {
   },
 };
 
-export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'pasture', 'storehouse', 'granary', 'healersHut', 'workshop', 'market', 'meetingHall', 'watchtower', 'palisade', 'stoneWall'];
+export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'pasture', 'storehouse', 'granary', 'healersHut', 'workshop', 'market', 'meetingHall', 'shrine', 'watchtower', 'palisade', 'stoneWall'];
 
 export const PLOTS_PER_FIELD = 6;
 

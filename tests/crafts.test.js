@@ -76,6 +76,7 @@ test('quarriers cut stone and crafters make goods each season', () => {
   s.knowledge.learned.push('stonecutting', 'weaving');
   s.priorities.crafts = 'high';
   s.buildQueue.push({ id: 'workshop', progress: 0, paid: false });
+  s.orders.comforts = false; // Keep the goods to count them.
   const plan = villagePlan(s);
   const count = (t) => [...plan.values()].filter((x) => x === t).length;
   assert.ok(count('quarry') >= 1, 'the council sends quarriers for the stone the queue needs');

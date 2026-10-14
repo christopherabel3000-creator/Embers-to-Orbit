@@ -131,7 +131,7 @@ export const EVENTS = {
   },
   feverOutbreak: {
     // Open gates let fever in more easily.
-    weight: (state) => (sickPeople(state).length ? 0 : (seasonIndex(state) === 3 ? 1.2 : 0.7) * (lawIs(state, 'strangers', 'open') ? 1.5 : lawIs(state, 'strangers', 'closed') ? 0.5 : 1)),
+    weight: (state) => (sickPeople(state).length ? 0 : (seasonIndex(state) === 3 ? 1.2 : 0.7) * (lawIs(state, 'strangers', 'open') ? 1.5 : lawIs(state, 'strangers', 'closed') ? 0.5 : 1) * (state.buildings.shrine > 0 ? 0.6 : 1)),
     apply(state) {
       const victim = pick(state, living(state));
       victim.sick = true;

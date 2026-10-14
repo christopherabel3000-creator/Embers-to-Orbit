@@ -40,7 +40,8 @@ export function fighterStrength(state, p) {
 // Guards are trained and ready; drill and a chieftain make them stronger.
 export function guardBonus(state, p) {
   if (p.task !== 'guard') return 1;
-  return (hasKnowledge(state, 'drill') ? 1.5 : 1.25) + (hasKnowledge(state, 'chieftain') ? 0.15 : 0);
+  const base = (hasKnowledge(state, 'drill') ? 1.5 : 1.25) + (hasKnowledge(state, 'chieftain') ? 0.15 : 0);
+  return base * (state.guardsArmed ? 1.2 : 1); // Armed with goods by standing order.
 }
 
 // Archers: anyone who knows the bow and hunts well (hunting 3 or more)

@@ -10,12 +10,13 @@ import {
 } from './state.js';
 import { maybeSettlers } from './village.js';
 import { lawSettle } from './laws.js';
+import { spendGoods } from './goods.js';
 import {
   besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege,
 } from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
 import {
-  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor,
+  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, helpersText,
   maybeHarry,
 } from './nations.js';
 import { NEIGHBORS } from './data.js';
@@ -337,7 +338,9 @@ export function resolveSeason(state) {
     urgent.push(`${exposed.length} ${exposed.length === 1 ? 'person' : 'people'} slept without shelter in the ${s === 3 ? 'winter cold' : 'autumn chill'}.`);
   }
 
-  // 8. Recovery and morale.
+  // 8. Recovery and morale. Goods for comforts and arms are spent first.
+  const spent = spendGoods(state);
+  events.push(...spent.events);
   for (const p of people) {
     if (p.health <= 0) continue; // Too far gone to recover.
     if (!unfed.has(p.id) && !cold.has(p.id)) p.health = clamp(p.health + 5);
@@ -347,7 +350,8 @@ export function resolveSeason(state) {
     }
     if (state.buildings.healersHut > 0 && p.health < 75) p.health = clamp(p.health + 5);
     // Spirits settle back toward steady: high spirits fade faster the higher they are.
-    const settle = (state.buildings.meetingHall > 0 ? 62 : 55) + lawSettle(state); // A meeting hall and the laws move where spirits settle.
+    const settle = (state.buildings.meetingHall > 0 ? 62 : 55) + lawSettle(state) + spent.settle
+      + (state.buildings.shrine > 0 ? 2 : 0); // A meeting hall, the laws, comforts, and a shrine move where spirits settle.
     if (p.morale < settle) p.morale = clamp(Math.min(settle, p.morale + 3));
     else if (p.morale > settle) p.morale = clamp(p.morale - 3 - (p.morale - settle) * 0.2);
   }
@@ -375,7 +379,8 @@ export function resolveSeason(state) {
     urgent.unshift(hero ? `${p.name}, a hero of the village, has died. Everyone remembers how ${p.name} ${hero.deed}.` : `${p.name} has died.`);
   }
   if (dead.length) {
-    for (const p of living(state)) p.morale = clamp(p.morale - 12 * dead.length);
+    const grief = state.buildings.shrine > 0 ? 6 : 12; // A shrine eases grief.
+    for (const p of living(state)) p.morale = clamp(p.morale - grief * dead.length);
   }
 
   // Hard winters and droughts pass.
@@ -460,7 +465,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
       raiders -= Math.max(0, stopped);
       state.pendingEvent = { type: 'raid', raiders, warned: true, from: 'skarn', host: true };
       state.pendingEvent.battle = createBattle(state, state.pendingEvent);
-      urgent.unshift(`The Skarn host has come: about ${raiders} warriors at the edge of ${state.campName}.${stopped > 0 ? ` Your allies turned back ${stopped} more.` : ''} Decide how to respond before anything else.`);
+      urgent.unshift(`The Skarn host has come: about ${raiders} warriors at the edge of ${state.campName}.${stopped > 0 ? ` ${helpersText(state)} turned back ${stopped} more.` : ''} Decide how to respond before anything else.`);
       return;
     }
     urgent.push('The Skarn host broke up and went home: they will not march against a people at peace with them.');
@@ -499,7 +504,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   if (helpers > 0) {
     const stopped = Math.min(helpers, raiders - 2);
     raiders -= stopped;
-    allyNote = ` Your allies, ${allies(state).map((id) => NEIGHBORS[id].name).join(' and ')}, sent ${helpers} warriors, who turned back ${stopped} of them.`;
+    allyNote = ` ${helpersText(state)} met them on the road with ${helpers} fighters, and turned back ${stopped} of them.`;
   }
   const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail') || guardsOnWatch(state) >= 2
     || (scoutsOut && chance(state, 0.6));

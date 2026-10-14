@@ -44,9 +44,12 @@ import {
   lawsAvailable, seasonsUntilChange,
 } from '../engine/laws.js';
 import {
-  ransom, sallyEvent,
+  ransom, ransomGoods, sallyEvent,
 } from '../engine/siege.js';
 import { estimateBattle } from '../engine/battle.js';
+import {
+  hireBlocker, swordsBlocker, swordsActive, comfortsCost, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT,
+} from '../engine/goods.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -252,6 +255,7 @@ function reportScreen() {
       <div class="actions">
         <button type="button" data-action="sallyOut">Sally out and fight them</button>
         ${state.resources.food >= cost ? `<button type="button" data-action="payBesiegers">Pay them ${cost} food to leave</button>` : `<p>They would leave for ${cost} food, and you have ${state.resources.food}.</p>`}
+        ${(state.resources.goods || 0) >= ransomGoods(state) ? `<button type="button" data-action="payBesiegers" data-goods="1">Pay them ${ransomGoods(state)} goods to leave</button>` : ''}
       </div>
       <p class="muted">Or wait: end the season, and the siege goes on.</p>`;
   }
@@ -680,7 +684,8 @@ function ordersFor(role) {
     return `<p>In the village the council sets everyone's work each season, so it covers best work, the fields, winter work, and newcomers.</p>
       <p><label for="order-food">Make sure our food will last at least</label>
       <select id="order-food" data-order="foodReserve">${options}</select></p>
-      ${checkbox('harvestFeast', o.harvestFeast, 'Hold a feast once the harvest is in, at the start of winter, if at least 3 seasons of food would be left')}`;
+      ${checkbox('harvestFeast', o.harvestFeast, 'Hold a feast once the harvest is in, at the start of winter, if at least 3 seasons of food would be left')}
+      ${checkbox('comforts', o.comforts, `Share out goods as comforts each season: 1 goods for every 6 people (${comfortsCost(state)} now). Spirits settle 4 higher. A village of 30 or more that can craft misses them.`)}`;
   }
   if (role === 'healer' && inVillage(state)) {
     return checkbox('autoShelter', o.autoShelter, 'Put a hut at the front of the build queue whenever the shelters are nearly full, behind any building already underway');
@@ -701,12 +706,13 @@ function ordersFor(role) {
       ${checkbox('keepHealer', o.keepHealer, 'Keep someone tending the hurt whenever anyone is hurt')}`;
   }
   if (role !== 'warChief') return '';
+  const arms = inVillage(state) ? checkbox('armGuards', o.armGuards, 'Spend 1 goods per guard each season on arms and shields. Armed guards fight a fifth harder.') : '';
   const radio = (value, label) => `<label class="choice"><input type="radio" name="raidPolicy" data-order="raidPolicy" value="${value}"${o.raidPolicy === value ? ' checked' : ''}> ${esc(label)}</label>`;
   return `<fieldset><legend>When raiders come</legend>
     ${radio('ask', 'Ask me every time')}
     ${radio('fightIfLikely', 'Fight if we are likely to win; otherwise ask me')}
     ${radio('auto', 'Decide for me: fight when the odds are even or better, hide when they are not')}
-  </fieldset>`;
+  </fieldset>${arms}`;
 }
 
 function advisorsScreen() {
@@ -857,6 +863,25 @@ function lawControl(law) {
     <span id="law-${law}-about" class="muted"> ${esc(lawEffectText(law))}${wait ? ` It can change again in ${plural(wait, 'season', 'seasons')}.` : ''}</span></p>`;
 }
 
+const MASTER_NAMES = {
+  hunting: 'A master hunter', foraging: 'A master forager', building: 'A master builder',
+  healing: 'A master healer', scouting: 'A master scout', learning: 'A master scholar',
+};
+
+function hireSection() {
+  const goods = state.resources.goods || 0;
+  if (!taskAvailable(state, 'craft') && !goods) return '';
+  const masterWhy = hireBlocker(state);
+  const swordWhy = swordsBlocker(state);
+  return `<h2 id="hireHeading">Hire</h2>
+    <p>You have ${goods} goods. Goods buy help from beyond the hills.</p>
+    <p><label for="hireSkill">Hire a master, for ${HIRE_MASTER_COST} goods, once a year</label>
+      <select id="hireSkill">${SKILLS.map((k) => `<option value="${k}">${esc(MASTER_NAMES[k])}</option>`).join('')}</select></p>
+    ${masterWhy ? `<p>${esc(masterWhy)}</p>` : '<p><button type="button" data-action="hireMaster">Hire this master</button></p>'}
+    <p>${SWORDS_COUNT} sell-swords will guard the roads for a year for ${SWORDS_COST} goods, meeting raiders before they reach the village and harrying besiegers.</p>
+    ${swordsActive(state) ? `<p>${esc(swordWhy)}</p>` : swordWhy ? `<p>${esc(swordWhy)}</p>` : '<p><button type="button" data-action="hireSwords">Hire the sell-swords</button></p>'}`;
+}
+
 function lawsSection() {
   if (!lawsAvailable(state)) {
     return '<h2>Laws</h2><p>Once your people learn Oral law, the village can make laws here.</p>';
@@ -900,6 +925,7 @@ function villageScreen() {
     <p><button type="button" data-action="assignBest">Have the council reassign everyone now</button></p>
     <p class="muted">Otherwise the council reassigns everyone at the start of each season.</p>
     ${lawsSection()}
+    ${hireSection()}
     ${settlementLines()}
     <h2>Groups (${g.length})</h2>
     <ul>${g.map((x) => `<li>${esc(groupLine(x))}</li>`).join('')}</ul>
@@ -943,6 +969,7 @@ function menuScreen() {
     <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
     <p>Once you are a village, the Velari, Tellani, and Skarn grow into nations. Each spring they grow, and they claim land outward from their homes. You can claim places too, on the Map screen. Working another people's land angers them unless you share it with an open lands pact. On the Neighbors screen you can propose treaties: a trade pact, open lands, or an alliance, whose warriors help you against raiders, and who will ask you for help in turn. Each nation remembers your promises, kept and broken, and trusts you accordingly. Skarn war bands come from the warriors they actually have, so every raider you defeat weakens them.</p>
     <p>A village has its own events: rivalries between groups, heroes whose deeds are remembered on the Chronicle, fires, sick herds, travelers, festivals, weddings and refugees from other peoples, herders on your land, and council members who disagree with your priorities. Most are choices.</p>
+    <p>Goods are worth more than trade. Your steward can share them out as comforts each season, which a big village expects; your war chief can arm the guards with them. On the Village screen, goods hire a master of any skill once a year, or sell-swords who guard the roads for a year. A shrine costs goods too. The Tellani will take a caravan of goods for a bulk price, the Skarn accept tribute in goods, and besiegers can be paid off in goods.</p>
     <p>Once your village knows Oral law, it can make four laws on the Village screen: how food is shared, whether strangers may settle, how people serve, and how wrongs are judged. Each choice has a cost as well as a benefit, some please or offend your neighbors, and each law can change once a year.</p>
     <p>Once the Skarn are a nation, a quarter of their warriors are archers, whose arrows come over walls; archers are weak up close, so charge them. Your own people with hunting 3 or more shoot as archers once you know Bows. Warriors who charge an undermanned stretch of palisade or wall may break through it, and fighters there lose its cover. When the Skarn cannot storm your walls but can hem you in, they lay siege: no one can work outside, and you live on your stores. Wait for their supplies to run out, pay them, or sally out and fight them in the open.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
@@ -1159,9 +1186,19 @@ function handleAction(action, btn) {
       break;
     }
     case 'payBesiegers': {
-      const msg = act({ type: 'payBesiegers' });
+      const msg = act({ type: 'payBesiegers', goods: Boolean(btn.dataset.goods) });
       if (msg) {
         show('report');
+        announce(msg);
+      }
+      break;
+    }
+    case 'hireMaster':
+    case 'hireSwords': {
+      const msg = act(action === 'hireMaster' ? { type: 'hireMaster', skill: document.getElementById('hireSkill').value } : { type: 'hireSwords' });
+      if (msg) {
+        show('people', { focus: false });
+        refocus('#hireHeading');
         announce(msg);
       }
       break;

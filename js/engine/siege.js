@@ -5,8 +5,7 @@
 // sally out and fight them in the open.
 
 import { living, canFight, inVillage } from './state.js';
-import { alliedHelpers, allies, skarnLosses } from './nations.js';
-import { NEIGHBORS } from './data.js';
+import { alliedHelpers, skarnLosses, helpersText } from './nations.js';
 import { changeRelation } from './neighbors.js';
 import { createBattle } from './battle.js';
 import { randomInt } from './rng.js';
@@ -57,16 +56,22 @@ export function sallyOut(state) {
   return { message: 'Your fighters are gathering at the gate to sally out. Choose who goes and where they stand.' };
 }
 
-export function payBesiegers(state) {
+export function ransomGoods(state) {
+  return state.siege ? Math.ceil(state.siege.raiders * 1.5) : 0;
+}
+
+// Pays the besiegers to leave, in food or goods.
+export function payBesiegers(state, { goods = false } = {}) {
   if (!state.siege) return { error: 'There is no siege.' };
-  const cost = ransom(state);
-  if (state.resources.food < cost) return { error: `The Skarn want ${cost} food to leave, and you have ${state.resources.food}.` };
-  state.resources.food -= cost;
+  const cost = goods ? ransomGoods(state) : ransom(state);
+  const kind = goods ? 'goods' : 'food';
+  if ((state.resources[kind] || 0) < cost) return { error: `The Skarn want ${cost} ${kind} to leave, and you have ${state.resources[kind] || 0}.` };
+  state.resources[kind] -= cost;
   state.siege = null;
   const sk = state.neighbors.skarn;
   sk.truceUntil = Math.max(sk.truceUntil, state.turn + 4);
   changeRelation(state, 'skarn', 3);
-  return { message: `You paid the Skarn ${cost} food. They lifted the siege and promised a year without raids.` };
+  return { message: `You paid the Skarn ${cost} ${kind}. They lifted the siege and promised a year without raids.` };
 }
 
 // Runs at the end of each besieged season. Returns report lines.
@@ -80,7 +85,7 @@ export function siegeSeason(state) {
   s.raiders -= lost;
   skarnLosses(state, lost);
   s.supplies -= 1;
-  if (harassed > 0) lines.push(`Your allies, ${allies(state).map((id) => NEIGHBORS[id].name).join(' and ')}, harried the besiegers' camp.`);
+  if (harassed > 0) lines.push(`${helpersText(state)} harried the besiegers' camp.`);
   if (s.raiders < 4 || s.supplies <= 0) {
     state.siege = null;
     lines.push(`The Skarn ran short of food and lifted the siege. ${state.campName} is free.`);

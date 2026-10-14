@@ -11,6 +11,7 @@ import { foundVillage, setPriority } from './village.js';
 import { claimPlace } from './nations.js';
 import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
+import { hireMaster, hireSwords } from './goods.js';
 import { foundSettlement, setPolicy } from './settlements.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
@@ -118,10 +119,22 @@ const handlers = {
     return sallyOut(state);
   },
 
-  payBesiegers(state) {
+  payBesiegers(state, { goods = false } = {}) {
     const stop = blocked(state);
     if (stop) return stop;
-    return payBesiegers(state);
+    return payBesiegers(state, { goods });
+  },
+
+  hireMaster(state, { skill }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return hireMaster(state, skill);
+  },
+
+  hireSwords(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return hireSwords(state);
   },
 
   setLaw(state, { law, option = null }) {

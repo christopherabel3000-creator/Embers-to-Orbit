@@ -110,7 +110,7 @@ let tally = {};
 function play(seed, strategy) {
   let state = newGame({ seed });
   if (strategy.startsWith('orders') || strategy === 'village') {
-    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto'], ['autoAssign', true], ['harvestFeast', strategy !== 'ordersNoFeast'], ['autoShelter', strategy === 'village']]) {
+    for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto'], ['autoAssign', true], ['harvestFeast', strategy !== 'ordersNoFeast'], ['autoShelter', strategy === 'village'], ['armGuards', strategy === 'village']]) {
       state = act(state, { type: 'setOrder', id, value });
     }
   }

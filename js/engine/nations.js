@@ -11,6 +11,7 @@ import { changeRelation, skarnAtPeace } from './neighbors.js';
 import { chance, randomInt } from './rng.js';
 import { clamp } from './util.js';
 import { lawIs } from './laws.js';
+import { swordsHelp } from './goods.js';
 
 const WORK_TASKS = ['hunt', 'forage', 'wood', 'quarry'];
 
@@ -192,7 +193,17 @@ export function skarnDaring(state) {
 
 // Allies send warriors when raiders come. Returns the number who come.
 export function alliedHelpers(state) {
-  return allies(state).reduce((sum, id) => sum + Math.round(nation(state, id).warriors * 0.3), 0);
+  return allies(state).reduce((sum, id) => sum + Math.round(nation(state, id).warriors * 0.3), 0) + swordsHelp(state);
+}
+
+// "Your allies, the Velari, and your sell-swords": who comes to help.
+export function helpersText(state) {
+  const parts = [];
+  const al = allies(state);
+  if (al.length) parts.push(`your allies, ${al.map((id) => NEIGHBORS[id].name).join(' and ')}`);
+  if (swordsHelp(state)) parts.push('your sell-swords');
+  const text = parts.join(', and ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Skarn warriors who fall in battle are lost to their nation.

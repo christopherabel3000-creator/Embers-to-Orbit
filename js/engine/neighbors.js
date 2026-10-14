@@ -89,6 +89,13 @@ function buysGoods(state, id) {
 }
 
 export const GOODS_PER_TRADE = 10;
+export const GOODS_TRIBUTE = 15; // The Skarn value fine goods.
+export const CARAVAN_GOODS = 30;
+
+// A caravan brings a bulk price: a little better than three trades.
+function caravanFood(state) {
+  return Math.round(tradeAmount(state, 'tellani', 'goodsForFood') * 3.3);
+}
 export const GOODS_PER_GIFT = 5;
 
 // Everything the player could try with a neighbor this season. Each option
@@ -119,6 +126,10 @@ export function diplomacyOptions(state, id) {
     const get = tradeAmount(state, id, 'goodsForWood');
     add('goodsForWood', `Trade ${GOODS_PER_TRADE} goods for ${get} wood`, (r.goods || 0) >= GOODS_PER_TRADE && n.relation >= -10, n.relation < -10 ? 'They will not trade until relations improve.' : `You need ${GOODS_PER_TRADE} goods.`);
   }
+  if (id === 'tellani' && hasKnowledge(state, 'weaving') && (state.buildings.market > 0 || (n.nation && n.nation.treaties.trade))) {
+    const food = caravanFood(state);
+    add('caravan', `Send a caravan of ${CARAVAN_GOODS} goods downriver, for ${food} food`, (r.goods || 0) >= CARAVAN_GOODS && n.relation >= 0, n.relation < 0 ? 'They will not take a caravan until relations improve.' : `You need ${CARAVAN_GOODS} goods.`);
+  }
   if (hasKnowledge(state, 'weaving')) {
     add('giftGoods', `Send a gift of ${GOODS_PER_GIFT} fine goods`, (r.goods || 0) >= GOODS_PER_GIFT && !refuses, refuses ? 'They will not receive your envoys.' : `You need ${GOODS_PER_GIFT} goods.`);
   }
@@ -144,6 +155,7 @@ export function diplomacyOptions(state, id) {
       isKnown(state, 'skarnHold') && fighters >= 4 && r.food >= 10,
       !isKnown(state, 'skarnHold') ? 'Your scouts have not found Skarn hold.' : fighters < 4 ? 'You need at least 4 people fit to fight.' : 'You need 10 food for the march.');
     add('tribute', 'Pay 20 food in tribute for a year without raids', r.food >= 20, 'You need 20 food.');
+    if (hasKnowledge(state, 'weaving')) add('tributeGoods', `Pay ${GOODS_TRIBUTE} goods in tribute for a year without raids`, (r.goods || 0) >= GOODS_TRIBUTE, `You need ${GOODS_TRIBUTE} goods.`);
     add('peace', 'Propose a lasting peace', n.relation >= 10, 'They would laugh at you. Relations must be at least 10.');
   }
   return opts;
@@ -215,6 +227,19 @@ export function applyDiplomacy(state, id, key) {
       if (state.knowledge.current === 'farming') state.knowledge.current = null;
       delete state.knowledge.progress.farming;
       return { message: 'The Velari taught your people to plant, tend, and harvest grain, and sent seed for your first fields. Discovery: Farming. You can now build fields and set people to farm.' };
+    case 'tributeGoods':
+      r.goods -= GOODS_TRIBUTE;
+      n.truceUntil = state.turn + 4;
+      changeRelation(state, id, 6);
+      return { message: `The Skarn took your ${GOODS_TRIBUTE} goods, admired them, and promised a year without raids.` };
+    case 'caravan': {
+      const food = caravanFood(state);
+      r.goods -= CARAVAN_GOODS;
+      r.food += food;
+      changeRelation(state, id, 3);
+      recordDeed(state, 'trades', 2);
+      return { message: `Your caravan of ${CARAVAN_GOODS} goods went downriver and came home with ${food} food.` };
+    }
     case 'tribute':
       r.food -= 20;
       n.truceUntil = state.turn + 4;

@@ -30,6 +30,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
 - **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
 - **The valley peoples as nations:** population, warriors, and land that grow each spring; territory and claims on the map; treaties; trust and remembered promises; Skarn war bands, skirmishers, and great hosts drawn from their real strength.
+- **Uses for goods:** comforts, arms for guards, hired masters and sell-swords, a shrine, caravans, and tribute or ransom paid in goods.
 - **Village events:** eleven events of the village's own, mostly choices, including heroes the Chronicle remembers.
 - **Laws:** four laws a village can make once it knows Oral law, each with two options that trade one benefit for a cost and shift how the neighbors see you.
 - **A second settlement** under a governor, which sends home food, wood, or stone, and whose founding begins the Nation era.
@@ -154,6 +155,7 @@ Decisions made with Christopher, October 2026:
 | Workshop | 30 wood, 15 stone | 16 | Every crafter makes 1 more goods |
 | Market | 30 wood, 30 stone, 20 goods | 20 | Trades half again as good; every trading people buys goods |
 | Meeting hall | 40 wood, 40 stone, 20 goods | 24 | Spirits settle at 62 instead of 55; quarrels much rarer |
+| Shrine | 30 wood, 30 stone, 30 goods | 20 | Needs Oral law. Spirits settle 2 higher; fever less likely; deaths weigh half as much |
 | Stone wall | 20 wood, 80 stone | 30 | Needs the palisade. Defenders who hold take 35 percent of the harm instead of 45, and strike harder |
 
 **Built so far (part 3: the valley peoples as nations)**
@@ -177,6 +179,18 @@ When the camp becomes a village, the Velari, Tellani, and Skarn become nations. 
 - **Great hosts.** Once Skarn warriors reach seven tenths of the village's fighters, they may gather a great host, announced a season ahead. It marches with nine tenths of their warriors, unless peace is made first; allies turn some back.
 
 **Balance so far:** in simulated villages run on default priorities, with no diplomacy, that sally out whenever the war chief likes the odds, the Skarn grow to about the village's size (around 70 people at year 20) but are bled to about 20 warriors by lost battles; they lay about six sieges and gather one or two great hosts in 15 village years, and send skirmishers about every two years. Simulated villages break most sieges with a sally in their first season. As the Skarn keep pace with the village in people, a village that loses battles, or leaves its walls thin, faces far larger bands.
+
+**Uses for goods (built)**
+
+Goods are a resource the village spends, not just trades:
+
+- **Comforts** (a steward order, on by default in a new village): 1 goods for every 6 people each season, and spirits settle 4 higher. A village of 30 or more that can craft, but shares out no comforts, has spirits settle 3 lower.
+- **Arms for the guards** (a war chief order): 1 goods per guard each season, and guards fight a fifth harder.
+- **Hiring**, on the Village screen: a master of any skill (skill 4) for 25 goods, once a year; or 6 sell-swords for 20 goods, who for a year meet raiders on the road and harry besiegers alongside any allies.
+- **A shrine** (30 wood, 30 stone, 30 goods, needs Oral law): spirits settle 2 higher, fever outbreaks are 40 percent less likely, and each death costs the village half the usual spirits.
+- **Trade and peace:** a caravan of 30 goods to the Tellani (with a market or a trade pact) brings a little more than three trades' worth of food; the Skarn take 15 goods as tribute for a year's truce; besiegers leave for 1.5 goods each instead of 3 food.
+
+In simulated villages that keep comforts and armed guards, goods settle around 200 after 20 years, down from about 550, leaving room for hiring, caravans, and the shrine; a village that does all of these must keep more people crafting.
 
 **Village events (built)**
 

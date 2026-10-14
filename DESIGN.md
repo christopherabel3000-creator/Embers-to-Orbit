@@ -258,13 +258,13 @@ People start as individuals and become groups as the settlement grows, so manage
 - **Births.** Each season, a camp with at least two adults aged 18 to 40 may have a baby. The chance grows with the number of young adults, rises when food is plentiful, and falls when food is short, the shelters are full, or spirits are low. The steward says what is holding families back.
 - **Learning.** People under 16 learn half again as fast, and anyone working beside a more skilled mentor (skill 4 or more) at the same task learns faster.
 - **Skills grow with practice.** Every season at a task earns experience in that task's skill (half as much while badly hurt or sick). Going from level L to L+1 takes 3 + 2L seasons, so early levels come quickly and reaching 5 takes years. Defending against a raid counts as two seasons of hunting practice. The People screen shows each person's progress toward their next level.
-- **Settlement era onward:** population is tracked in groups by profession (farmers, builders, soldiers, scholars), with overall happiness and loyalty.
+- **Settlement era onward (built):** the Village screen presents people in groups by work, managed by the council, while each person is still simulated underneath (see The Settlement era). Overall loyalty, and true group counts for very large populations, come in later eras.
 - **Food (built).** Each adult eats 2 food a season and each child under 12 eats 1. Stored food spoils 12 percent a season, 4 percent with a storehouse; smoking cuts that by a third and pottery halves it again.
 - **Storage (built).** The stores hold 100 food in baskets and pits, plus 150 for each storehouse (up to 3), and half again with pottery. Half of any food beyond that room rots each season. Big reserves are a choice the player builds for, not something that piles up for free.
 - **Feasts (built).** Once a year the player can hold a feast from the Report screen for 3 food a person. It lifts everyone's spirits by 15, and people in high spirits (70 or more) work 10 percent better. Families grow closer, so a birth that season is half again as likely. Inviting a neighboring people costs 15 food more and wins 8 goodwill (counted as a gift). High spirits fade faster the higher they are, so a feast lasts about half a year, and plenty of food alone only keeps spirits steady. The steward can hold a harvest feast at the start of each winter if at least 3 seasons of food would be left.
 - **Lean times (built).** They come on their own, apart from other events, so a reserve always matters: a hard winter (a 25 percent chance each winter after the first; fires burn half again as much wood and hunting yields 30 percent less), drought (20 percent each summer after the first; foraging and the harvest yield 40 percent less for summer and autumn), and herds moving away (5 percent each season; game drops sharply everywhere and slowly returns). The steward warns while one lasts, and forecasts account for it.
 - **Shelter and warmth (built).** The starting tent and each lean-to shelter 4 people. In autumn and winter the camp burns wood for its fires; anyone without shelter, or left cold when the wood runs out, loses health. The fires take their wood before any building starts, so a build queue can never leave people cold; builders wait for wood instead.
-- **Early resources:** food and wood are built; water, stone, and later metal are planned. Food must be stored to survive winter.
+- **Early resources:** food and wood are built, and stone and goods arrive in the Settlement era; water and metal are planned. Food must be stored to survive winter.
 - **Later resources** unlock by era: gold and trade goods, iron, then fuel, electricity, and rare minerals; in the space age, off-world materials.
 
 The exact resource list per era is still to be designed.
@@ -284,6 +284,8 @@ Advisors always follow orders, but they actively give recommendations and warn t
 - **Standing orders in Phase 1** (on the Advisors screen): badly hurt people rest until healed and then return to work; keep someone tending the hurt; keep enough food to last 1 to 4 seasons; foragers hunt in winter and return to foraging in spring; newcomers start at their best task; and a raid policy (ask me, fight if likely to win, or decide for me). The steward can also put everyone on their best work at the start of each season (the same as the People screen button); while that order is on, it takes the place of the rest, healer, winter, and newcomer orders, and the food reserve order still runs after it as a safety net. Two more orders save tedium: the steward can keep the fields staffed (sending people to plant, tend, and harvest, then back to their other work), and the healer can put a lean-to near the front of the build queue whenever the shelters are nearly full. Orders run at the start of each season and are listed in the report. A player's own reassignment always overrides an order.
 
 ## Buildings (built)
+
+The camp's buildings. Village buildings, which can also cost stone and goods, are listed under The Settlement era.
 
 | Building | Wood | Work | Effect |
 | --- | --- | --- | --- |
@@ -316,11 +318,11 @@ Discovery starts in the Survival era. People set to the Study task earn study po
 
 **Farming** follows the year. Each field holds 6 plots. In spring each farmer plants 2 plots; in summer each tends 3; in autumn each harvests 3. A tended plot yields 10 food and an untended one 6 (1 more with the Rhythm of the seasons tradition); grain nobody harvests yields half. There is no farm work in winter. Farming does not wear out the land, and the harvest arrives just before winter.
 
-Reaching the Settlement era (for now, a milestone) needs 16 people, a storehouse, a palisade, and farming. The full research tree is a Phase 2 task.
+These are the Survival-era discoveries; the Settlement era adds twelve more in five branches (see The research tree). Becoming a village needs 16 people, a storehouse, a palisade, and farming.
 
 ## Neighbors (built, Survival era)
 
-Three hand-crafted peoples live around the forest valley. Each has a home on the local map, a temperament, and relations with you from -100 (hostile) to 100 (close friends), which drift slowly back toward their nature and your reputation (see Traditions and reputation). These are local peoples, not the 7 rival nations, which arrive in later eras.
+Three hand-crafted peoples live around the forest valley. Each has a home on the local map, a temperament, and relations with you from -100 (hostile) to 100 (close friends), which drift slowly back toward their nature and your reputation (see Traditions and reputation). When the camp becomes a village, these three grow into the first rival nations (see The Settlement era); the 7 great nations beyond the valley arrive in later eras.
 
 | People | Home | Nature | Starting relations | What they offer |
 | --- | --- | --- | --- | --- |
@@ -394,7 +396,7 @@ Battles happen on a battlefield split into zones, and both sides make tactical d
 2. **Each round:** both sides secretly give each formation an order (hold, advance, flank, charge, volley, fall back). Orders resolve at the same time.
 3. **Morale:** units break and flee long before they are destroyed. Retreating early to save an army is a valid choice.
 
-**Built so far (Survival era)**
+**Built so far (Survival and Settlement eras)**
 
 - **Zones:** left flank, center, right flank, plus a reserve. At your camp, the palisade (if built) covers every zone and the treeline covers the left flank. At Skarn hold, the Skarn hold walls on a rocky hill.
 - **Deployment:** choose a formation (even line, strong center, strong left or right, a fifth in reserve, or match the enemy) and adjust each fighter's position, including keeping someone behind. Or let the war chief command, or hide.
@@ -458,7 +460,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, keyboard shortcuts, and audio cues (see BACKLOG.md).
-2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still to build to end the era, the other four starting regions, and unit types in battle.
+2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still open: late-game challenge, the other four starting regions, and unit types in battle (see BACKLOG.md).
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.

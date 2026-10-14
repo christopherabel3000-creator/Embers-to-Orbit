@@ -15,7 +15,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - Build queue with leftover work carrying over; study queue; orders to staff the fields and to queue lean-tos.
 - Neighbors: the Velari, Tellani, and Skarn, with first contact, relations, diplomacy, and events.
 - Tactical battles: zones, formations, simultaneous orders, terrain, morale, and an attack on Skarn hold.
-- Traditions (nine) and reputation (four parts) grown from the camp's deeds.
+- Traditions (ten) and reputation (four parts) grown from the camp's deeds.
 - Uses for surplus food and balance: storage limits with rot, up to three storehouses, feasts (with guests, a standing order, and the Feasting days tradition), high spirits that help work, lean times (hard winters, droughts, herds moving away), raids drawn by full stores, and raid growth that levels off.
 
 ## Next in the Survival era
@@ -44,11 +44,11 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - [ ] Balance: a village run on the default priorities grows to about 60 to 70 people in 20 years and stores over a thousand food. Walls are weaker, archers and breaches make battles riskier, and sieges cost seasons of work, but a well-run village still wins most fights and breaks sieges quickly. Options: weather and season in battle, Skarn that ally with hill clans for great hosts, harder starting regions. Battle tactics for the player could go further too: spearmen and shield walls as a choice, ambushes on the road.
 - [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
 - [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices.
-- [ ] Nations, deeper: the council moving work away from foreign land, the Velari and Tellani making treaties or wars with each other, and nations reacting to your strength.
+- [ ] Nations, deeper: the council moving work away from foreign land, the Velari and Tellani making formal treaties with each other, and nations reacting to your strength.
 
-- [ ] Neighbors, deeper: relations between the neighbors themselves, alliances, trade goods beyond food and wood, broken promises remembered, a standing order to pay tribute.
+- [ ] Neighbors, deeper: a standing order to pay tribute, and goods beyond food, wood, and crafted goods to trade.
 - [ ] More traditions over the eras, and traditions that can fade if neglected.
-- [ ] Battles, deeper: commanders, unit types (archers, spearmen), weather and seasons on the battlefield, and balance as raids grow (raider numbers rise by 2 a year with no cap).
+- [ ] Battles, deeper: commanders, unit types beyond archers (spearmen, shield walls), weather and seasons on the battlefield, and ambushes on the road.
 - [ ] The other four starting regions, each with its own local map.
 
 ## Toward Phase 3 (Nation era)

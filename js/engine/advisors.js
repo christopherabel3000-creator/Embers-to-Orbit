@@ -15,8 +15,7 @@ import { feastBlocker, feastCost } from './stores.js';
 import { shortfall, costWords } from './building.js';
 import { HIGH_SPIRITS } from './rules.js';
 import {
-  expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
-  expectedHarvest, farmerCapacity, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
+  expectedFood, expectedWood, siteFor, expectedHarvest, farmerCapacity, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { birthOutlook, parents } from './population.js';
 import { skarnAtPeace } from './neighbors.js';
@@ -236,7 +235,6 @@ export function getAdvice(state) {
     const sk = state.neighbors.skarn;
     if (sk.known && !skarnAtPeace(state)) {
       const able = people.filter(canFight).length;
-      const nat = sk.nation;
       const strength = skarnStrength(state);
       const clanNote = clansMarching(state) ? `, ${clansMarching(state)} of them hill clansmen drawn by our size and stores` : '';
       if (strength >= able) add('warChief', 'warning', `The Skarn could send about ${strength} warriors${clanNote}, and we have ${able} people fit to fight. Their war bands are half to most of that. Guards, a wall, allies, peace, or gifts to the clans would help.`);

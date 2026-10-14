@@ -24,6 +24,10 @@ export function clamp(v) {
   return Math.max(0, Math.min(100, Math.round(v)));
 }
 
+export function capital(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function plural(n, one, many) {
   return `${n} ${n === 1 ? one : many}`;
 }

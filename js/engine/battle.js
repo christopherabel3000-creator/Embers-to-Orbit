@@ -9,7 +9,9 @@ import { randomBetween, randomInt, chance, pick, nextRandom } from './rng.js';
 import { gainExperience } from './skills.js';
 import { refreshAdvisors } from './advisors.js';
 import { meet, changeRelation } from './neighbors.js';
-import { listNames, clamp, plural } from './util.js';
+import {
+  listNames, clamp, plural, capital,
+} from './util.js';
 import { recordDeed, hasTradition } from './legacy.js';
 import { skarnLosses, skarnArms } from './nations.js';
 import { clansMarching, skarnStrength } from './clans.js';
@@ -716,7 +718,7 @@ export function battleView(state) {
   if (!battle.warned) terrain.push('You were caught by surprise: in the first round your fighters strike weaker and the raiders harder.');
   const enemyLines = ZONES.map((z) => {
     const archers = battle.archers ? Math.min(battle.enemy[z], battle.archers[z] || 0) : 0;
-    return `${capitalize(ZONE_NAMES[z])}: ${enemyWord(battle, battle.enemy[z])} ${foe}${archers && (battle.warned || battle.round > 1) ? `, ${archers === 1 ? '1 of them an archer' : `${archers} of them archers`}` : ''}.`;
+    return `${capital(ZONE_NAMES[z])}: ${enemyWord(battle, battle.enemy[z])} ${foe}${archers && (battle.warned || battle.round > 1) ? `, ${archers === 1 ? '1 of them an archer' : `${archers} of them archers`}` : ''}.`;
   });
   const view = {
     phase: battle.phase,
@@ -760,6 +762,3 @@ export function battleView(state) {
   return view;
 }
 
-function capitalize(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}

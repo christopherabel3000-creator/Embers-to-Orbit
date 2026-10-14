@@ -12,12 +12,7 @@ import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 import { feastBlocker, feastCost, holdFeast } from './stores.js';
 import { moveOffForeignLand } from './nations.js';
-
-function listNames(people) {
-  const names = people.map((p) => p.name);
-  if (names.length <= 1) return names.join('');
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
+import { listNames } from './util.js';
 
 function bestTaskFor(person, seasonIdx) {
   const s = person.skills;

@@ -16,11 +16,7 @@ import {
 } from './nations.js';
 import { recordDeed } from './legacy.js';
 import { chance, pick, randomInt } from './rng.js';
-import { clamp, listNames } from './util.js';
-
-function capital(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
+import { clamp, listNames, capital } from './util.js';
 
 const FRIENDS = ['velari', 'tellani'];
 

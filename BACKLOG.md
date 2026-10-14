@@ -30,6 +30,7 @@ Set aside: desktop keyboard shortcuts. Not needed for now; a screen reader's own
 
 ## Done in Phase 2 (Settlement era)
 
+- Tidier code: one file per screen, shared helpers in one place, and simulation results moved from DESIGN.md into BALANCE.md.
 - A quieter season report: news first, then the season's routine work in a few short lines under its own heading; the Chronicle keeps only the news.
 - The council moves work off land another people claims (unless the player chose that land), and the Map screen's work site choices say whose land a place is.
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.

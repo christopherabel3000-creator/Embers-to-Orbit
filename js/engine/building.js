@@ -5,6 +5,7 @@
 import { BUILDINGS, KNOWLEDGE } from './data.js';
 import { hasKnowledge, eraAtLeast } from './state.js';
 import { recordDeed } from './legacy.js';
+import { listWords } from './util.js';
 
 // What a building costs to start: wood, and for some, stone and goods.
 export function buildingCost(id) {
@@ -16,7 +17,7 @@ export function buildingCost(id) {
 export function costWords(id) {
   const c = buildingCost(id);
   const parts = Object.entries(c).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${k}`);
-  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] || 'nothing';
+  return parts.length ? listWords(parts) : 'nothing';
 }
 
 // What the stores are short of to start a building, after keeping `reserve`

@@ -7,8 +7,7 @@ import assert from 'node:assert/strict';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, makePerson, migrate } from '../js/engine/state.js';
 import {
-  clanTarget, clansYear, clansMarching, skarnStrength, clanLosses, clanGiftCost, clanGiftBlocker,
-  CLANS_MAX, CLAN_GIFT_SEASONS,
+  clanTarget, clansYear, clansMarching, skarnStrength, clanGiftCost, clanGiftBlocker, CLANS_MAX, CLAN_GIFT_SEASONS,
 } from '../js/engine/clans.js';
 import {
   nation, skarnBand, skarnArms, skarnLosses, SKARN_ARMS_MAX,

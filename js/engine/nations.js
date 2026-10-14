@@ -12,7 +12,7 @@ import {
 } from './rules.js';
 import { changeRelation, skarnAtPeace } from './neighbors.js';
 import { chance, randomInt } from './rng.js';
-import { clamp, listWords } from './util.js';
+import { clamp, listWords, capital } from './util.js';
 import { lawIs } from './laws.js';
 import { swordsHelp } from './goods.js';
 import { skarnStrength, clanLosses, clansYear, clansMarching } from './clans.js';
@@ -279,10 +279,6 @@ export function treatyBlocker(state, id, key) {
   return null;
 }
 
-function capital(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
 export function makeTreaty(state, id, key) {
   const why = treatyBlocker(state, id, key);
   if (why) return { error: why };
@@ -344,8 +340,7 @@ export function helpersText(state) {
   const al = allies(state);
   if (al.length) parts.push(`your allies, ${al.map((id) => NEIGHBORS[id].name).join(' and ')}`);
   if (swordsHelp(state)) parts.push('your sell-swords');
-  const text = parts.join(', and ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  return capital(parts.join(', and '));
 }
 
 // Skarn warriors who fall in battle are lost to their nation; hill

@@ -23,10 +23,14 @@ Plain HTML, CSS, and JavaScript modules. No build step.
 - `npm run simulate` plays hundreds of automatic games to check balance.
 - `npm run battles` fights hundreds of battles to check combat balance.
 
+Results of these checks are kept in [BALANCE.md](BALANCE.md).
+
 Code layout:
 
 - `js/engine/` holds all game rules and state. It has no knowledge of the page.
-- `js/ui/app.js` draws the screens and sends actions to the engine.
+- `js/ui/app.js` wires up the screens and the player's clicks, and sends actions to the engine.
+- `js/ui/core.js` holds what every screen shares: the game being played, announcements, and drawing the current screen.
+- `js/ui/screens/` has one file per screen (Report, Village, Map, and so on).
 - `js/storage.js` is the only place saves are read or written.
 
 See [BACKLOG.md](BACKLOG.md) for what comes next.

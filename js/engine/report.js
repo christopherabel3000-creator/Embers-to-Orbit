@@ -4,11 +4,7 @@
 
 import { inVillage } from './state.js';
 import { SKILLS } from './data.js';
-import { listWords } from './util.js';
-
-function capital(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
+import { listWords, capital } from './util.js';
 
 // "Brought in: 38 food from hunting and foraging, 18 food from the herds,
 // 12 wood, 18 stone, and 8 goods."

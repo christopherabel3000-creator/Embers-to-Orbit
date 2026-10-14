@@ -1,7 +1,7 @@
 // Resolving the end of a season: work, food, warmth, health, events.
 
 import {
-  BUILDINGS, PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, KNOWLEDGE, TASKS, LEAN_TIMES,
+  PLACES, PLACE_ORDER, WANDERERS, MILESTONE_POPULATION, TASKS, LEAN_TIMES,
 } from './data.js';
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
@@ -20,10 +20,8 @@ import { peaceYear } from './peace.js';
 import { raidGrowth } from './rules.js';
 import { crowdingSettle } from './village.js';
 import {
-  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, helpersText,
-  maybeHarry,
+  nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, skarnRaidFactor, helpersText, maybeHarry,
 } from './nations.js';
-import { NEIGHBORS } from './data.js';
 import { overflowRot } from './stores.js';
 import { advanceLife } from './life.js';
 import { applyBuildWork } from './building.js';
@@ -42,28 +40,12 @@ import { applyStandingOrders } from './orders.js';
 import { recordDeed, checkTraditions, hasTradition } from './legacy.js';
 import { gainExperience } from './skills.js';
 import { progressConditions, maybeStartEvent } from './events.js';
-import { nextRandom, randomBetween, randomInt, chance, pick } from './rng.js';
+import {
+  randomBetween, randomInt, chance, pick,
+} from './rng.js';
 import { refreshAdvisors } from './advisors.js';
 import { incomeLine, upkeepLine, skillLine } from './report.js';
-
-function shuffle(state, list) {
-  const a = [...list];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(nextRandom(state) * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function listNames(people) {
-  const names = people.map((p) => p.name);
-  if (names.length <= 1) return names.join('');
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
-
-function clamp(v) {
-  return Math.max(0, Math.min(100, Math.round(v)));
-}
+import { shuffle, listNames, clamp } from './util.js';
 
 function hurt(person, amount) {
   person.health = clamp(person.health - amount);

@@ -4,7 +4,7 @@ import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, migrate, hasKnowledge, metNeighbors } from '../js/engine/state.js';
 import { diplomacyOptions, raidModifier, driftRelations } from '../js/engine/neighbors.js';
-import { maybeStartEvent, describePending } from '../js/engine/events.js';
+import { describePending } from '../js/engine/events.js';
 
 const act = (state, action) => {
   const r = applyAction(state, action);

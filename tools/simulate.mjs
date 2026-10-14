@@ -104,7 +104,6 @@ function chooseStudy(state) {
   return next ? act(state, { type: 'setStudy', knowledgeId: next }) : state;
 }
 
-let feasts = 0;
 let villages = 0;
 let villageYears = [];
 let nationYears = [];
@@ -199,7 +198,6 @@ function play(seed, strategy) {
       if (!feastBlocker(state) && state.resources.food >= storageCapacity(state) * 0.75
           && state.resources.food - feastCost(state) >= foodNeeded(living(state)) * 3) {
         state = act(state, { type: 'holdFeast' });
-        feasts++;
       }
       state = chooseSites(state);
       state = chooseStudy(state);
@@ -259,9 +257,8 @@ for (const strategy of STRATEGIES) {
   let born = 0;
   let firstWipeYear = [];
   let feastsHeld = 0;
-  let morale = 0;
   villages = 0; villageYears = []; nationYears = [];
-  let clanSum = 0; let clanGifts = 0; let stoneSum = 0; let goodsSum = 0; let learnedSum = 0; let skarnW = 0; let skarnP = 0; let nations = 0;
+  let clanSum = 0; let stoneSum = 0; let goodsSum = 0; let learnedSum = 0; let skarnW = 0; let skarnP = 0; let nations = 0;
   const built = {};
   tally = { peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, lostFights: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
   for (let i = 0; i < GAMES; i++) {

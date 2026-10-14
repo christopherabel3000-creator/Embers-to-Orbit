@@ -4,6 +4,7 @@
 
 import { NEIGHBORS } from './data.js';
 import { lawAttitudeShift, lawAttitudes } from './laws.js';
+import { listWords } from './util.js';
 
 export const DEED_NAMES = {
   battlesWon: 'battles won',
@@ -189,8 +190,7 @@ export function reputationSummary(state) {
   const parts = Object.entries(rep).filter(([, v]) => v >= 6).sort((a, b) => b[1] - a[1]);
   if (!parts.length) return 'The peoples of the valley do not know much about you yet.';
   const words = parts.map(([k, v]) => `${v >= 20 ? 'very ' : ''}${REPUTATION_WORDS[k]}`);
-  const list = words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
-  return `Across the valley, your people are known as ${list}.`;
+  return `Across the valley, your people are known as ${listWords(words)}.`;
 }
 
 export function attitudeLines(state, neighborId) {

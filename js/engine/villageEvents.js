@@ -14,7 +14,7 @@ import {
 } from './nations.js';
 import { recordDeed } from './legacy.js';
 import { chance, pick, randomInt } from './rng.js';
-import { clamp, listNames } from './util.js';
+import { clamp, listNames, capital } from './util.js';
 
 const WORK_GROUPS = ['farm', 'hunt', 'forage', 'wood', 'quarry', 'craft', 'build'];
 
@@ -24,10 +24,6 @@ function members(state, task) {
 
 function lift(people, amount) {
   for (const p of people) p.morale = clamp(p.morale + amount);
-}
-
-function capital(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // The two largest working groups, if both have at least 3 adults.

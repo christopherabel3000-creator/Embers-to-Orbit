@@ -35,7 +35,7 @@ export function refundFor(item) {
 }
 
 // Applies a season of builders' work. Returns report lines.
-export function applyBuildWork(state, work) {
+export function applyBuildWork(state, work, { afterFires = false } = {}) {
   const events = [];
   const finished = [];
   let blocked = null;
@@ -68,7 +68,7 @@ export function applyBuildWork(state, work) {
     events.push(`Work continues on the ${b.name.toLowerCase()}: ${Math.floor(current.progress)} of ${b.work} done.`);
   }
   if (blocked) {
-    events.push(`Building paused: the ${blocked.b.name.toLowerCase()} needs ${blocked.b.cost} wood to start, and you are ${plural(blocked.short, 'wood', 'wood')} short.`);
+    events.push(`Building paused: the ${blocked.b.name.toLowerCase()} needs ${blocked.b.cost} wood to start, and you are ${plural(blocked.short, 'wood', 'wood')} short${afterFires ? ' after keeping the fires burning' : ''}.`);
   } else if (left >= 1 && work > 0 && !state.buildQueue.length) {
     events.push(`${Math.floor(left)} work went unused because the build queue is empty.`);
   }

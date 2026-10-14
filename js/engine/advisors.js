@@ -135,8 +135,13 @@ export function getAdvice(state) {
     add('steward', 'warning', `${count('build')} ${count('build') === 1 ? 'person is' : 'people are'} set to build, but the build queue is empty. Add something on the Build screen.`);
   } else if (next && count('build') === 0) {
     add('steward', 'note', `${state.buildQueue.length === 1 ? `The ${BUILDINGS[next.id].name.toLowerCase()} is` : `${state.buildQueue.length} buildings are`} waiting in the build queue, but no one is set to build.`);
-  } else if (next && !next.paid && state.resources.wood < BUILDINGS[next.id].cost) {
-    add('steward', 'warning', `Next in the build queue is the ${BUILDINGS[next.id].name.toLowerCase()}, which needs ${BUILDINGS[next.id].cost} wood to start. We have ${state.resources.wood}.`);
+  } else if (next && !next.paid) {
+    // The fires take their wood first; building only gets what is left.
+    const fires = woodNeededForWarmth(s, people.length, hasCondition(state, 'hardWinter'));
+    const spare = state.resources.wood - fires;
+    if (spare < BUILDINGS[next.id].cost) {
+      add('steward', 'warning', `Next in the build queue is the ${BUILDINGS[next.id].name.toLowerCase()}, which needs ${BUILDINGS[next.id].cost} wood to start. We have ${state.resources.wood}${fires ? `, and the fires need ${fires} of it first this season` : ''}.`);
+    }
   }
 
   // Steward: worn-out hunting and foraging grounds.

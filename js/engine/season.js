@@ -116,8 +116,29 @@ export function resolveSeason(state) {
     urgent.push(`${p.name} was injured while ${p.task === 'scout' ? 'scouting' : 'hunting'}.`);
   }
 
-  // 2. Building.
-  events.push(...applyBuildWork(state, work));
+  // 2. Warmth comes before building: the fires get their wood first, and
+  // builders can only use what is left.
+  const cold = new Set();
+  const woodNeed = woodNeededForWarmth(s, people.length, hasCondition(state, 'hardWinter'));
+  if (woodNeed > 0) {
+    if (state.resources.wood >= woodNeed) {
+      state.resources.wood -= woodNeed;
+      events.push(`The fires burned ${woodNeed} wood to keep everyone warm.`);
+    } else {
+      const shortfall = woodNeed - state.resources.wood;
+      state.resources.wood = 0;
+      const freezing = shuffle(state, people).slice(0, Math.min(people.length, s === 3 ? shortfall : shortfall * 2));
+      for (const p of freezing) {
+        cold.add(p.id);
+        hurt(p, hasKnowledge(state, 'clothing') ? 7 : 12);
+        p.morale = clamp(p.morale - 6);
+      }
+      urgent.push(`There was not enough firewood. ${freezing.length} ${freezing.length === 1 ? 'person' : 'people'} suffered from the cold.`);
+    }
+  }
+
+  // 3. Building, with whatever wood the fires did not need.
+  events.push(...applyBuildWork(state, work, { afterFires: woodNeed > 0 }));
 
   // Practice: everyone who worked gets a little better at it.
   // Badly hurt or sick people learn at half speed. Winter farmers have no
@@ -179,7 +200,7 @@ export function resolveSeason(state) {
     }
   }
 
-  // 3. Scouting: scouts explore the unknown paths leading from their place.
+  // 4. Scouting: scouts explore the unknown paths leading from their place.
   const scoutBase = siteFor(state, 'scout');
   for (const scout of scouts) {
     if (!chance(state, scoutSuccessChance(scout))) {
@@ -233,7 +254,7 @@ export function resolveSeason(state) {
   urgent.push(...conditionLines.urgent);
   events.push(...conditionLines.events);
 
-  // 4. Healing: the most hurt are treated first, up to 30 health each.
+  // 5. Healing: the most hurt are treated first, up to 30 health each.
   const patients = people.filter((p) => p.health < 100).sort((a, b) => a.health - b.health);
   const healed = [];
   for (const p of patients) {
@@ -245,7 +266,7 @@ export function resolveSeason(state) {
   }
   if (healed.length) events.push(`${listNames(healed)} ${healed.length === 1 ? 'was' : 'were'} treated for injuries.`);
 
-  // 5. Eating.
+  // 6. Eating.
   const need = foodNeeded(people);
   const unfed = new Set();
   if (state.resources.food >= need) {
@@ -265,25 +286,7 @@ export function resolveSeason(state) {
     urgent.push(`Food ran out. ${hungry.length} ${hungry.length === 1 ? 'person' : 'people'} went hungry this season.`);
   }
 
-  // 6. Warmth and shelter.
-  const cold = new Set();
-  const woodNeed = woodNeededForWarmth(s, people.length, hasCondition(state, 'hardWinter'));
-  if (woodNeed > 0) {
-    if (state.resources.wood >= woodNeed) {
-      state.resources.wood -= woodNeed;
-      events.push(`The fires burned ${woodNeed} wood to keep everyone warm.`);
-    } else {
-      const shortfall = woodNeed - state.resources.wood;
-      state.resources.wood = 0;
-      const freezing = shuffle(state, people).slice(0, Math.min(people.length, s === 3 ? shortfall : shortfall * 2));
-      for (const p of freezing) {
-        cold.add(p.id);
-        hurt(p, hasKnowledge(state, 'clothing') ? 7 : 12);
-        p.morale = clamp(p.morale - 6);
-      }
-      urgent.push(`There was not enough firewood. ${freezing.length} ${freezing.length === 1 ? 'person' : 'people'} suffered from the cold.`);
-    }
-  }
+  // 7. Shelter. (The fires were lit first, before any building.)
   const capacity = shelterCapacity(state);
   const excess = Math.ceil(shelterNeeded(people) - capacity);
   if (excess > 0 && (s === 2 || s === 3)) {
@@ -296,7 +299,7 @@ export function resolveSeason(state) {
     urgent.push(`${exposed.length} ${exposed.length === 1 ? 'person' : 'people'} slept without shelter in the ${s === 3 ? 'winter cold' : 'autumn chill'}.`);
   }
 
-  // 7. Recovery and morale.
+  // 8. Recovery and morale.
   for (const p of people) {
     if (p.health <= 0) continue; // Too far gone to recover.
     if (!unfed.has(p.id) && !cold.has(p.id)) p.health = clamp(p.health + 5);
@@ -310,7 +313,7 @@ export function resolveSeason(state) {
     else if (p.morale > 55) p.morale = clamp(p.morale - 3 - (p.morale - 55) * 0.2);
   }
 
-  // 8. Spoilage.
+  // 9. Spoilage.
   const spoiled = Math.floor(state.resources.food * spoilageRate(state));
   if (spoiled > 0) {
     state.resources.food -= spoiled;
@@ -325,7 +328,7 @@ export function resolveSeason(state) {
     else events.push(line);
   }
 
-  // 9. Deaths.
+  // 10. Deaths.
   const dead = people.filter((p) => p.health <= 0);
   for (const p of dead) {
     p.alive = false;
@@ -344,7 +347,7 @@ export function resolveSeason(state) {
   }
   state.conditions = state.conditions.filter((c) => !(LEAN_TIMES[c.id] && c.seasonsLeft <= 0));
 
-  // 10. Advance the calendar.
+  // 11. Advance the calendar.
   state.turn += 1;
   const survivors = living(state);
   refreshAdvisors(state);

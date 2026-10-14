@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, applyAction } from '../js/engine/game.js';
+import { living } from '../js/engine/state.js';
 import { applyBuildWork, refundFor } from '../js/engine/building.js';
 
 const act = (state, action) => {
@@ -104,4 +105,19 @@ test('the shelter order queues a lean-to when room runs short', async () => {
   assert.deepEqual(s.buildQueue.map((b) => b.id), ['palisade', 'leanTo', 'storehouse']);
   applyStandingOrders(s);
   assert.equal(s.buildQueue.filter((b) => b.id === 'leanTo').length, 2, 'one more each season while still short');
+});
+
+test('the fires get their wood before any building starts', () => {
+  let s = newGame({ seed: 2 });
+  s.turn = 3; // Winter: 12 people need 12 wood.
+  s.resources.wood = 20;
+  s.resources.food = 100;
+  for (const p of living(s)) p.task = 'rest';
+  s.people[0].task = 'build';
+  s = applyAction(s, { type: 'queueBuilding', buildingId: 'leanTo' }).state; // Costs 15.
+  s = applyAction(s, { type: 'endTurn' }).state;
+  assert.equal(s.resources.wood, 8, 'the fires burned 12, and the lean-to could not start');
+  assert.equal(s.buildQueue[0].paid, false);
+  assert.ok(!s.report.urgent.some((l) => /not enough firewood/.test(l)), 'no one went cold');
+  assert.ok(s.report.events.some((l) => /short after keeping the fires burning/.test(l)));
 });

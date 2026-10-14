@@ -5,12 +5,29 @@
 import { TASKS, WANDERERS } from './data.js';
 import { remainingQueueWork } from './building.js';
 import {
-  living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces,
+  living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces, fieldPlots,
 } from './state.js';
-import { siteFor, farmersNeeded } from './rules.js';
+import {
+  siteFor, farmersNeeded, workFactor, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
+} from './rules.js';
 
-// When two tasks use equally strong skills, prefer the earlier one.
-const PRIORITY = ['hunt', 'forage', 'farm', 'build', 'wood', 'heal', 'scout', 'study'];
+// When two tasks use equally strong skills, prefer the earlier one. Farming
+// comes before foraging (they use the same skill) because the fields need a
+// set number of hands at the right time of year, while foraging takes anyone.
+const PRIORITY = ['hunt', 'farm', 'forage', 'build', 'wood', 'heal', 'scout', 'study'];
+
+// Who can be moved to the fields if they are still short of hands, in order.
+const FIELD_HELPERS = ['forage', 'wood', 'scout', 'study', 'hunt'];
+
+// How much farm work the fields need this season, in full-strength farmers.
+function fieldWork(state) {
+  const s = seasonIndex(state);
+  const plots = fieldPlots(state);
+  if (!plots || s === 3) return 0;
+  if (s === 0) return (plots - state.farm.planted) / PLANT_PER_FARMER;
+  if (s === 1) return state.farm.planted / TEND_PER_FARMER;
+  return state.farm.planted / HARVEST_PER_FARMER;
+}
 
 function needsRest(p) {
   return p.health < 40 || p.sick;
@@ -59,6 +76,21 @@ export function bestWorkPlan(state) {
     const task = choice ? choice[0] : 'rest';
     plan.set(p.id, task);
     if (task in room) room[task] -= 1;
+  }
+
+  // If the fields are still short of hands (children count for less), bring
+  // in the best foragers, then others, from work that can spare them.
+  const needed = fieldWork(state);
+  const strength = () => people.filter((p) => plan.get(p.id) === 'farm').reduce((sum, p) => sum + workFactor(p), 0);
+  if (strength() + 1e-9 < needed) {
+    const helpers = people
+      .filter((p) => FIELD_HELPERS.includes(plan.get(p.id)) && allowedTasksFor(state, p).includes('farm'))
+      .sort((a, b) => FIELD_HELPERS.indexOf(plan.get(a.id)) - FIELD_HELPERS.indexOf(plan.get(b.id))
+        || b.skills.foraging - a.skills.foraging);
+    for (const p of helpers) {
+      if (strength() + 1e-9 >= needed) break;
+      plan.set(p.id, 'farm');
+    }
   }
   return plan;
 }

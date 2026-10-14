@@ -54,3 +54,44 @@ test('the best-work standing order reassigns everyone each season', async () => 
   assert.equal(task(s, 'Jora'), 'rest');
   assert.ok(orders.some((line) => /best work/.test(line)));
 });
+
+const farmingCamp = (turn) => {
+  const s = newGame({ seed: 1 });
+  s.knowledge.learned.push('farming');
+  s.buildings.fields = 2; // 12 plots.
+  s.turn = turn;
+  return s;
+};
+const farmers = (s) => living(s).filter((p) => p.task === 'farm');
+
+test('best work sends enough people to plant the fields in spring', () => {
+  const s = applyAction(farmingCamp(4), { type: 'assignBest' }).state;
+  assert.equal(farmers(s).length, 6, '12 plots, 2 planted per farmer');
+  assert.ok(farmers(s).some((p) => p.name === 'Brenna'), 'the best forager farms');
+});
+
+test('best work sends people to tend and to harvest what was planted', () => {
+  const summer = farmingCamp(5);
+  summer.farm.planted = 12;
+  assert.equal(farmers(applyAction(summer, { type: 'assignBest' }).state).length, 4);
+  const autumn = farmingCamp(6);
+  autumn.farm.planted = 12;
+  autumn.farm.tended = 12;
+  assert.equal(farmers(applyAction(autumn, { type: 'assignBest' }).state).length, 4);
+});
+
+test('best work sends no one to the fields in winter or when nothing is planted', () => {
+  assert.equal(farmers(applyAction(farmingCamp(7), { type: 'assignBest' }).state).length, 0);
+  assert.equal(farmers(applyAction(farmingCamp(5), { type: 'assignBest' }).state).length, 0);
+});
+
+test('the best-work order staffs the fields each season, and the harvest comes in', () => {
+  let s = farmingCamp(4);
+  s.orders.autoAssign = true;
+  s.orders.staffFields = true;
+  s.resources.food = 300;
+  s.resources.wood = 100;
+  s = applyAction(s, { type: 'assignBest' }).state;
+  for (let i = 0; i < 3; i++) s = applyAction(s, { type: 'endTurn' }).state;
+  assert.ok(s.log.some((l) => /Harvest: \d+ food from 12 plots/.test(l.text)), 'all 12 plots were planted and harvested');
+});

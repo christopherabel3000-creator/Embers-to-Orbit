@@ -634,6 +634,9 @@ export const NEIGHBORS = {
 
 export const NEIGHBOR_ORDER = Object.keys(NEIGHBORS);
 
+// Skarn chiefs, in no order. The first is the chief when the game begins.
+export const SKARN_CHIEFS = ['Harrak', 'Vossa', 'Ulgren', 'Teyrn', 'Brokka', 'Iskel', 'Maedra', 'Torvin', 'Grell', 'Asha'];
+
 // Young people from friendly neighbors who may ask to join the camp.
 export const NEIGHBOR_RECRUITS = {
   velari: [

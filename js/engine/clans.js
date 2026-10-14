@@ -40,6 +40,19 @@ export function clansMarching(state) {
   return clans(state).warriors;
 }
 
+// While the Skarn keep the peace, the clans answer to no one: they raid on
+// their own. Returns how many could come, or 0.
+export const CLAN_RAID_MIN = 5;
+export function clansRaidingAlone(state) {
+  if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known || !skarnAtPeace(state) || clansQuiet(state)) return 0;
+  return clans(state).warriors >= CLAN_RAID_MIN ? clans(state).warriors : 0;
+}
+
+// The chance each season that the clans raid on their own.
+export function clanRaidChance(state) {
+  return Math.min(0.3, clansRaidingAlone(state) / 80);
+}
+
 // Everyone the Skarn could send against the village.
 export function skarnStrength(state) {
   const nat = state.neighbors.skarn.nation;
@@ -93,7 +106,7 @@ export function clanGiftBlocker(state) {
   const c = clans(state);
   if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known) return 'No hill clans have come to the valley.';
   if (c.warriors < 3) return 'Too few hill clansmen have come to be worth a gift.';
-  if (skarnAtPeace(state)) return 'While the Skarn are at peace with you, the clans will not march.';
+  if (skarnAtPeace(state) && c.warriors < CLAN_RAID_MIN) return 'While the Skarn are at peace with you, the clans are too few to trouble you.';
   if (clansQuiet(state)) return `The clans are keeping to their hills for ${c.quietUntil - state.turn} more ${c.quietUntil - state.turn === 1 ? 'season' : 'seasons'}.`;
   const cost = clanGiftCost(state);
   if ((state.resources.goods || 0) < cost) return `The clan chiefs would want ${cost} goods, and you have ${state.resources.goods || 0}.`;
@@ -110,13 +123,14 @@ export function giftClans(state) {
   state.resources.goods -= cost;
   c.warriors = Math.ceil(c.warriors / 2);
   c.quietUntil = state.turn + CLAN_GIFT_SEASONS;
-  return { message: `You sent ${cost} goods to the hill clan chiefs. Half their warriors went home, and the rest will keep out of the Skarn's wars until Year ${year(state) + CLAN_GIFT_SEASONS / 4}.` };
+  return { message: `You sent ${cost} goods to the hill clan chiefs. Half their warriors went home, and the rest will keep away from your village until Year ${year(state) + CLAN_GIFT_SEASONS / 4}.` };
 }
 
 // One line for the Neighbors screen and the war chief.
 export function clansLine(state) {
   const c = clans(state);
   if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known || c.warriors < 3) return '';
-  if (clansQuiet(state)) return `About ${c.warriors} hill clansmen live among the Skarn, but your gifts keep them out of the Skarn's wars for ${c.quietUntil - state.turn} more ${c.quietUntil - state.turn === 1 ? 'season' : 'seasons'}.`;
+  if (clansQuiet(state)) return `About ${c.warriors} hill clansmen live among the Skarn, but your gifts keep them away from your village for ${c.quietUntil - state.turn} more ${c.quietUntil - state.turn === 1 ? 'season' : 'seasons'}.`;
+  if (skarnAtPeace(state)) return `About ${c.warriors} hill clansmen have come to the valley, drawn by your village's size and stores. The Skarn's peace does not bind them: they raid on their own. Smaller stores would tempt fewer; gifts of goods would keep them home.`;
   return `About ${c.warriors} hill clansmen would march with the Skarn, drawn by your village's size and stores. Smaller stores would tempt fewer; gifts of goods would keep them home.`;
 }

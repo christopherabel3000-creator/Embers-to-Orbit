@@ -20,7 +20,7 @@ import {
 } from './rules.js';
 import { birthOutlook, parents } from './population.js';
 import { skarnAtPeace } from './neighbors.js';
-import { skarnStrength, clansMarching } from './clans.js';
+import { skarnStrength, clansMarching, clansRaidingAlone } from './clans.js';
 import { crowdingSettle } from './village.js';
 import { estimateBattle } from './battle.js';
 
@@ -304,6 +304,12 @@ export function getAdvice(state) {
   }
   if (sk.known && !sk.peace && sk.truceUntil > state.turn && sk.truceUntil - state.turn <= 1) {
     add('speaker', 'note', 'Our truce with the Skarn ends after this season.');
+  }
+  if (sk.known && sk.peace && sk.peaceWarned && !((sk.honoredUntil ?? -1) >= state.turn)) {
+    add('speaker', 'urgent', 'The Skarn chiefs call us weak. Unless they think better of us by spring, they will cast the peace aside. More fighters, guards, or walls would show them otherwise, or we can honor the peace with gifts on the Neighbors screen.');
+  }
+  if (clansRaidingAlone(state)) {
+    add('warChief', 'warning', `About ${clansRaidingAlone(state)} hill clansmen roam the valley, and the Skarn's peace does not bind them. They may raid us for our stores. Guards help, and so would gifts to their chiefs.`);
   }
   if (sk.known && !sk.peace && sk.relation >= 10) {
     add('speaker', 'note', 'The Skarn respect us enough now that they might accept a lasting peace.');

@@ -6,6 +6,7 @@ import {
   hasKnowledge, isKnown, living, canFight, year,
 } from './state.js';
 import { createBattle } from './battle.js';
+import { honorPeace, honorCost, honored } from './peace.js';
 import { recordDeed, hasTradition, effectiveBaseline } from './legacy.js';
 import { TREATIES, TREATY_ORDER } from './data.js';
 import {
@@ -149,6 +150,11 @@ export function diplomacyOptions(state, id) {
       }
     }
   }
+  if (id === 'skarn' && n.peace && !honored(state)) {
+    const cost = honorCost(state);
+    add('honorFood', `Honor the peace with gifts to the chiefs: ${cost.food} food. They will hold to it for a year, whatever they think of your strength`, r.food >= cost.food, `You need ${cost.food} food.`);
+    if (hasKnowledge(state, 'weaving')) add('honorGoods', `Honor the peace with gifts to the chiefs: ${cost.goods} goods`, (r.goods || 0) >= cost.goods, `You need ${cost.goods} goods.`);
+  }
   if (id === 'skarn' && !n.peace) {
     const fighters = living(state).filter(canFight).length;
     add('attack', `Lead an attack on Skarn hold. About ${skarnGarrison(state)} warriors defend it, behind their walls. Costs 10 food for the march.`,
@@ -260,7 +266,11 @@ export function applyDiplomacy(state, id, key) {
       n.peace = true;
       changeRelation(state, id, 10);
       state.raidThreat = false;
-      return { message: 'The Skarn chiefs agreed to a lasting peace. Their warriors will leave your camp alone. Only the odd band of outlaws remains.' };
+      n.peaceWarned = false;
+      return { message: 'The Skarn chiefs agreed to a lasting peace. Their warriors will leave your camp alone while they respect your strength, and while their chief lives. Only the odd band of outlaws remains.' };
+    case 'honorFood':
+    case 'honorGoods':
+      return honorPeace(state, key === 'honorFood' ? 'food' : 'goods');
     default:
       return { error: 'That is not possible with them.' };
   }

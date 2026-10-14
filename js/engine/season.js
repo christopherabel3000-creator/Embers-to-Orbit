@@ -15,7 +15,9 @@ import {
   besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege,
 } from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
-import { skarnStrength } from './clans.js';
+import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
+import { peaceYear } from './peace.js';
+import { raidGrowth } from './rules.js';
 import { crowdingSettle } from './village.js';
 import {
   nationsActive, startNations, valleyYear, borderFriction, skarnBand, alliedHelpers, allies, skarnRaidFactor, helpersText,
@@ -420,6 +422,9 @@ export function resolveSeason(state) {
     if (!state.siege) events.push(...borderFriction(state));
     const valley = valleyYear(state);
     (state.pendingEvent && state.pendingEvent.id === 'allyCall' ? urgent : events).push(...valley);
+    const peace = peaceYear(state); // The Skarn weigh the peace, and their chief.
+    urgent.push(...peace.urgent);
+    events.push(...peace.events);
     if (living(state).length === 0) {
       state.gameOver = true;
       urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
@@ -474,6 +479,21 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     }
     urgent.push('The Skarn host broke up and went home: they will not march against a people at peace with them.');
   }
+  // The hill clans raid on their own while the Skarn keep the peace.
+  const clanOdds = clanRaidChance(state); // Only roll when they could come, so other chances are untouched.
+  if (clanOdds > 0 && chance(state, clanOdds * Math.max(0.6, 1 - 0.04 * guardsOnWatch(state)))) {
+    const c = clansRaidingAlone(state);
+    let raiders = Math.max(4, Math.round(c * (0.5 + 0.3 * (randomInt(state, 0, 100) / 100))));
+    const helpers = alliedHelpers(state);
+    const stopped = Math.min(helpers, raiders - 2);
+    raiders -= Math.max(0, stopped);
+    const warned = state.buildings.watchtower > 0 || guardsOnWatch(state) >= 2 || (scoutsOut && chance(state, 0.6));
+    state.pendingEvent = { type: 'raid', raiders, warned, from: 'clans' };
+    state.pendingEvent.battle = createBattle(state, state.pendingEvent);
+    const ally = stopped > 0 ? ` ${helpersText(state)} turned back ${stopped} of them on the road.` : '';
+    urgent.unshift(`${warned ? 'Raiders are coming! Scouts spotted' : 'Raiders are at the edge of the village! They caught you by surprise:'} about ${raiders} hill clansmen, come for your stores. The Skarn's peace does not bind them.${ally} Decide how to respond before anything else.`);
+    return;
+  }
   const y = year(state);
   let p = 0.1 + 0.02 * Math.min(y, 10);
   // Full stores draw raiders: word gets around.
@@ -526,13 +546,7 @@ export function guardsOnWatch(state) {
   return living(state).filter((p) => p.task === 'guard' && p.health >= 40).length;
 }
 
-// Raiders grow bolder over the years: quickly at first, then more slowly.
-// Two more raiders a year for five years, then one more every two years,
-// leveling off at 16 more than the first raids.
-export function raidGrowth(y) {
-  if (y <= 6) return 2 * (y - 1);
-  return Math.min(16, 10 + Math.floor((y - 6) / 2));
-}
+export { raidGrowth };
 
 // Extra raiders drawn by a well-stocked camp.
 // Stores beyond an ordinary reserve start to draw notice.

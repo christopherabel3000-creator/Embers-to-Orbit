@@ -29,6 +29,11 @@ const RAIDER_STRENGTH = 6;
 // How hard each enemy strikes in this battle. Skarn warriors grow stronger
 // the longer they have been a nation (see skarnArms), and are as much harder
 // to bring down; hill clansmen and outlaws fight like the old raiders.
+// What the enemy are called in battle lines.
+export function foeName(battle) {
+  return { outlaws: 'outlaws', clans: 'hill clansmen' }[battle.from] || 'Skarn';
+}
+
 export function foeStrength(battle) {
   return battle.foeStrength || RAIDER_STRENGTH;
 }
@@ -446,7 +451,7 @@ export function resolveRound(state, battle, ourOrders) {
   }
 
   // Enemy losses and flight.
-  const foe = battle.from === 'outlaws' ? 'outlaws' : 'Skarn';
+  const foe = foeName(battle);
   // Warriors charging an undermanned stretch of wall may break through it.
   for (const z of ZONES) {
     if (battle.side !== 'defend' || !coverAt(battle, z) || enemy[z] !== 'attack') continue;
@@ -457,7 +462,7 @@ export function resolveRound(state, battle, ourOrders) {
     if (battle.terrain.wall) p *= 0.5;
     if (chance(state, p)) {
       battle.breached[z] = true;
-      lines.push(`${AT[z]}, the ${battle.from === 'outlaws' ? 'outlaws' : 'Skarn'} broke through the ${battle.terrain.wall ? 'wall' : 'palisade'}. Fighters there no longer have its cover.`);
+      lines.push(`${AT[z]}, the ${foeName(battle)} broke through the ${battle.terrain.wall ? 'wall' : 'palisade'}. Fighters there no longer have its cover.`);
     }
   }
 
@@ -520,7 +525,7 @@ function checkOutcome(state, battle) {
 export function finishBattle(state, battle, outcome) {
   const lines = [];
   const all = living(state);
-  const foe = battle.from === 'outlaws' ? 'outlaws' : 'Skarn';
+  const foe = foeName(battle);
   const veterans = battle.fought.map((id) => personById(state, id)).filter((p) => p && p.alive);
   const res = state.resources;
   const takeShare = (foodShare, woodShare) => {
@@ -533,7 +538,14 @@ export function finishBattle(state, battle, outcome) {
 
   if (outcome === 'victory') recordDeed(state, 'battlesWon');
   // Skarn who fall are lost to their nation.
-  if (battle.from !== 'outlaws' && state.neighbors.skarn.nation) {
+  if (battle.from === 'clans') {
+    // Hill clansmen who fall are lost to the clans until the next spring.
+    const left = Object.values(battle.enemy).reduce((sum, n) => sum + n, 0);
+    const fallen = Math.max(0, battle.enemyStart - left);
+    const c = state.clans || { warriors: 0 };
+    c.warriors = Math.max(0, c.warriors - fallen);
+    if (fallen) lines.push(`The hill clans lost ${fallen} warriors.`);
+  } else if (battle.from !== 'outlaws' && state.neighbors.skarn.nation) {
     const left = Object.values(battle.enemy).reduce((sum, n) => sum + n, 0);
     const fallen = Math.max(0, battle.enemyStart - left);
     const sk = state.neighbors.skarn.nation;
@@ -564,7 +576,7 @@ export function finishBattle(state, battle, outcome) {
     if (outcome === 'victory') {
       lines.push(`The ${foe} broke and fled. ${state.campName} is safe.`);
       for (const p of all) p.morale = clamp(p.morale + 8);
-      if (battle.from !== 'outlaws') changeRelation(state, 'skarn', -5);
+      if (battle.from === 'skarn') changeRelation(state, 'skarn', -5);
     } else if (outcome === 'stalemate') {
       lines.push(`At dusk the ${foe} pulled back${battle.loot.food || battle.loot.wood ? `, carrying off ${battle.loot.food} food and ${battle.loot.wood} wood` : ''}.`);
     } else if (outcome === 'retreat') {
@@ -600,7 +612,7 @@ export function finishBattle(state, battle, outcome) {
   const hardened = veterans.filter((p) => gainExperience(p, 'hunting', 2));
   if (hardened.length) lines.push(`The battle hardened ${hardened.map((p) => `${p.name} (hunting ${p.skills.hunting})`).join(', ')}.`);
 
-  if (battle.from !== 'outlaws' && meet(state, 'skarn', { contact: false })) {
+  if (battle.from === 'skarn' && meet(state, 'skarn', { contact: false })) {
     lines.push('After the fighting, a wounded raider told your people who they were: the Skarn, from a fortified hold in the rocky hills. You can now deal with them on the Neighbors screen.');
   }
   state.pendingEvent = null;
@@ -692,7 +704,7 @@ export function battleView(state) {
   // so that looking at the screen never changes the game.
   const battle = ev.battle || createBattle(structuredClone(state), ev);
   const attack = battle.side === 'attack';
-  const foe = battle.from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known || attack ? 'Skarn' : 'raiders';
+  const foe = battle.from === 'skarn' ? (state.neighbors.skarn.known || attack ? 'Skarn' : 'raiders') : foeName(battle);
   const terrain = [];
   if (battle.sally) terrain.push('You are sallying out against the besiegers. They have dug in behind stakes and ditches and take less harm while they hold; you have no walls out here. Beat them down, or push through two zones they leave empty, and the siege is broken.');
   if (battle.terrain.wall) terrain.push('Your stone wall covers every zone: fighters who hold behind it take much less harm and strike hard from the top. Arrows still come over it, and warriors who charge an undermanned stretch may break through.');

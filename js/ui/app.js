@@ -51,6 +51,7 @@ import {
   hireBlocker, swordsBlocker, swordsActive, comfortsCost, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT,
 } from '../engine/goods.js';
 import { clansLine, clanGiftBlocker, clanGiftCost, clansQuiet } from '../engine/clans.js';
+import { peaceStatus } from '../engine/peace.js';
 import { storage } from '../storage.js';
 
 const $main = document.getElementById('main');
@@ -591,7 +592,7 @@ function skarnWarSection() {
   html += `<h3 id="clansHeading">The hill clans</h3><p>${esc(line)}</p>`;
   const why = clanGiftBlocker(state);
   if (!why) {
-    html += `<p><button type="button" data-action="giftClans">Send ${clanGiftCost(state)} goods to the clan chiefs: half go home, and the rest stay out of the Skarn's wars for two years</button></p>`;
+    html += `<p><button type="button" data-action="giftClans">Send ${clanGiftCost(state)} goods to the clan chiefs: half go home, and the rest keep away from your village for two years</button></p>`;
   } else if (!clansQuiet(state)) {
     html += `<p>${esc(why)}</p>`;
   }
@@ -614,12 +615,13 @@ function neighborsScreen() {
     const ready = opts.filter((o) => o.ok);
     const blocked = opts.filter((o) => !o.ok);
     let status = '';
-    if (id === 'skarn' && n.peace) status = ' You are at peace with them.';
+    if (id === 'skarn' && n.peace) status = ` You are at peace with them. ${peaceStatus(state)}`;
     else if (id === 'skarn' && n.truceUntil > state.turn) status = ` A truce holds for ${plural(n.truceUntil - state.turn, 'more season', 'more seasons')}.`;
     html += `<h2 id="neighbor-${id}">${esc(def.title)}</h2>
       <p>Relations: ${relationWord(n.relation)} (${n.relation}).${status}</p>
       ${attitudeLines(state, id).map((l) => `<p>${esc(l)}</p>`).join('')}
       <p>${esc(capitalize(def.temperament))}. ${esc(def.description)}</p>
+      ${id === 'skarn' && n.chief ? `<p>Their chief: ${esc(n.chief)}.</p>` : ''}
       <p>Home: ${esc(placeName(state, def.home))}${isKnown(state, def.home) ? '' : ', a place your scouts have not found'}. They want ${esc(def.wants)}, and offer ${esc(def.offers)}.</p>
       ${n.nation ? nationSection(id) : ''}
       <h3>Envoys this season</h3>`;

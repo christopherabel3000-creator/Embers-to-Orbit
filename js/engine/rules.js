@@ -205,3 +205,11 @@ export function defenseStrength(state, defenders, warned) {
 export function raidAttackStrength(raiders) {
   return raiders * 5;
 }
+
+// Raiders grow bolder over the years: quickly at first, then more slowly.
+// Two more raiders a year for five years, then one more every two years,
+// leveling off at 16 more than the first raids.
+export function raidGrowth(y) {
+  if (y <= 6) return 2 * (y - 1);
+  return Math.min(16, 10 + Math.floor((y - 6) / 2));
+}

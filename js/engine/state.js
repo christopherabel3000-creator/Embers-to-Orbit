@@ -10,7 +10,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -64,6 +64,11 @@ function initialNeighbors() {
       contactPending: false, // First contact is waiting to happen.
       peace: false, // A lasting peace (the Skarn).
       truceUntil: -1, // Tribute buys a truce until this turn.
+      peaceWarned: false, // The Skarn have warned that they think you weak.
+      honoredUntil: -1, // Gifts keep the Skarn to the peace until this turn.
+      honorsInARow: 0, // Years in a row the peace has been bought with gifts.
+      chief: null, // The Skarn chief, and the turn the chief dies (set once they are known).
+      chiefUntil: null,
       joined: 0, // How many of their people have joined the camp.
     };
   }
@@ -292,6 +297,12 @@ export function migrate(data) {
   if (data.version === 22) {
     data.foodStores = DEFAULT_FOOD_STORES;
     data.version = 23;
+  }
+  if (data.version === 23) {
+    for (const id of NEIGHBOR_ORDER) {
+      Object.assign(data.neighbors[id], { peaceWarned: false, honoredUntil: -1, honorsInARow: 0, chief: null, chiefUntil: null });
+    }
+    data.version = 24;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

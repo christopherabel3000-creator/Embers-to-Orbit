@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, applyAction } from '../js/engine/game.js';
+import { describePending } from '../js/engine/events.js';
 import { living, makePerson } from '../js/engine/state.js';
 
 const task = (s, name) => s.people.find((p) => p.name === name).task;
@@ -91,7 +92,12 @@ test('the best-work order staffs the fields each season, and the harvest comes i
   s.orders.staffFields = true;
   s.resources.food = 300;
   s.resources.wood = 100;
+  s.orders.raidPolicy = 'auto'; // Any raid is settled by the war chief, so the seasons run on.
   s = applyAction(s, { type: 'assignBest' }).state;
-  for (let i = 0; i < 3; i++) s = applyAction(s, { type: 'endTurn' }).state;
+  for (let i = 0; i < 3; i++) {
+    if (s.pendingEvent) s = applyAction(s, { type: 'resolveEvent', choice: describePending(s).options[0].id }).state;
+    s = applyAction(s, { type: 'endTurn' }).state;
+  }
+  assert.equal(s.turn, 7, 'spring, summer, and autumn passed');
   assert.ok(s.log.some((l) => /Harvest: \d+ food from 12 plots/.test(l.text)), 'all 12 plots were planted and harvested');
 });

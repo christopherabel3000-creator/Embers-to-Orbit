@@ -13,6 +13,7 @@ import {
   feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD, feastLift, fullFeastLift, feastsInARow, feastExpected,
 } from '../../engine/stores.js';
 import { villageBlocker } from '../../engine/village.js';
+import { weatherLine, weatherNow } from '../../engine/weather.js';
 import { state, esc, plural, adviceList } from '../core.js';
 
 export function reportScreen() {
@@ -44,9 +45,10 @@ export function reportScreen() {
     const chance = estimateBattle(state, sallyEvent(state), null, 12);
     const word = chance >= 0.75 ? 'likely to win' : chance >= 0.45 ? 'an even fight' : 'likely to lose';
     const cost = ransom(state);
+    const weather = weatherLine(weatherNow(state));
     html += `<h2 id="siegeHeading">Siege</h2>
       <p>About ${state.siege.raiders} Skarn surround ${esc(state.campName)}. They have supplies for about ${plural(state.siege.supplies, 'more season', 'more seasons')}, and lose some to hunger each season. While they stay, no one can work outside the walls, and each season they burn a third of what is sown (and any harvest standing in the fields), drive off the herds of a pasture, and strip the land around the village.</p>
-      <p>Sallying out means fighting them in the open, with no walls, against besiegers dug in behind stakes and ditches. The war chief thinks that would be ${word}.</p>
+      <p>Sallying out means fighting them in the open, with no walls, against besiegers dug in behind stakes and ditches. The war chief thinks that would be ${word}.${weather ? ` ${esc(weather)}` : ''}</p>
       <div class="actions">
         <button type="button" data-action="sallyOut">Sally out and fight them</button>
         ${state.resources.food >= cost ? `<button type="button" data-action="payBesiegers">Pay them ${cost} food to leave</button>` : `<p>They would leave for ${cost} food, and you have ${state.resources.food}.</p>`}

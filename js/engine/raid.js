@@ -1,6 +1,8 @@
 // Resolving a raid, whether the player decides or a standing order does.
 
-import { living } from './state.js';
+import { living, personById, placeName } from './state.js';
+import { chance, randomInt } from './rng.js';
+import { clamp, listNames } from './util.js';
 import { refreshAdvisors } from './advisors.js';
 import { recordDeed, hasTradition } from './legacy.js';
 import {
@@ -24,6 +26,20 @@ export function resolveRaidPlan(state, plan, defenderIds = []) {
   if (plan === 'hide' && ev.side === 'attack') {
     state.pendingEvent = null;
     return { lines: ['You called off the attack on Skarn hold.'] };
+  }
+  if (plan === 'hide' && ev.ambush) {
+    // Scatter: the workers run for home. Some are hurt on the way, and the
+    // place is lost to them for the season.
+    const reinforcements = new Set(ev.reinforcements || []);
+    const workers = (ev.eligible || []).filter((id) => !reinforcements.has(id))
+      .map((id) => personById(state, id)).filter((p) => p && p.alive);
+    const hurt = workers.filter(() => chance(state, 0.4));
+    for (const p of hurt) p.health = clamp(p.health - randomInt(state, 15, 30));
+    state.harried = ev.ambush.place;
+    state.pendingEvent = null;
+    refreshAdvisors(state);
+    const who = { hunt: 'hunters', forage: 'foragers', wood: 'woodcutters', quarry: 'quarriers' }[ev.ambush.task] || 'workers';
+    return { lines: [`Your ${who} scattered and ran for home.${hurt.length ? ` ${listNames(hurt)} ${hurt.length === 1 ? 'was' : 'were'} hurt on the way.` : ''} Anyone working at ${placeName(state, ev.ambush.place)} this season will bring back half as much.`] };
   }
   if (plan === 'hide' && ev.sally) {
     state.pendingEvent = null;

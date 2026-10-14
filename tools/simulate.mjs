@@ -110,6 +110,26 @@ let villages = 0;
 let villageYears = [];
 let nationYears = [];
 let tally = {};
+
+// Counts the outcome of a fight from report lines. Fights the simulated
+// player starts itself (raids it answers, sallies) report into the season
+// that is about to end, so their lines are read as soon as they happen.
+const FIGHT_WON = /broke and fled\. .* is safe|routed the besiegers|fought off the ambush|Skarn hold has fallen/;
+const FIGHT_LOST = /defenders were overwhelmed|abandoned the fight|fell back inside the walls|^At dusk the|were driven from|attack on Skarn hold failed|turned back from Skarn hold/;
+function countFights(lines) {
+  for (const l of lines) {
+    if (FIGHT_WON.test(l)) tally.fightsWon++;
+    if (FIGHT_LOST.test(l)) tally.lostFights++;
+    if (/^Ambush!/.test(l)) tally.ambushes++;
+    if (/scattered and ran for home/.test(l)) tally.scattered++;
+  }
+}
+function actCounting(state, action) {
+  const before = state.report.urgent.length;
+  const next = act(state, action);
+  countFights(next.report.urgent.slice(before));
+  return next;
+}
 function play(seed, strategy) {
   let state = newGame({ seed });
   if (strategy.startsWith('orders') || strategy === 'village') {
@@ -128,8 +148,8 @@ function play(seed, strategy) {
       const fighters = living(state).filter((p) => p.health >= 40);
       const odds = raidOdds(state, fighters, state.pendingEvent.warned, state.pendingEvent.raiders);
       state = (strategy === 'sensible' || strategy === 'village') && odds.chance >= 0.5
-        ? act(state, { type: 'resolveRaid', plan: 'fight', defenderIds: fighters.map((p) => p.id) })
-        : act(state, { type: 'resolveRaid', plan: 'hide' });
+        ? actCounting(state, { type: 'resolveRaid', plan: 'fight', defenderIds: fighters.map((p) => p.id) })
+        : actCounting(state, { type: 'resolveRaid', plan: 'hide' });
       if (state.gameOver) break;
     }
     // Under siege: sally out when the war chief likes the odds, else wait.
@@ -139,7 +159,7 @@ function play(seed, strategy) {
       // player will risk a fight at even odds rather than wait.
       if (estimateBattle(state, sallyEvent(state), null, 8) >= (state.farm.planted > 0 ? 0.5 : 0.6)) {
         state = act(state, { type: 'sallyOut' });
-        state = act(state, { type: 'battleAuto' });
+        state = actCounting(state, { type: 'battleAuto' });
         tally.sallies++;
       }
     }
@@ -235,6 +255,7 @@ function play(seed, strategy) {
       const shown = lines.filter((l) => new RegExp(process.env.TRACE_MATCH || '.').test(l));
       if (shown.length) console.log(`${state.report.finished} (${living(state).length} people, ${state.resources.food} food): ${shown.join(' | ')}`);
     }
+    countFights(lines);
     for (const l of lines) {
       const m = l.match(/(\d+) food rotted/);
       if (m && l.startsWith('The stores were overflowing')) tally.rotted += Number(m[1]);
@@ -249,7 +270,6 @@ function play(seed, strategy) {
       if (/^The Skarn have cast the peace aside|^You refused .* The peace is over|cast the peace aside\. Their raiders/.test(l)) tally.peaceLost = (tally.peaceLost || 0) + 1;
       if (/hill clansmen, come for your stores/.test(l)) tally.clanRaids = (tally.clanRaids || 0) + 1;
       if (/^Food ran out/.test(l)) tally.hungry++;
-      if (/defenders were overwhelmed|abandoned the fight|fell back inside the walls|^At dusk the/.test(l)) tally.lostFights++;
       if (/slipped into the trees|fled into the trees until|grabbed what they could/.test(l)) tally.hid++;
       if (/A great host has time/.test(l)) tally.hidHost++;
       if (/Skarn host has come/.test(l)) tally.hostsFought++;
@@ -278,7 +298,7 @@ for (const strategy of STRATEGIES) {
   villages = 0; villageYears = []; nationYears = [];
   let clanSum = 0; let stoneSum = 0; let goodsSum = 0; let learnedSum = 0; let skarnW = 0; let skarnP = 0; let nations = 0;
   const built = {};
-  tally = { peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, swords: 0, caravans: 0, masters: 0, lostFights: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
+  tally = { peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, swords: 0, caravans: 0, masters: 0, lostFights: 0, fightsWon: 0, ambushes: 0, scattered: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
   for (let i = 0; i < GAMES; i++) {
     const end = play(1000 + i, strategy);
     if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); }
@@ -303,5 +323,5 @@ for (const strategy of STRATEGIES) {
   }
   if (process.env.BUILDINGS) console.log('buildings:', Object.entries(built).map(([k, n]) => `${k} ${(n / GAMES).toFixed(1)}`).join(', '));
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';
-  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)} | hungry seasons ${(tally.hungry / GAMES).toFixed(2)} | rotted ${(tally.rotted / GAMES).toFixed(0)} | feasts ${(feastsHeld / GAMES).toFixed(1)} | lean times ${(tally.lean / GAMES).toFixed(1)} | raids ${(tally.raids / GAMES).toFixed(1)} | firewood shortages ${(tally.cold / GAMES).toFixed(1)} | people lost ${(tally.lost / GAMES).toFixed(1)} (old age ${(tally.oldAge / GAMES).toFixed(1)}) | stone ${(stoneSum / GAMES).toFixed(0)}, goods ${(goodsSum / GAMES).toFixed(0)}, discoveries ${(learnedSum / GAMES).toFixed(1)} | skirmishes ${(tally.harried / GAMES).toFixed(1)} (driven off ${(tally.repelled / GAMES).toFixed(1)}) | sieges ${(tally.sieges / GAMES).toFixed(1)} (${(tally.siegeSeasons / GAMES).toFixed(1)} seasons, ${(tally.sallies / GAMES).toFixed(1)} sallies) | great hosts ${(tally.hosts / GAMES).toFixed(1)} | Skarn warriors ${nations ? (skarnW / nations).toFixed(0) : "-"} of ${nations ? (skarnP / nations).toFixed(0) : "-"} | hill clansmen ${(clanSum / GAMES).toFixed(1)} (gifts ${(tally.clanGifts / GAMES).toFixed(1)}) | spent goods on masters ${(tally.masters / GAMES).toFixed(1)}, sell-swords ${(tally.swords / GAMES).toFixed(1)}, caravans ${(tally.caravans / GAMES).toFixed(1)} | killed in battle ${(tally.killed / GAMES).toFixed(1)} | fights not won ${(tally.lostFights / GAMES).toFixed(1)} | hosts that stormed ${(tally.hostsFought / GAMES).toFixed(1)} | hid ${(tally.hid / GAMES).toFixed(1)} (from hosts ${(tally.hidHost / GAMES).toFixed(1)}) | peace made ${(tally.peacesMade / GAMES).toFixed(1)}, seasons at peace ${(tally.peaceSeasons / GAMES).toFixed(1)}, honored ${(tally.honors / GAMES).toFixed(1)} | peace lost ${((tally.peaceLost || 0) / GAMES).toFixed(1)} | clan raids ${((tally.clanRaids || 0) / GAMES).toFixed(1)} | villages ${villages}${villageYears.length ? ` (avg year ${(villageYears.reduce((a, b) => a + b, 0) / villageYears.length).toFixed(1)})` : ''} | village decisions ${(tally.villageEvents / GAMES).toFixed(1)} | Nation era ${nationYears.length}${nationYears.length ? ` (avg year ${(nationYears.reduce((a, b) => a + b, 0) / nationYears.length).toFixed(1)})` : ''} | settlers ${(tally.settlers / GAMES).toFixed(1)} | workers' morale ${(tally.morale / Math.max(1, tally.turns)).toFixed(0)}, in high spirits ${Math.round(100 * tally.high / Math.max(1, tally.turns))}%`);
+  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)} | hungry seasons ${(tally.hungry / GAMES).toFixed(2)} | rotted ${(tally.rotted / GAMES).toFixed(0)} | feasts ${(feastsHeld / GAMES).toFixed(1)} | lean times ${(tally.lean / GAMES).toFixed(1)} | raids ${(tally.raids / GAMES).toFixed(1)} | firewood shortages ${(tally.cold / GAMES).toFixed(1)} | people lost ${(tally.lost / GAMES).toFixed(1)} (old age ${(tally.oldAge / GAMES).toFixed(1)}) | stone ${(stoneSum / GAMES).toFixed(0)}, goods ${(goodsSum / GAMES).toFixed(0)}, discoveries ${(learnedSum / GAMES).toFixed(1)} | skirmishes ${(tally.harried / GAMES).toFixed(1)} (driven off ${(tally.repelled / GAMES).toFixed(1)}) | sieges ${(tally.sieges / GAMES).toFixed(1)} (${(tally.siegeSeasons / GAMES).toFixed(1)} seasons, ${(tally.sallies / GAMES).toFixed(1)} sallies) | great hosts ${(tally.hosts / GAMES).toFixed(1)} | Skarn warriors ${nations ? (skarnW / nations).toFixed(0) : "-"} of ${nations ? (skarnP / nations).toFixed(0) : "-"} | hill clansmen ${(clanSum / GAMES).toFixed(1)} (gifts ${(tally.clanGifts / GAMES).toFixed(1)}) | spent goods on masters ${(tally.masters / GAMES).toFixed(1)}, sell-swords ${(tally.swords / GAMES).toFixed(1)}, caravans ${(tally.caravans / GAMES).toFixed(1)} | killed in battle ${(tally.killed / GAMES).toFixed(1)} | fights won ${(tally.fightsWon / GAMES).toFixed(1)}, not won ${(tally.lostFights / GAMES).toFixed(1)} (${Math.round(100 * tally.lostFights / Math.max(1, tally.fightsWon + tally.lostFights))}%) | ambushes ${(tally.ambushes / GAMES).toFixed(1)} (scattered ${(tally.scattered / GAMES).toFixed(1)}) | hosts that stormed ${(tally.hostsFought / GAMES).toFixed(1)} | hid ${(tally.hid / GAMES).toFixed(1)} (from hosts ${(tally.hidHost / GAMES).toFixed(1)}) | peace made ${(tally.peacesMade / GAMES).toFixed(1)}, seasons at peace ${(tally.peaceSeasons / GAMES).toFixed(1)}, honored ${(tally.honors / GAMES).toFixed(1)} | peace lost ${((tally.peaceLost || 0) / GAMES).toFixed(1)} | clan raids ${((tally.clanRaids || 0) / GAMES).toFixed(1)} | villages ${villages}${villageYears.length ? ` (avg year ${(villageYears.reduce((a, b) => a + b, 0) / villageYears.length).toFixed(1)})` : ''} | village decisions ${(tally.villageEvents / GAMES).toFixed(1)} | Nation era ${nationYears.length}${nationYears.length ? ` (avg year ${(nationYears.reduce((a, b) => a + b, 0) / nationYears.length).toFixed(1)})` : ''} | settlers ${(tally.settlers / GAMES).toFixed(1)} | workers' morale ${(tally.morale / Math.max(1, tally.turns)).toFixed(0)}, in high spirits ${Math.round(100 * tally.high / Math.max(1, tally.turns))}%`);
 }

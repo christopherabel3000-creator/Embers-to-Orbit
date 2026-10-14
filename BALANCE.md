@@ -8,6 +8,7 @@ What the simulator says about the game's balance. [DESIGN.md](DESIGN.md) says ho
 - Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds a second settlement when ready, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
 - Settings for the village strategy, as environment variables: `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
 - `npm run battles` fights hundreds of battles to check combat odds.
+- Each run counts fights won and not won (raids, sallies, ambushes, and attacks on Skarn hold) and ambushes scattered from. Before October 14, 2026, the count missed sallies and raids the simulated player answered itself, so older notes undercount lost fights.
 
 ## Where things stand (October 14, 2026)
 
@@ -15,22 +16,42 @@ Five-year campaigns, 200 of each:
 
 | Strategy | Wiped out | People at year 5 | Food | Rotted | Lost |
 | --- | --- | --- | --- | --- | --- |
-| Sensible | 0 | 19.7 | 175 | 129 | 0.5 |
-| Standing orders | 0 | 22.4 | 177 | 23 | 0.2 |
-| Idle | 131 | 0.6 | 1 | 0 | 18.0 |
+| Sensible | 1 | 18.7 | 163 | 133 | 0.8 |
+| Standing orders | 0 | 22.5 | 173 | 25 | 0.3 |
+| Idle | 119 | 0.8 | 1 | 0 | 17.6 |
+
+In the camp years almost no fight is lost (about 1 percent): raids on a palisaded camp are easy wins.
 
 Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 village`):
 
-- **Growth:** about 66 people at year 20; the camp becomes a village in about year 5.6, and 178 of 200 reach the Nation era, in about year 16. None are wiped out.
-- **Stores:** about 695 food in store (149 rotted over the campaign), 21 stone, and about 440 goods, after hiring about 7 masters and 6 bands of sell-swords.
-- **The Skarn:** about 46 warriors among 117 people at year 20, with about 21 hill clansmen. About 2.3 sieges (4 seasons under siege in all), 0.8 great hosts, and 11 skirmishes per campaign. Besiegers burn about 7 sown plots and drive off 1 herd per decade.
-- **Losses:** about 2 people killed in battle by year 20; the villages lose no fights. About 0.24 seasons of hunger per campaign.
-- **Spirits:** workers average 70, with 48 percent in high spirits over the campaign (55 percent in years 11 to 20); about 16 feasts in 20 years.
-- **Still too easy:** villages almost never lose a fight, and goods pile up even when spent. BACKLOG.md lists ideas.
+- **Growth:** about 62 people at year 20; the camp becomes a village in about year 5.6, and 186 of 200 reach the Nation era, in about year 16. None are wiped out.
+- **Stores:** about 695 food in store (155 rotted over the campaign), 23 stone, and about 450 goods, after hiring about 7 masters and 6 bands of sell-swords.
+- **The Skarn:** about 45 warriors among 111 people at year 20, with about 20 hill clansmen. About 1.9 sieges (3.2 seasons under siege in all), 0.7 great hosts, 8.5 skirmishes, and 3.3 ambushes per campaign.
+- **Battles:** about 10 fights a campaign, 0.6 of them not won; once the camp is a village, about one fight in eleven is lost, mostly ambushes and sallies. The workers scatter from about 1 ambush in 3. About 3 people are killed in battle by year 20.
+- **Spirits:** workers average 70, with 48 percent in high spirits over the campaign; about 16 feasts in 20 years. Hunger is rare (0.04 seasons a campaign).
+- **Still open:** goods pile up even when spent, and the camp years' raids are almost never lost. BACKLOG.md lists ideas.
 
 ## Notes by system
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
+
+### Battles that can be lost (October 14, 2026)
+
+With the corrected count, twenty-year villages lost about 0.3 fights a campaign before this pass, 4 percent of the fights they chose. The war chief's odds are honest (fights he rates 50 to 70 percent are lost about 40 percent of the time, 90 percent or better almost never), and a careful player only fights at even odds or better, so losses come from fights whose odds are in doubt. Nearly all fights were not: the camp years' raids, outlaws, and hill clans are won at about 99 percent.
+
+Weather, shield walls, and braced spears alone left that unchanged. Ambushes made the difference, once their bands were sized to the workers they fall on:
+
+| Ambush band | Fights a campaign after the village | Lost | Ambushes scattered from |
+| --- | --- | --- | --- |
+| Three tenths of the Skarn warriors; 4 in 10 skirmishes are ambushes | 6.1 | 6% | 0.7 |
+| The same, 6 in 10 skirmishes | 6.7 | 5% | 0.9 |
+| 0.8 to 1.3 times the workers' worth; 5 in 10 skirmishes | 7.1 | 4% | 0.2 |
+| ...with braced spears weakened, and both sides adapting | 6.6 | 5% | 0.3 |
+| 1.2 to 2 times | 6.3 | 7% | 0.3 |
+| 1.5 to 2.5 times, at most half the Skarn | 6.3 | 8% | 0.8 |
+| 1.8 to 3 times (kept) | 6.1 | 9% | 1.0 |
+
+At first braced spears crushed raiders, who charge three times in four, and the war chief braced every time; braced spears now strike chargers 1.3 times as hard instead of 1.6, and both sides adapt from round to round. In the kept version, about a third of ambushes are scattered from, and about one in six of those fought is lost; sallies are lost about one time in ten. Over the whole campaign, about 3 people are killed in battle (2 before), and the village ends with 62 people (66 before). The camp years are unchanged: almost no fight is lost.
 
 ### The late game, second pass (October 14, 2026)
 

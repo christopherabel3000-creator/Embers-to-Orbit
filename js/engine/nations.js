@@ -11,7 +11,8 @@ import {
   expectedFood, expectedWood, expectedStone, siteFor,
 } from './rules.js';
 import { changeRelation, skarnAtPeace } from './neighbors.js';
-import { chance, randomInt } from './rng.js';
+import { chance, randomInt, randomBetween } from './rng.js';
+import { fighterStrength, foeStrengthFor } from './battle.js';
 import { clamp, listWords, capital } from './util.js';
 import { lawIs } from './laws.js';
 import { swordsHelp } from './goods.js';
@@ -373,7 +374,26 @@ export function harryChance(state) {
   return Math.min(0.5, nation(state, 'skarn').warriors / (40 + 10 * guards)) * watched;
 }
 
-// Runs at the start of a season. Returns report lines.
+// Once the Skarn can spare a real band, some skirmishes become ambushes: a
+// battle in the open with the workers at that place, which they can fight
+// or flee (see battle.js and raid.js).
+export const AMBUSH_WARRIORS = 20; // Skarn warriors needed before they ambush.
+export const AMBUSH_SHARE = 0.5; // Share of skirmishes that are ambushes once they do.
+export const AMBUSH_MAX_SHARE = 0.5; // A band is at most this share of their warriors.
+// The Skarn watch your workers and bring a band worth about as much as they
+// are, from AMBUSH_SIZE[0] to AMBUSH_SIZE[1] times. Guards who come running
+// are more than they planned for.
+export const AMBUSH_SIZE = [1.8, 3];
+
+export function ambushBand(state, workers) {
+  const prey = workers.reduce((sum, p) => sum + fighterStrength(state, p), 0);
+  const foe = foeStrengthFor(state, { from: 'skarn' }, 'defend');
+  const wanted = Math.round(prey * randomBetween(state, AMBUSH_SIZE[0], AMBUSH_SIZE[1]) / foe);
+  return Math.max(4, Math.min(Math.round(nation(state, 'skarn').warriors * AMBUSH_MAX_SHARE), wanted));
+}
+
+// Runs at the start of a season. Returns report lines. An ambush leaves a
+// raid waiting in state.pendingEvent, with ambush set.
 export function maybeHarry(state) {
   state.harried = null;
   if (state.pendingEvent || !chance(state, harryChance(state))) return [];
@@ -385,11 +405,27 @@ export function maybeHarry(state) {
   const target = exposed[randomInt(state, 0, exposed.length - 1)];
   const where = placeName(state, target.place);
   const workerWord = { hunt: 'hunters', forage: 'foragers', wood: 'woodcutters', quarry: 'quarriers' }[target.task];
-  const guards = people.filter((p) => p.task === 'guard' && p.health >= 40).length;
-  if (chance(state, Math.min(0.75, 0.15 * guards))) {
+  const onWatch = people.filter((p) => p.task === 'guard' && p.health >= 40);
+  const guards = onWatch.length;
+  const fog = state.weather === 'fog'; // Harder to see them coming.
+  if (chance(state, Math.min(0.75, 0.15 * guards) * (fog ? 0.5 : 1))) {
     const killed = randomInt(state, 1, 2);
     skarnLosses(state, killed);
     return [`Skarn skirmishers crept toward your ${workerWord} at ${where}, but your guards drove them off and killed ${killed}.`];
+  }
+  const sk = nation(state, 'skarn');
+  const fighters = target.workers.filter(canFight);
+  if (sk.warriors >= AMBUSH_WARRIORS && fighters.length && chance(state, AMBUSH_SHARE)) {
+    const band = ambushBand(state, fighters);
+    // Half the guards on watch, the strongest, come running.
+    const running = [...onWatch].sort((a, b) => b.skills.hunting - a.skills.hunting).slice(0, Math.ceil(guards / 2));
+    state.pendingEvent = {
+      type: 'raid', raiders: band, warned: false, from: 'skarn',
+      ambush: { place: target.place, task: target.task },
+      eligible: [...fighters, ...running].map((p) => p.id),
+      reinforcements: running.map((p) => p.id),
+    };
+    return [`Ambush! About ${band} Skarn warriors fell on your ${workerWord} at ${where}${fog ? ', out of the fog' : ''}. Only those working there can fight${running.length ? `, and ${running.length === 1 ? 'a guard on watch is' : `${running.length} guards on watch are`} running to join them` : ''}. Decide how to respond before anything else.`];
   }
   state.harried = target.place;
   const hurt = target.workers.slice(0, randomInt(state, 1, 2));

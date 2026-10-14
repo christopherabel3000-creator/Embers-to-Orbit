@@ -44,6 +44,7 @@ import {
   randomBetween, randomInt, chance, pick,
 } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
+import { drawWeather } from './weather.js';
 import { incomeLine, upkeepLine, skillLine } from './report.js';
 import { shuffle, listNames, clamp } from './util.js';
 
@@ -390,6 +391,7 @@ export function resolveSeason(state) {
   // 11. Advance the calendar.
   state.turn += 1;
   events.push(...feastCustomSeason(state)); // A village that expected a feast and had none.
+  state.weather = drawWeather(state); // The new season's weather, for any battle in it.
   const survivors = living(state);
   refreshAdvisors(state);
   driftRelations(state);
@@ -420,7 +422,11 @@ export function resolveSeason(state) {
       urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
     }
     maybeStartRaid(state, scouts.length > 0, urgent);
-    if (!state.siege) urgent.push(...maybeHarry(state));
+    if (!state.siege) {
+      urgent.push(...maybeHarry(state));
+      const ev = state.pendingEvent;
+      if (ev && ev.ambush && !ev.battle) ev.battle = createBattle(state, ev);
+    }
     if (!state.siege) urgent.push(...harrySettlements(state));
     const happened = maybeStartEvent(state);
     urgent.push(...happened.urgent);
@@ -481,7 +487,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     const helpers = alliedHelpers(state);
     const stopped = Math.min(helpers, raiders - 2);
     raiders -= Math.max(0, stopped);
-    const warned = state.buildings.watchtower > 0 || guardsOnWatch(state) >= 2 || (scoutsOut && chance(state, 0.6));
+    const warned = raidSpotted(state, scoutsOut, { trail: false });
     state.pendingEvent = { type: 'raid', raiders, warned, from: 'clans' };
     state.pendingEvent.battle = createBattle(state, state.pendingEvent);
     const ally = stopped > 0 ? ` ${helpersText(state)} turned back ${stopped} of them on the road.` : '';
@@ -524,16 +530,25 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     raiders -= stopped;
     allyNote = ` ${helpersText(state)} met them on the road with ${helpers} fighters, and turned back ${stopped} of them.`;
   }
-  const warned = state.buildings.watchtower > 0 || isKnown(state, 'raiderTrail') || guardsOnWatch(state) >= 2
-    || (scoutsOut && chance(state, 0.6));
+  const warned = raidSpotted(state, scoutsOut);
   state.raidThreat = false;
   state.pendingEvent = { type: 'raid', raiders, warned, from };
   state.pendingEvent.battle = createBattle(state, state.pendingEvent);
   const who = from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known ? 'Skarn raiders' : 'armed strangers';
-  const drawn = (lure >= 2 ? ' Word of your full stores has drawn more of them.' : '') + allyNote;
+  const drawn = (state.weather === 'fog' ? ' They came in the fog.' : '') + (lure >= 2 ? ' Word of your full stores has drawn more of them.' : '') + allyNote;
   urgent.unshift(warned
     ? `Raiders are coming! Scouts spotted about ${raiders} ${who} heading for the camp.${drawn} Decide how to respond before anything else.`
     : `Raiders are at the edge of camp! About ${raiders} ${who} caught you by surprise.${drawn} Decide how to respond before anything else.`);
+}
+
+// Whether raiders are seen coming: from the watchtower or the raider trail,
+// by two guards on watch, or by scouts who happen to be out. In fog only the
+// guards on the paths, and scouts half as often, see them.
+export function raidSpotted(state, scoutsOut, { trail = true } = {}) {
+  const fog = state.weather === 'fog';
+  if (!fog && (state.buildings.watchtower > 0 || (trail && isKnown(state, 'raiderTrail')))) return true;
+  if (guardsOnWatch(state) >= 2) return true;
+  return scoutsOut && chance(state, fog ? 0.3 : 0.6);
 }
 
 export function guardsOnWatch(state) {

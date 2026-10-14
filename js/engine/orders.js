@@ -67,7 +67,7 @@ export function applyStandingOrders(state) {
   // Raids first, so anyone wounded is then handled by the healer's orders.
   const ev = state.pendingEvent;
   if (ev && ev.type === 'raid' && orders.raidPolicy !== 'ask') {
-    const able = living(state).filter(canFight);
+    const able = living(state).filter(canFight).filter((p) => !ev.eligible || ev.eligible.includes(p.id));
     const odds = raidOdds(state, able, ev.warned, ev.raiders);
     let plan = null;
     if (orders.raidPolicy === 'fightIfLikely' && odds.chance >= 0.75) plan = 'fight';
@@ -76,7 +76,7 @@ export function applyStandingOrders(state) {
       const result = resolveRaidPlan(state, plan, able.map((p) => p.id));
       if (!result.error) {
         const chief = advisorPerson(state, 'warChief');
-        urgent.push(`${chief ? chief.name : 'Your war chief'} followed your standing orders and chose to ${plan === 'fight' ? `fight with ${able.length} defenders` : 'hide'}.`);
+        urgent.push(`${chief ? chief.name : 'Your war chief'} followed your standing orders and chose to ${plan === 'fight' ? `fight with ${able.length} defenders` : ev.ambush ? 'scatter' : 'hide'}.`);
         urgent.push(...result.lines);
       }
     } else {

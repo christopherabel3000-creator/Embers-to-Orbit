@@ -19,26 +19,29 @@ export function deployScreen(view) {
   const attack = view.side === 'attack';
   const chief = advisorPerson(state, 'warChief');
   const chiefName = chief ? chief.name : 'your war chief';
-  const odds = raidOdds(state, living(state).filter(canFight), ev.warned, ev.raiders);
+  const odds = raidOdds(state, living(state).filter(canFight).filter((p) => !ev.eligible || ev.eligible.includes(p.id)), ev.warned, ev.raiders);
   const total = view.enemyTotal;
   const sally = Boolean(ev.sally);
+  const ambush = Boolean(ev.ambush);
   let html = attack
     ? `<h1>March on Skarn hold</h1>
       <p>About ${total} Skarn warriors hold the walls. Choose who goes and where they stand.</p>`
     : sally ? `<h1>Sally out</h1>
       <p>About ${total} Skarn besiege ${esc(state.campName)}. Choose who goes out through the gate to fight them in the open, and where they stand.</p>`
+    : ambush ? `<h1>Ambush!</h1>
+      <p class="urgent">About ${total} Skarn have fallen on your ${esc(view.ambushWorkers)} at ${esc(view.ambushPlace)}. Only those working there can fight. Stand and fight, or scatter for home.</p>`
     : `<h1>Raiders!</h1>
       <p class="urgent">${ev.warned
-        ? `Scouts spotted ${total} ${esc(view.foe)} heading for ${esc(state.campName)}. There is time to prepare.`
+        ? `Scouts spotted ${view.numbersSeen ? '' : 'about '}${total} ${esc(view.foe)} heading for ${esc(state.campName)}. There is time to prepare.`
         : `About ${total} ${esc(view.foe)} are at the edge of ${esc(state.campName)}, and they caught you by surprise.`}</p>`;
   html += `<h2>The enemy</h2><ul>${view.enemyLines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
-  if (view.terrain.length) html += `<h2>The ground</h2><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
+  if (view.terrain.length) html += `<h2>The ground and the weather</h2><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
   html += `<h2>War chief's advice</h2>
-    <p>${chief ? `${esc(chief.name)} says: ` : ''}if everyone able fights, we are ${odds.word}. Best formation: ${esc(FORMATIONS[view.suggestedFormation].toLowerCase())}.</p>
+    <p>${chief ? `${esc(chief.name)} says: ` : ''}if ${ambush ? 'everyone there' : 'everyone able'} fights, we are ${odds.word}. Best formation: ${esc(FORMATIONS[view.suggestedFormation].toLowerCase())}.</p>
     <h2>Quick choices</h2>
     <div class="actions">
       <button type="button" class="primary" data-action="battleAuto">Let ${esc(chiefName)} command the battle</button>
-      <button type="button" data-action="${attack || sally ? 'callOff' : 'hide'}">${attack ? 'Call off the attack' : sally ? 'Stay behind the walls after all' : 'Hide what you can and flee into the trees. Nobody gets hurt, but the raiders take some food and wood.'}</button>
+      <button type="button" data-action="${attack || sally ? 'callOff' : 'hide'}">${attack ? 'Call off the attack' : sally ? 'Stay behind the walls after all' : ambush ? 'Scatter and run for home. Some may be hurt on the way, and work there brings in half this season.' : 'Hide what you can and flee into the trees. Nobody gets hurt, but the raiders take some food and wood.'}</button>
     </div>
     <h2>Command it yourself</h2>
     <form id="deployForm">
@@ -82,7 +85,7 @@ export function battleRoundScreen(view) {
       <p>${z.people.length ? `Yours: ${esc(listWords(z.people))}, ${esc(z.odds)}.` : 'None of yours.'} Enemy: ${z.enemy || 'none'}${z.enemyArchers ? `, ${z.enemyArchers === 1 ? '1 of them an archer' : `${z.enemyArchers} of them archers`}` : ''}.${z.breached ? ' The defenses are broken here.' : ''}</p>`;
   }
   html += `<h3>Reserve</h3><p>${view.reserve.length ? esc(listWords(view.reserve)) : 'Empty.'}</p>`;
-  if (view.terrain.length) html += `<details><summary>The ground</summary><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
+  if (view.terrain.length) html += `<details><summary>The ground and the weather</summary><ul>${view.terrain.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>`;
   html += `<h2>War chief's advice</h2><p>${esc(chiefName)} suggests: ${esc(view.adviceText || 'hold steady')}.</p>
     <form id="ordersForm"><fieldset><legend>Orders for this round</legend>`;
   for (const z of view.zones.filter((x) => x.orders.length)) {

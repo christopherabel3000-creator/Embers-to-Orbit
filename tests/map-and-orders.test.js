@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, migrate, isKnown, seasonIndex } from '../js/engine/state.js';
 import { expectedFood } from '../js/engine/rules.js';
@@ -58,7 +59,7 @@ test('version 1 saves are upgraded', () => {
   delete old.orders;
   old.discoveries = ['huntingGrounds', 'raiderTracks'];
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 13);
+  assert.equal(s.version, SAVE_VERSION);
   assert.deepEqual(s.conditions, []);
   assert.ok(isKnown(s, 'deerTrails') && isKnown(s, 'raiderTrail'));
   assert.equal(s.orders.raidPolicy, 'ask');

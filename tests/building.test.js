@@ -42,10 +42,12 @@ test('unused work is reported when the queue runs dry', () => {
   assert.ok(lines.some((l) => /9 work went unused/.test(l)));
 });
 
-test('removing a building refunds its wood', () => {
-  assert.equal(refundFor({ id: 'leanTo', progress: 0, paid: false }), 0);
-  assert.equal(refundFor({ id: 'leanTo', progress: 0, paid: true }), 15);
-  assert.equal(refundFor({ id: 'leanTo', progress: 3, paid: true }), 7);
+test('removing a building refunds what it cost', () => {
+  assert.equal(refundFor({ id: 'leanTo', progress: 0, paid: false }).wood, 0);
+  assert.equal(refundFor({ id: 'leanTo', progress: 0, paid: true }).wood, 15);
+  assert.equal(refundFor({ id: 'leanTo', progress: 3, paid: true }).wood, 7);
+  assert.deepEqual(refundFor({ id: 'market', progress: 0, paid: true }), { wood: 30, stone: 30, goods: 20 });
+  assert.deepEqual(refundFor({ id: 'market', progress: 5, paid: true }), { wood: 15, stone: 15, goods: 10 });
 });
 
 test('old saves turn their project into the first queued building', async () => {

@@ -7,11 +7,11 @@ import {
   foodNeeded, personById, placeName, knownPlaces, unexploredNeighbors, abundanceWord,
   isKnown, wolvesAt, availableTasks, hasKnowledge, knowledgeBlocker, fieldPlots,
   allowedTasksFor, lifeStage, canFight, metNeighbors, relationWord, storageCapacity, leanTimesNow,
-  inVillage, eraAtLeast,
+  inVillage, eraAtLeast, taskAvailable, knowledgeClosed,
 } from '../engine/state.js';
 import {
   TASKS, TASK_ORDER, BUILDINGS, BUILDING_ORDER, SKILLS, PLACES, KNOWLEDGE, KNOWLEDGE_ORDER, NEIGHBORS, LEAN_TIMES,
-  PRIORITY_AREAS, PRIORITY_LEVELS,
+  PRIORITY_AREAS, PRIORITY_LEVELS, BRANCHES,
 } from '../engine/data.js';
 import { getAdvice, ADVISOR_ROLES, advisorPerson, raidOdds } from '../engine/advisors.js';
 import { expectedWork, siteFor, studyPoints, expectedHarvest } from '../engine/rules.js';
@@ -24,7 +24,7 @@ import {
   battleView, formationPlan, FORMATIONS, ORDER_NAMES,
 } from '../engine/battle.js';
 import {
-  remainingQueueWork, queueBlocker, queuedCount, refundFor,
+  remainingQueueWork, queueBlocker, queuedCount, refundFor, refundWords, costWords, shortfall,
 } from '../engine/building.js';
 import { seasonsToNextLevel } from '../engine/skills.js';
 import {
@@ -112,7 +112,10 @@ function updateStatus() {
   }
   const people = living(state).length;
   $status.textContent = `${state.campName}. ${dateLabel(state)}. ${plural(people, 'person', 'people')}, `
-    + `food ${state.resources.food} of ${storageCapacity(state)}, wood ${state.resources.wood}, shelter for ${shelterCapacity(state)}.`;
+    + `food ${state.resources.food} of ${storageCapacity(state)}, wood ${state.resources.wood}, `
+    + `${taskAvailable(state, 'quarry') || state.resources.stone ? `stone ${state.resources.stone || 0}, ` : ''}`
+    + `${taskAvailable(state, 'craft') || state.resources.goods ? `goods ${state.resources.goods || 0}, ` : ''}`
+    + `shelter for ${shelterCapacity(state)}.`;
 }
 
 function show(name, { focus = true } = {}) {
@@ -243,6 +246,11 @@ function storesSection() {
   const seasons = need ? Math.floor(food / need) : 0;
   let html = `<h2 id="storesHeading">Stores</h2>
     <p>Food: ${food}, with room for ${room}. That feeds everyone for ${plural(seasons, 'season', 'seasons')}. Food beyond the room rots quickly; each storehouse adds room for 150.</p>`;
+  const extras = [];
+  if (taskAvailable(state, 'quarry') || state.resources.stone) extras.push(`Stone: ${state.resources.stone || 0}, cut by quarriers.`);
+  if (taskAvailable(state, 'craft') || state.resources.goods) extras.push(`Goods: ${state.resources.goods || 0}, made by crafters, for trade, fine gifts, and grand buildings.`);
+  if (state.buildings.pasture) extras.push(`Pastures give ${state.buildings.pasture * 6} food every season.`);
+  if (extras.length) html += `<p>${esc(extras.join(' '))}</p>`;
   const lean = leanTimesNow(state);
   if (lean.length) html += `<ul>${lean.map((c) => `<li>${esc(LEAN_TIMES[c.id].name)}: ${esc(LEAN_TIMES[c.id].effect)}</li>`).join('')}</ul>`;
   const cost = feastCost(state);
@@ -288,6 +296,7 @@ function workSitesSentence() {
   return `Hunters work at ${placeName(state, siteFor(state, 'hunt'))}. `
     + `Foragers work at ${placeName(state, siteFor(state, 'forage'))}. `
     + `Woodcutters work at ${placeName(state, siteFor(state, 'wood'))}. `
+    + (taskAvailable(state, 'quarry') ? `Quarriers work at ${placeName(state, siteFor(state, 'quarry'))}. ` : '')
     + `Scouts explore beyond ${placeName(state, siteFor(state, 'scout'))}.`;
 }
 
@@ -384,6 +393,7 @@ const SITE_LABELS = {
   hunt: 'Hunters work at',
   forage: 'Foragers work at',
   wood: 'Woodcutters work at',
+  quarry: 'Quarriers work at',
 };
 
 function siteOptionText(id, task) {
@@ -394,8 +404,9 @@ function siteOptionText(id, task) {
   }
   const bits = [];
   const b = PLACES[id].bonus[task] || 0;
-  if (b) bits.push(`plus ${b} ${task === 'wood' ? 'wood' : 'food'} per worker`);
-  if (task !== 'wood') bits.push(`${task === 'hunt' ? 'game' : 'wild food'} ${abundanceWord(state.places[id].abundance[task])}`);
+  const unit = { wood: 'wood', quarry: 'stone' }[task] || 'food';
+  if (b) bits.push(`${b > 0 ? 'plus' : 'minus'} ${Math.abs(b)} ${unit} per worker`);
+  if (task === 'hunt' || task === 'forage') bits.push(`${task === 'hunt' ? 'game' : 'wild food'} ${abundanceWord(state.places[id].abundance[task])}`);
   if (PLACES[id].distance >= 3) bits.push('far');
   if (task === 'hunt' && wolvesAt(state, id)) bits.push('wolves');
   return bits.length ? `${name} (${bits.join(', ')})` : name;
@@ -407,7 +418,7 @@ function mapScreen() {
     <p>You know ${plural(known.length, 'place', 'places')}, counting your camp, ${esc(state.campName)}. Scouts find more by exploring the unexplored paths.</p>
     <h2>Work sites</h2>
     <p>Everyone doing the same task works at the same place. Hunting and foraging wear a place down over time; it recovers when left alone.</p>`;
-  for (const task of ['hunt', 'forage', 'wood']) {
+  for (const task of ['hunt', 'forage', 'wood', ...(taskAvailable(state, 'quarry') ? ['quarry'] : [])]) {
     const options = known.filter((id) => PLACES[id].tasks.includes(task));
     html += `<p><label for="site-${task}">${SITE_LABELS[task]}</label>
       <select id="site-${task}" data-site="${task}">${options.map((id) => `<option value="${id}"${siteFor(state, task) === id ? ' selected' : ''}>${esc(siteOptionText(id, task))}</option>`).join('')}</select></p>`;
@@ -446,7 +457,7 @@ function knowledgeScreen() {
   const studiers = living(state).filter((p) => p.task === 'study');
   const rate = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p, state), 0));
   let html = `<h1>Knowledge</h1>
-    <p>People set to Study on the People screen make discoveries. ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season. Points left over from one discovery go straight into the next one in the queue.</p>
+    <p>${inVillage(state) ? 'Scholars make discoveries; the learning priority on the Village screen sets how many study.' : 'People set to Study on the People screen make discoveries.'} ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season. Points left over from one discovery go straight into the next one in the queue.</p>
     <h2>Current study</h2>`;
   if (k.current) {
     const item = KNOWLEDGE[k.current];
@@ -468,16 +479,22 @@ function knowledgeScreen() {
   }
   const planned = (id) => k.current === id || k.queue.includes(id);
   const open = KNOWLEDGE_ORDER.filter((id) => !knowledgeBlocker(state, id) && !planned(id));
-  const locked = KNOWLEDGE_ORDER.filter((id) => !hasKnowledge(state, id) && knowledgeBlocker(state, id) && !planned(id));
+  const closed = KNOWLEDGE_ORDER.filter((id) => !hasKnowledge(state, id) && knowledgeClosed(state, id));
+  const locked = KNOWLEDGE_ORDER.filter((id) => !hasKnowledge(state, id) && knowledgeBlocker(state, id) && !knowledgeClosed(state, id) && !planned(id));
   const known = KNOWLEDGE_ORDER.filter((id) => hasKnowledge(state, id));
+  // Discoveries grouped by branch of the research tree, each under its own heading.
+  const byBranch = (ids, card) => Object.entries(BRANCHES)
+    .map(([branch, title]) => [title, ids.filter((id) => KNOWLEDGE[id].branch === branch)])
+    .filter(([, list]) => list.length)
+    .map(([title, list]) => `<h3>${esc(title)}</h3><ul class="plain">${list.map(card).join('')}</ul>`)
+    .join('');
   html += '<h2>Ready to study</h2>';
   if (!open.length) html += '<p>Nothing else right now.</p>';
-  html += '<ul class="plain">';
-  for (const id of open) {
+  html += byBranch(open, (id) => {
     const item = KNOWLEDGE[id];
     const done = Math.floor(k.progress[id] || 0);
     const name = item.name.toLowerCase();
-    html += `<li class="card"><h3>${esc(item.name)}</h3>
+    return `<li class="card"><h4>${esc(item.name)}</h4>
       <p>${esc(item.effect)}</p>
       <p>Costs ${item.cost} points.${done ? ` ${done} points already done.` : ''}</p>
       <div class="actions">
@@ -485,16 +502,19 @@ function knowledgeScreen() {
         <button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(name)} to the queue</button>
       </div>
     </li>`;
-  }
-  html += '</ul>';
+  });
   if (locked.length) {
-    html += `<h2>Not yet possible</h2><ul class="plain">${locked.map((id) => `<li class="card"><h3>${esc(KNOWLEDGE[id].name)}</h3>
+    html += '<h2>Not yet possible</h2>';
+    html += byBranch(locked, (id) => `<li class="card"><h4>${esc(KNOWLEDGE[id].name)}</h4>
       <p>${esc(KNOWLEDGE[id].effect)}</p>
       <p>${esc(knowledgeBlocker(state, id))} Costs ${KNOWLEDGE[id].cost} points.</p>
-      <p><button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(KNOWLEDGE[id].name.toLowerCase())} to the queue, to start when possible</button></p></li>`).join('')}</ul>`;
+      <p><button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(KNOWLEDGE[id].name.toLowerCase())} to the queue, to start when possible</button></p></li>`);
   }
   if (known.length) {
-    html += `<h2>Known</h2><ul>${known.map((id) => `<li>${esc(KNOWLEDGE[id].name)}: ${esc(KNOWLEDGE[id].effect)}</li>`).join('')}</ul>`;
+    html += `<h2>Known (${known.length})</h2><ul>${known.map((id) => `<li>${esc(KNOWLEDGE[id].name)}, ${esc(BRANCHES[KNOWLEDGE[id].branch].toLowerCase())}: ${esc(KNOWLEDGE[id].effect)}</li>`).join('')}</ul>`;
+  }
+  if (closed.length) {
+    html += `<h2>Closed off by your choices</h2><ul>${closed.map((id) => `<li>${esc(KNOWLEDGE[id].name)}: ${esc(knowledgeClosed(state, id))}</li>`).join('')}</ul>`;
   }
   return html;
 }
@@ -536,6 +556,12 @@ function neighborsScreen() {
   return html;
 }
 
+// "15 wood and 8 work", or "30 wood, 30 stone and 20 goods, and 20 work".
+function costAndWork(id) {
+  const words = costWords(id);
+  return `${words}${words.includes(' and ') ? ',' : ''} and ${BUILDINGS[id].work} work`;
+}
+
 function buildScreen() {
   const people = living(state);
   const builders = people.filter((p) => p.task === 'build');
@@ -543,7 +569,7 @@ function buildScreen() {
   const remaining = Math.ceil(remainingQueueWork(state));
   const q = state.buildQueue;
   let html = `<h1>Build</h1>
-    <p>Wood: ${state.resources.wood}. Shelter for ${shelterCapacity(state)}, and ${plural(people.length, 'person', 'people')} in camp.</p>
+    <p>Wood: ${state.resources.wood}.${taskAvailable(state, 'quarry') || state.resources.stone ? ` Stone: ${state.resources.stone || 0}.` : ''}${taskAvailable(state, 'craft') || state.resources.goods ? ` Goods: ${state.resources.goods || 0}.` : ''} Shelter for ${shelterCapacity(state)}, and ${plural(people.length, 'person', 'people')} in ${inVillage(state) ? 'the village' : 'camp'}.</p>
     <p>${plural(builders.length, 'builder', 'builders')}, about ${workRate} work per season.${q.length ? ` The queue needs ${remaining} more work${workRate ? `: about ${plural(Math.max(1, Math.ceil(remaining / workRate)), 'season', 'seasons')}` : ''}.` : ''} Work left over from one building goes straight into the next.</p>
     <h2 id="queueHeading">Build queue (${q.length})</h2>`;
   if (!q.length) {
@@ -555,12 +581,12 @@ function buildScreen() {
       const name = b.name.toLowerCase();
       const status = item.paid
         ? `${Math.floor(item.progress)} of ${b.work} work done.`
-        : `Not started. Needs ${b.cost} wood and ${b.work} work.${state.resources.wood < b.cost && i === 0 ? ' Not enough wood yet.' : ''}`;
+        : `Not started. Needs ${costAndWork(item.id)}.${i === 0 && shortfall(state, item.id).length ? ` Still short of ${shortfall(state, item.id).map((x) => `${x.short} ${x.kind}`).join(' and ')}.` : ''}`;
       html += `<li class="card"><p id="queue-item-${i}" tabindex="-1"><strong>${i + 1}. ${esc(b.name)}.</strong> ${esc(status)}</p>
         <div class="actions">
           ${i > 0 ? `<button type="button" data-action="moveBuilding" data-index="${i}" data-by="-1">Move ${esc(name)} up</button>` : ''}
           ${i < q.length - 1 ? `<button type="button" data-action="moveBuilding" data-index="${i}" data-by="1">Move ${esc(name)} down</button>` : ''}
-          <button type="button" data-action="removeBuilding" data-index="${i}">Remove ${esc(name)}${item.paid ? `, recovering ${refundFor(item)} wood` : ''}</button>
+          <button type="button" data-action="removeBuilding" data-index="${i}">Remove ${esc(name)}${item.paid && refundWords(refundFor(item)) ? `, recovering ${refundWords(refundFor(item))}` : ''}</button>
         </div></li>`;
     });
     html += '</ol>';
@@ -575,7 +601,7 @@ function buildScreen() {
     const why = queueBlocker(state, id);
     html += `<li class="card"><h3>${esc(b.name)}</h3>
       <p>${esc(b.description)}</p>
-      <p>${status} Costs ${b.cost} wood and ${b.work} work.</p>
+      <p>${status} Costs ${costAndWork(id)}.</p>
       ${why ? (!b.max && (owned || queuedCount(state, id)) ? '' : `<p>${esc(why)}</p>`) : `<p><button type="button" data-action="queueBuilding" data-building="${id}">Add ${esc(b.name.toLowerCase())} to the queue</button></p>`}
       ${!b.repeatable && queuedCount(state, id) ? '<p>In the build queue.</p>' : ''}
     </li>`;
@@ -768,6 +794,7 @@ function menuScreen() {
     <p>Your people grow traditions from what they do again and again: win battles, hunt, bring in harvests, welcome strangers, give gifts, trade, study, build, hold feasts, or slip away from raiders. Each tradition gives a lasting benefit. The Chronicle screen shows the traditions you have and the ones taking shape. What you do also earns a reputation, and each neighboring people likes some parts of it and dislikes others, which slowly shifts how they feel about you.</p>
     <p>Raiders may attack. Scouts and a watchtower help you see them coming, and a palisade helps you hold them off. You can let your war chief fight, hide, or command the battle yourself. The field has a left flank, a center, and a right flank, plus a reserve. Place your fighters, then each round give every group an order: hold (safer, especially behind a palisade or in the treeline), attack (hits harder, takes more harm), swing round to hit the enemy center, or fall back to the reserve. The reserve can join any zone. Any zone you leave empty lets raiders reach the stores. Groups that lose too much strength break and flee; the enemy gives up when enough of them have fallen. You can also march on Skarn hold from the Neighbors screen: break through two zones they leave empty, or beat them down, to win.</p>
     <p>Once your camp has 16 people, a storehouse, a palisade, and farming, it can become a village, whenever you choose. In a village your advisors form a council that sets everyone's work each season. You guide it with priorities on the Village screen, and keep running the build and study queues, trade, feasts, and the food reserve. Villages can train guards, build huts, and draw settlers when well fed and roomy.</p>
+    <p>A village can make the discoveries of the Settlement era, in five branches on the Knowledge screen. Stonecutting lets quarriers cut stone for granaries, a stone wall, and other strong buildings; the Grey cliffs beyond the storm deadfall are the best place for it. Weaving lets crafters make goods, which the Tellani will trade for, and which make fine gifts. Some discoveries are choices: a council of elders or a chieftain, but not both.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }

@@ -34,6 +34,11 @@ export function applyStudy(state, points) {
     if (k.progress[k.current] >= item.cost - 1e-9) {
       k.learned.push(k.current);
       recordDeed(state, 'discoveries');
+      // A choice closes off its alternatives for good.
+      for (const other of item.excludes || []) {
+        k.queue = k.queue.filter((id) => id !== other);
+        delete k.progress[other];
+      }
       delete k.progress[k.current];
       k.current = null;
       out.urgent.push(`Discovery: ${item.name}. ${item.effect}`);

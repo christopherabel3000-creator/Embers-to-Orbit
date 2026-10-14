@@ -11,6 +11,7 @@ import {
   knowledgeBlocker, fieldPlots, metNeighbors, storageCapacity, hasCondition, leanTimesNow, inVillage,
 } from './state.js';
 import { feastBlocker, feastCost } from './stores.js';
+import { shortfall, costWords } from './building.js';
 import { HIGH_SPIRITS } from './rules.js';
 import {
   expectedFood, expectedWood, defenseStrength, raidAttackStrength, siteFor,
@@ -143,9 +144,12 @@ export function getAdvice(state) {
   } else if (next && !next.paid) {
     // The fires take their wood first; building only gets what is left.
     const fires = woodNeededForWarmth(s, people.length, hasCondition(state, 'hardWinter'));
-    const spare = state.resources.wood - fires;
-    if (spare < BUILDINGS[next.id].cost) {
-      add('steward', 'warning', `Next in the build queue is the ${BUILDINGS[next.id].name.toLowerCase()}, which needs ${BUILDINGS[next.id].cost} wood to start. We have ${state.resources.wood}${fires ? `, and the fires need ${fires} of it first this season` : ''}.`);
+    const short = shortfall(state, next.id, fires);
+    if (short.length) {
+      const have = short.map((x) => `${state.resources[x.kind] || 0} ${x.kind}`).join(' and ');
+      const firesNote = fires && short.some((x) => x.kind === 'wood') ? `, and the fires need ${fires} wood first this season` : '';
+      const fix = short.some((x) => x.kind === 'stone') && village ? ' The council sends quarriers when stone is needed.' : '';
+      add('steward', 'warning', `Next in the build queue is the ${BUILDINGS[next.id].name.toLowerCase()}, which needs ${costWords(next.id)} to start. We have ${have}${firesNote}.${fix}`);
     }
   }
 

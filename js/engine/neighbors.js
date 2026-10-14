@@ -69,8 +69,19 @@ export function raidModifier(state) {
 function tradeAmount(state, id, kind) {
   const base = NEIGHBORS[id].trades[kind];
   const ways = hasTradition(state, 'trading') ? 3 : 0;
-  return Math.max(8, Math.round(base + state.neighbors[id].relation / 10)) + ways;
+  const amount = Math.max(8, Math.round(base + state.neighbors[id].relation / 10)) + ways;
+  return state.buildings.market > 0 ? Math.round(amount * 1.5) : amount; // A market day draws better deals.
 }
+
+// Who will take your goods: the Tellani once you can weave; everyone who
+// trades at all once you have a market.
+function buysGoods(state, id) {
+  if (!hasKnowledge(state, 'weaving')) return false;
+  return id === 'tellani' || state.buildings.market > 0;
+}
+
+export const GOODS_PER_TRADE = 10;
+export const GOODS_PER_GIFT = 5;
 
 // Everything the player could try with a neighbor this season. Each option
 // says whether it is possible right now, and if not, why not.
@@ -91,6 +102,17 @@ export function diplomacyOptions(state, id) {
   if (def.trades.foodForWood) {
     const get = tradeAmount(state, id, 'foodForWood');
     add('foodForWood', `Trade 20 food for ${get} wood`, r.food >= 20 && n.relation >= -10, n.relation < -10 ? 'They will not trade until relations improve.' : 'You need 20 food.');
+  }
+  if (def.trades.goodsForFood && buysGoods(state, id)) {
+    const get = tradeAmount(state, id, 'goodsForFood');
+    add('goodsForFood', `Trade ${GOODS_PER_TRADE} goods for ${get} food`, (r.goods || 0) >= GOODS_PER_TRADE && n.relation >= -10, n.relation < -10 ? 'They will not trade until relations improve.' : `You need ${GOODS_PER_TRADE} goods.`);
+  }
+  if (def.trades.goodsForWood && buysGoods(state, id)) {
+    const get = tradeAmount(state, id, 'goodsForWood');
+    add('goodsForWood', `Trade ${GOODS_PER_TRADE} goods for ${get} wood`, (r.goods || 0) >= GOODS_PER_TRADE && n.relation >= -10, n.relation < -10 ? 'They will not trade until relations improve.' : `You need ${GOODS_PER_TRADE} goods.`);
+  }
+  if (hasKnowledge(state, 'weaving')) {
+    add('giftGoods', `Send a gift of ${GOODS_PER_GIFT} fine goods`, (r.goods || 0) >= GOODS_PER_GIFT && !refuses, refuses ? 'They will not receive your envoys.' : `You need ${GOODS_PER_GIFT} goods.`);
   }
   if (id === 'velari' && !hasKnowledge(state, 'farming')) {
     add('learnFarming', 'Ask them to teach your people farming', n.relation >= 40, 'They would only share their ways with close friends. Relations must be at least 40.');
@@ -128,6 +150,21 @@ export function applyDiplomacy(state, id, key) {
       changeRelation(state, id, giftValue(state, id));
       recordDeed(state, 'gifts');
       return { message: `Your envoys carried 10 wood to ${them}. They were pleased.` };
+    case 'giftGoods':
+      r.goods -= GOODS_PER_GIFT;
+      changeRelation(state, id, giftValue(state, id) * 2);
+      recordDeed(state, 'gifts');
+      return { message: `Your envoys carried ${GOODS_PER_GIFT} fine goods to ${them}. They were delighted.` };
+    case 'goodsForFood':
+    case 'goodsForWood': {
+      const get = tradeAmount(state, id, key);
+      const what = key === 'goodsForFood' ? 'food' : 'wood';
+      r.goods -= GOODS_PER_TRADE;
+      r[what] += get;
+      changeRelation(state, id, 2);
+      recordDeed(state, 'trades');
+      return { message: `You traded ${GOODS_PER_TRADE} goods to ${them} for ${get} ${what}.` };
+    }
     case 'woodForFood': {
       const get = tradeAmount(state, id, 'woodForFood');
       r.wood -= 20;

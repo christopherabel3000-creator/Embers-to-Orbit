@@ -267,7 +267,7 @@ export const EVENTS = {
 
   quarrel: {
     choice: true,
-    weight: (state) => (living(state).filter((p) => p.age >= 16).length >= 4 ? 0.9 : 0),
+    weight: (state) => (living(state).filter((p) => p.age >= 16).length >= 4 ? (state.buildings.meetingHall > 0 ? 0.35 : 0.9) : 0),
     start(state) {
       const [a, b] = shuffle(state, living(state).filter((p) => p.age >= 16));
       return { a: a.id, b: b.id, reason: pick(state, QUARREL_REASONS) };

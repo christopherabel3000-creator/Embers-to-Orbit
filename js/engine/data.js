@@ -14,11 +14,13 @@ export const TASKS = {
   heal: { name: 'Tend the hurt', skill: 'healing', description: 'Treat the injured and sick.' },
   study: { name: 'Study', skill: 'learning', description: 'Experiment and share what people know, to make new discoveries.' },
   farm: { name: 'Farm', skill: 'foraging', description: 'Plant in spring, tend in summer, harvest in autumn. Needs fields. Nothing to do in winter.', requires: 'farming' },
+  quarry: { name: 'Quarry', skill: 'building', description: 'Cut stone for the strongest buildings.', requires: 'stonecutting' },
+  craft: { name: 'Craft', skill: 'building', description: 'Make goods: cloth, baskets, tools, and pots, for trade, gifts, and fine buildings.', requires: 'weaving' },
   guard: { name: 'Guard', skill: 'hunting', description: 'Train with weapons and watch the paths. Guards fight harder, spot raiders early, and keep some away.', era: 'village' },
   rest: { name: 'Rest', skill: null, description: 'Recover health and spirits.' },
 };
 
-export const TASK_ORDER = ['hunt', 'forage', 'farm', 'wood', 'build', 'scout', 'guard', 'heal', 'study', 'rest'];
+export const TASK_ORDER = ['hunt', 'forage', 'farm', 'wood', 'quarry', 'craft', 'build', 'scout', 'guard', 'heal', 'study', 'rest'];
 
 export const BUILDINGS = {
   leanTo: {
@@ -35,6 +37,64 @@ export const BUILDINGS = {
     repeatable: true,
     era: 'village',
     description: 'A sturdy hut of logs and thatch that shelters 8 people.',
+  },
+  granary: {
+    name: 'Granary',
+    cost: 20,
+    stone: 40,
+    work: 20,
+    repeatable: true,
+    max: 2,
+    requires: 'masonry',
+    description: 'A raised stone granary with room to store 300 more food.',
+  },
+  pasture: {
+    name: 'Pasture',
+    cost: 30,
+    work: 12,
+    repeatable: true,
+    max: 3,
+    requires: 'husbandry',
+    description: 'A fenced pasture for goats and cattle. Gives 6 food every season, even in winter.',
+  },
+  workshop: {
+    name: 'Workshop',
+    cost: 30,
+    stone: 15,
+    work: 16,
+    repeatable: false,
+    requires: 'weaving',
+    description: 'Benches, looms, and tools in one place. Every crafter makes 1 more goods each season.',
+  },
+  market: {
+    name: 'Market',
+    cost: 30,
+    stone: 30,
+    goods: 20,
+    work: 20,
+    repeatable: false,
+    requires: 'markets',
+    description: 'A market square where neighbors come to trade. Every trade brings half again as much, and all your neighbors will buy goods.',
+  },
+  meetingHall: {
+    name: 'Meeting hall',
+    cost: 40,
+    stone: 40,
+    goods: 20,
+    work: 24,
+    repeatable: false,
+    requires: 'oralLaw',
+    description: 'A great hall where the village gathers and the council meets. Spirits settle higher, and quarrels are rarer.',
+  },
+  stoneWall: {
+    name: 'Stone wall',
+    cost: 20,
+    stone: 80,
+    work: 30,
+    repeatable: false,
+    requires: 'masonry',
+    needsBuilding: 'palisade',
+    description: 'Stone raised behind the palisade. Defenders who hold take even less harm and strike harder.',
   },
   storehouse: {
     name: 'Storehouse',
@@ -75,7 +135,7 @@ export const BUILDINGS = {
   },
 };
 
-export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'storehouse', 'healersHut', 'watchtower', 'palisade'];
+export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'pasture', 'storehouse', 'granary', 'healersHut', 'workshop', 'market', 'meetingHall', 'watchtower', 'palisade', 'stoneWall'];
 
 export const PLOTS_PER_FIELD = 6;
 
@@ -85,6 +145,7 @@ export const STARTING_SHELTER = 4;
 // How much food the camp can store. Food beyond this rots quickly.
 export const BASE_STORAGE = 100; // Baskets, pits, and smoking racks.
 export const STORAGE_PER_STOREHOUSE = 150;
+export const STORAGE_PER_GRANARY = 300;
 export const OVERFLOW_ROT = 0.5; // Share of the food beyond the room that rots each season.
 
 // Lean times: conditions that make a season harder, so a reserve of food
@@ -141,13 +202,13 @@ export const WANDERERS = [
 export const PLACES = {
   camp: {
     name: 'Camp', distance: 0, neighbors: ['riverbank', 'oakWoods', 'meadow'],
-    tasks: ['hunt', 'forage', 'wood'], bonus: {},
-    description: 'Your camp, in a clearing beside the river.',
+    tasks: ['hunt', 'forage', 'wood', 'quarry'], bonus: { quarry: -1 },
+    description: 'Your camp, in a clearing beside the river. Loose stones lie about.',
   },
   riverbank: {
     name: 'Riverbank', distance: 1, neighbors: ['camp', 'berryThicket'],
-    tasks: ['hunt', 'forage'], bonus: { hunt: 1, forage: 1 },
-    description: 'Reeds, shallows, and waterfowl. Some hunting and foraging.',
+    tasks: ['hunt', 'forage', 'quarry'], bonus: { hunt: 1, forage: 1 },
+    description: 'Reeds, shallows, and waterfowl. Some hunting and foraging, and river stones for the taking.',
   },
   oakWoods: {
     name: 'Oak woods', distance: 1, neighbors: ['camp', 'deerTrails', 'deadfall'],
@@ -167,10 +228,16 @@ export const PLACES = {
     description: 'Game trails where deer pass in numbers. The best hunting nearby.',
   },
   deadfall: {
-    name: 'Storm deadfall', distance: 2, neighbors: ['oakWoods'],
+    name: 'Storm deadfall', distance: 2, neighbors: ['oakWoods', 'greyCliffs'],
     tasks: ['wood'], bonus: { wood: 3 },
     found: 'a stretch of storm-felled trees. Woodcutters will gather far more there.',
     description: 'A swath of trees knocked flat by an old storm. Easy wood.',
+  },
+  greyCliffs: {
+    name: 'Grey cliffs', distance: 3, neighbors: ['deadfall'],
+    tasks: ['quarry'], bonus: { quarry: 3 },
+    found: 'grey cliffs of good, splitting stone. Quarriers will cut far more there.',
+    description: 'Sheer grey rock above the deadfall, easy to split into blocks.',
   },
   berryThicket: {
     name: 'Berry thicket', distance: 2, neighbors: ['riverbank', 'beaverPonds'],
@@ -237,44 +304,147 @@ export const MILESTONE_POPULATION = 16;
 // need earlier discoveries (after) and a known place (place).
 export const KNOWLEDGE = {
   spears: {
+    branch: 'war',
     name: 'Fire-hardened spears',
     cost: 15,
     effect: 'Hunters bring back 1 more food each, and defenders fight harder against raiders.',
   },
   smoking: {
+    branch: 'food',
     name: 'Smoking and drying',
     cost: 15,
     effect: 'Smoked meat and dried berries keep longer. Food spoils a third less.',
   },
   stoneTools: {
+    branch: 'building',
     name: 'Stone tools',
     cost: 20,
     effect: 'Builders get 1 more work done each, and woodcutters gather 1 more wood each.',
   },
   clothing: {
+    branch: 'crafts',
     name: 'Warm clothing',
     cost: 15,
     effect: 'Furs and hides stitched into warm clothes. Cold and exposure do much less harm.',
   },
   medicine: {
+    branch: 'society',
     name: 'Herbal medicine',
     cost: 20,
     place: 'herbHillside',
     effect: 'Healing is a fifth more effective, and the sick recover from fever faster.',
   },
   pottery: {
+    branch: 'crafts',
     name: 'Pottery',
     cost: 25,
     after: ['smoking'],
     effect: 'Sealed clay jars keep out damp and mice. Food spoils half as much again, and mice can no longer get into the stores.',
   },
   farming: {
+    branch: 'food',
     name: 'Farming',
     cost: 35,
     after: ['stoneTools'],
     place: 'meadow',
     effect: 'Wild grain from the North meadow can be planted. Unlocks fields and the Farm task. Plant in spring, tend in summer, harvest in autumn.',
   },
+
+  // ----- The Settlement era: discoveries a village can make -----
+  husbandry: {
+    branch: 'food', era: 'village',
+    name: 'Animal husbandry',
+    cost: 50,
+    after: ['farming'],
+    effect: 'Goats and cattle, penned and bred. Unlocks pastures, which give food every season, even in winter.',
+  },
+  irrigation: {
+    branch: 'food', era: 'village',
+    name: 'Irrigation',
+    cost: 60,
+    after: ['farming', 'stonecutting'],
+    effect: 'Stone-lined ditches carry river water to the fields. Every plot yields 2 more food, and drought hurts the harvest half as much.',
+  },
+  stonecutting: {
+    branch: 'building', era: 'village',
+    name: 'Stonecutting',
+    cost: 40,
+    after: ['stoneTools'],
+    effect: 'Splitting and shaping stone. Unlocks the Quarry task. Stone is needed for the strongest buildings.',
+  },
+  masonry: {
+    branch: 'building', era: 'village',
+    name: 'Masonry',
+    cost: 60,
+    after: ['stonecutting'],
+    effect: 'Building with fitted stone. Unlocks granaries and a stone wall.',
+  },
+  weaving: {
+    branch: 'crafts', era: 'village',
+    name: 'Weaving',
+    cost: 40,
+    after: ['clothing'],
+    effect: 'Looms, cloth, and baskets. Unlocks the Craft task and the workshop. The Tellani will trade for your goods.',
+  },
+  kilns: {
+    branch: 'crafts', era: 'village',
+    name: 'Kilns',
+    cost: 50,
+    after: ['weaving', 'pottery'],
+    effect: 'Fired pots and glazed ware. Every crafter makes 1 more goods each season.',
+  },
+  markets: {
+    branch: 'crafts', era: 'village',
+    name: 'Markets',
+    cost: 60,
+    after: ['weaving'],
+    effect: 'Weights, measures, and a market day. Unlocks the market.',
+  },
+  bows: {
+    branch: 'war', era: 'village',
+    name: 'Bows',
+    cost: 40,
+    after: ['spears'],
+    effect: 'Hunters bring back 1 more food each, and every fighter strikes harder.',
+  },
+  drill: {
+    branch: 'war', era: 'village',
+    name: 'Shields and drill',
+    cost: 50,
+    after: ['bows'],
+    effect: 'Guards train together with shields. Guards fight half again as hard, instead of a quarter.',
+  },
+  oralLaw: {
+    branch: 'society', era: 'village',
+    name: 'Oral law',
+    cost: 40,
+    effect: 'The village keeps its customs by speaking them aloud. Unlocks the meeting hall, and a choice of who leads.',
+  },
+  elders: {
+    branch: 'society', era: 'village',
+    name: 'Council of elders',
+    cost: 50,
+    after: ['oralLaw'],
+    excludes: ['chieftain'],
+    effect: 'The wise lead together. Every scholar adds 1 more study point, and settlers come more often. Choosing this closes off a chieftain.',
+  },
+  chieftain: {
+    branch: 'society', era: 'village',
+    name: 'Chieftain',
+    cost: 50,
+    after: ['oralLaw'],
+    excludes: ['elders'],
+    effect: 'One strong leader speaks for all. Guards fight harder still, and raiders come less often. Choosing this closes off a council of elders.',
+  },
+};
+
+// The branches of the research tree.
+export const BRANCHES = {
+  food: 'Food and farming',
+  building: 'Building and stone',
+  crafts: 'Crafts and trade',
+  war: 'War and defense',
+  society: 'Society and healing',
 };
 
 export const KNOWLEDGE_ORDER = Object.keys(KNOWLEDGE);
@@ -312,6 +482,7 @@ export const PRIORITY_AREAS = {
   learning: { name: 'Learning', about: 'How many people study, while a discovery is chosen.' },
   defense: { name: 'Defense', about: 'How many people train and stand watch as guards.' },
   exploration: { name: 'Exploration', about: 'How many people scout, while there is anything left to find.' },
+  crafts: { name: 'Crafts', about: 'How many people make goods, once your people can weave.' },
 };
 export const PRIORITY_LEVELS = ['low', 'normal', 'high'];
 
@@ -345,7 +516,7 @@ export const NEIGHBORS = {
     description: 'Patient hill farmers who have worked their terraces for generations. Slow to trust, but loyal once won over. They have more grain than wood.',
     baseline: 10,
     giftValue: 6, // Relation gained per gift.
-    trades: { woodForFood: 14 }, // Give 20 wood for this much food, before relations.
+    trades: { woodForFood: 14, goodsForFood: 25 }, // Give 20 wood (or 10 goods) for this much food, before relations.
     wants: 'wood',
     offers: 'food',
   },
@@ -357,7 +528,7 @@ export const NEIGHBORS = {
     description: 'Boat people who trade up and down the river. They care about a fair deal more than friendship, and they give the best prices.',
     baseline: 5,
     giftValue: 4,
-    trades: { woodForFood: 16, foodForWood: 22 },
+    trades: { woodForFood: 16, foodForWood: 22, goodsForFood: 30, goodsForWood: 25 },
     wants: 'food and wood',
     offers: 'food and wood',
   },

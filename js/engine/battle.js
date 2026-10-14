@@ -32,8 +32,14 @@ const WOUND_EVERY = 6; // About one wound for this much damage.
 export function fighterStrength(state, p) {
   const spears = hasKnowledge(state, 'spears') ? 1.5 : 0;
   const warriors = hasTradition(state, 'warrior') ? 1.5 : 0;
-  const guard = p.task === 'guard' ? 1.25 : 1; // Trained and ready.
-  return (4 + p.skills.hunting * 1.5 + spears + warriors) * Math.max(0.3, p.health / 100) * guard;
+  const bows = hasKnowledge(state, 'bows') ? 1.5 : 0;
+  return (4 + p.skills.hunting * 1.5 + spears + warriors + bows) * Math.max(0.3, p.health / 100) * guardBonus(state, p);
+}
+
+// Guards are trained and ready; drill and a chieftain make them stronger.
+export function guardBonus(state, p) {
+  if (p.task !== 'guard') return 1;
+  return (hasKnowledge(state, 'drill') ? 1.5 : 1.25) + (hasKnowledge(state, 'chieftain') ? 0.15 : 0);
 }
 
 function groupStrength(state, ids) {
@@ -79,6 +85,7 @@ export function createBattle(state, ev) {
     warned: side === 'attack' ? true : ev.warned,
     terrain: {
       palisade: side === 'defend' && state.buildings.palisade > 0,
+      wall: side === 'defend' && state.buildings.stoneWall > 0,
       treeline: side === 'defend' ? 'left' : null,
       hillfort: side === 'attack',
     },
@@ -228,6 +235,7 @@ function inMultiplier(battle, order, zone, ourSide) {
   if (order === 'fallBack') return 0.5;
   if (order !== 'hold') return 1;
   if (ourSide) {
+    if (battle.terrain.wall) return 0.35;
     if (battle.terrain.palisade) return 0.45;
     if (battle.terrain.treeline === zone) return 0.6;
     return 0.7;
@@ -237,6 +245,7 @@ function inMultiplier(battle, order, zone, ourSide) {
 
 function outMultiplier(order, battle = null, ourSide = false) {
   // Defenders behind a palisade strike from the walls as hard as in the open.
+  if (order === 'hold' && ourSide && battle && battle.terrain.wall) return 1.25;
   if (order === 'hold' && ourSide && battle && battle.terrain.palisade) return 1.1;
   return { hold: 0.8, attack: 1.2, flank: 1.5, fallBack: 0 }[order] ?? 1;
 }
@@ -547,7 +556,8 @@ export function battleView(state) {
   const attack = battle.side === 'attack';
   const foe = battle.from === 'outlaws' ? 'outlaws' : state.neighbors.skarn.known || attack ? 'Skarn' : 'raiders';
   const terrain = [];
-  if (battle.terrain.palisade) terrain.push('Your palisade covers every zone: fighters who hold behind it take far less harm and strike hard from the walls.');
+  if (battle.terrain.wall) terrain.push('Your stone wall covers every zone: fighters who hold behind it take very little harm and strike hard from the top.');
+  else if (battle.terrain.palisade) terrain.push('Your palisade covers every zone: fighters who hold behind it take far less harm and strike hard from the walls.');
   if (battle.terrain.treeline) terrain.push(`The treeline covers your ${ZONE_NAMES[battle.terrain.treeline]}: fighters holding there take less harm.`);
   if (battle.terrain.hillfort) terrain.push('The Skarn hold their walls on a rocky hill: they take far less harm while they hold. Attack where they are thin; pushing through two zones they have left empty wins the day.');
   if (!battle.warned) terrain.push('You were caught by surprise: in the first round your fighters strike weaker and the raiders harder.');

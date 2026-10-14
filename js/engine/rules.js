@@ -66,6 +66,7 @@ export function expectedFood(state, person, task, seasonIdx) {
     const site = siteFor(state, 'hunt');
     amount = (2 + s.hunting) * HUNT_SEASON[seasonIdx] + bonus(site, 'hunt');
     if (hasKnowledge(state, 'spears')) amount += 1;
+    if (hasKnowledge(state, 'bows')) amount += 1;
     if (hasTradition(state, 'hunting')) amount += 1;
     amount *= abundanceFactor(state, site, 'hunt') * distanceFactor(site);
     if (wolvesAt(state, site)) amount *= 0.7; // Wolves scare off and take the game.
@@ -89,6 +90,26 @@ export function expectedWood(state, person, task, seasonIdx) {
   return amount * workFactor(person);
 }
 
+// Stone a quarrier cuts in a season.
+export function expectedStone(state, person) {
+  const site = siteFor(state, 'quarry');
+  let amount = 2 + person.skills.building * 0.5 + bonus(site, 'quarry');
+  if (hasKnowledge(state, 'stoneTools')) amount += 1;
+  amount *= distanceFactor(site);
+  return Math.max(0, amount) * workFactor(person);
+}
+
+// Goods a crafter makes in a season.
+export function expectedGoods(state, person) {
+  let amount = 1 + person.skills.building * 0.4;
+  if (hasKnowledge(state, 'kilns')) amount += 1;
+  if (state.buildings.workshop > 0) amount += 1;
+  return amount * workFactor(person);
+}
+
+// Food from pastures each season.
+export const FOOD_PER_PASTURE = 6;
+
 export function expectedWork(person, state = null) {
   const tools = state && hasKnowledge(state, 'stoneTools') ? 1 : 0;
   const masters = state && hasTradition(state, 'builders') ? 1 : 0;
@@ -98,7 +119,8 @@ export function expectedWork(person, state = null) {
 // Study points a person adds toward the current discovery each season.
 export function studyPoints(person, state = null) {
   const love = state && hasTradition(state, 'learning') ? 1 : 0;
-  return (2 + person.skills.learning + love) * workFactor(person);
+  const elders = state && hasKnowledge(state, 'elders') ? 1 : 0;
+  return (2 + person.skills.learning + love + elders) * workFactor(person);
 }
 
 // ----- Farming -----
@@ -124,8 +146,10 @@ export function farmersNeeded(state) {
 }
 
 export function foodPerPlot(tendedFraction, state = null) {
-  const base = 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0);
-  return state && hasCondition(state, 'drought') ? base * 0.6 : base;
+  const base = 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0)
+    + (state && hasKnowledge(state, 'irrigation') ? 2 : 0);
+  if (!state || !hasCondition(state, 'drought')) return base;
+  return base * (hasKnowledge(state, 'irrigation') ? 0.8 : 0.6); // Ditches soften a drought.
 }
 
 // Food the coming autumn harvest should bring, with current farmers.

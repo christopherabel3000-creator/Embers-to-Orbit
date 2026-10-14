@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import {
   living, foodNeeded, shelterNeeded, allowedTasksFor, lifeStage, migrate, makePerson,
@@ -99,7 +100,7 @@ test('version 5 saves are upgraded with ages', () => {
   old.version = 5;
   for (const p of old.people) delete p.age;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 13);
+  assert.equal(s.version, SAVE_VERSION);
   assert.equal(s.people.find((p) => p.name === 'Dalia').age, 40);
 });
 

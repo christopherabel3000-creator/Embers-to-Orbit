@@ -8,6 +8,7 @@ import {
 } from '../js/engine/state.js';
 import { feastBlocker, feastCost } from '../js/engine/stores.js';
 import { villageBlocker } from '../js/engine/village.js';
+import { queueBlocker } from '../js/engine/building.js';
 import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
 import { describePending } from '../js/engine/events.js';
@@ -64,11 +65,18 @@ function chooseProject(state) {
   if (state.buildQueue.length) return null;
   const people = living(state).length;
   const wants = [];
-  if (people + 1 > shelterCapacity(state)) wants.push('leanTo');
+  const village = state.era === 'village';
+  if (people + 1 > shelterCapacity(state)) wants.push(village ? 'hut' : 'leanTo');
   if (hasKnowledge(state, 'farming') && state.buildings.fields < 3) wants.push('fields');
-  wants.push('storehouse', 'palisade', 'watchtower', 'healersHut', 'leanTo');
+  wants.push('storehouse', 'palisade', 'watchtower', 'healersHut');
+  // A village works through its new buildings once the basics are in place.
+  if (village) wants.push('workshop', 'pasture', 'granary', 'meetingHall', 'market', 'stoneWall');
+  if (village && state.buildings.fields < Math.ceil(people / 5)) wants.push('fields');
+  wants.push(village ? 'hut' : 'leanTo');
   for (const id of wants) {
     const b = BUILDINGS[id];
+    if (queueBlocker(state, id)) continue;
+    if ((b.goods || 0) > (state.resources.goods || 0)) continue; // The council quarries stone once it is queued.
     if (!b.repeatable && state.buildings[id] > 0) continue;
     // Another storehouse only once the stores are getting full.
     if (id === 'storehouse' && state.buildings.storehouse > 0 && state.resources.food < storageCapacity(state) * 0.7) continue;
@@ -79,7 +87,8 @@ function chooseProject(state) {
   return null;
 }
 
-const STUDY_ORDER = ['stoneTools', 'smoking', 'farming', 'spears', 'clothing', 'pottery', 'medicine'];
+const STUDY_ORDER = ['stoneTools', 'smoking', 'farming', 'spears', 'clothing', 'pottery', 'medicine',
+  'stonecutting', 'weaving', 'husbandry', 'oralLaw', 'elders', 'masonry', 'bows', 'kilns', 'markets', 'irrigation', 'drill'];
 function chooseStudy(state) {
   if (state.knowledge.current) return state;
   const next = STUDY_ORDER.find((id) => !knowledgeBlocker(state, id));
@@ -178,11 +187,17 @@ for (const strategy of STRATEGIES) {
   let feastsHeld = 0;
   let morale = 0;
   villages = 0; villageYears = [];
+  let stoneSum = 0; let goodsSum = 0; let learnedSum = 0;
+  const built = {};
   tally = { rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, morale: 0, high: 0, turns: 0 };
   for (let i = 0; i < GAMES; i++) {
     const end = play(1000 + i, strategy);
     if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); }
     pop += living(end).length;
+    stoneSum += end.resources.stone || 0;
+    goodsSum += end.resources.goods || 0;
+    learnedSum += end.knowledge.learned.length;
+    if (process.env.BUILDINGS) for (const [k, n] of Object.entries(end.buildings)) built[k] = (built[k] || 0) + n;
     tally.lost += end.people.length - living(end).length;
     feastsHeld += end.deeds.feasts || 0;
 
@@ -193,6 +208,7 @@ for (const strategy of STRATEGIES) {
     if (end.buildings.palisade) palisades++;
     if (hasKnowledge(end, 'farming')) farmed++;
   }
+  if (process.env.BUILDINGS) console.log('buildings:', Object.entries(built).map(([k, n]) => `${k} ${(n / GAMES).toFixed(1)}`).join(', '));
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';
-  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)} | rotted ${(tally.rotted / GAMES).toFixed(0)} | feasts ${(feastsHeld / GAMES).toFixed(1)} | lean times ${(tally.lean / GAMES).toFixed(1)} | raids ${(tally.raids / GAMES).toFixed(1)} | firewood shortages ${(tally.cold / GAMES).toFixed(1)} | people lost ${(tally.lost / GAMES).toFixed(1)} (old age ${(tally.oldAge / GAMES).toFixed(1)}) | villages ${villages}${villageYears.length ? ` (avg year ${(villageYears.reduce((a, b) => a + b, 0) / villageYears.length).toFixed(1)})` : ''} | settlers ${(tally.settlers / GAMES).toFixed(1)} | workers' morale ${(tally.morale / Math.max(1, tally.turns)).toFixed(0)}, in high spirits ${Math.round(100 * tally.high / Math.max(1, tally.turns))}%`);
+  console.log(`${strategy}: ${GAMES} games, ${YEARS} years | wiped out ${wiped} (avg year ${avgWipe}) | avg survivors ${(pop / GAMES).toFixed(1)} | milestone ${milestone} (palisades ${palisades}) | farming ${farmed} | avg food ${(food / GAMES).toFixed(0)} | born ${(born / GAMES).toFixed(1)} | under 16 ${(kids / GAMES).toFixed(1)} | rotted ${(tally.rotted / GAMES).toFixed(0)} | feasts ${(feastsHeld / GAMES).toFixed(1)} | lean times ${(tally.lean / GAMES).toFixed(1)} | raids ${(tally.raids / GAMES).toFixed(1)} | firewood shortages ${(tally.cold / GAMES).toFixed(1)} | people lost ${(tally.lost / GAMES).toFixed(1)} (old age ${(tally.oldAge / GAMES).toFixed(1)}) | stone ${(stoneSum / GAMES).toFixed(0)}, goods ${(goodsSum / GAMES).toFixed(0)}, discoveries ${(learnedSum / GAMES).toFixed(1)} | villages ${villages}${villageYears.length ? ` (avg year ${(villageYears.reduce((a, b) => a + b, 0) / villageYears.length).toFixed(1)})` : ''} | settlers ${(tally.settlers / GAMES).toFixed(1)} | workers' morale ${(tally.morale / Math.max(1, tally.turns)).toFixed(0)}, in high spirits ${Math.round(100 * tally.high / Math.max(1, tally.turns))}%`);
 }

@@ -28,6 +28,7 @@ Phase 1, the Survival era, is playable on GitHub Pages and on iPhone with VoiceO
 - **Traditions** (ten) **and reputation** that grow from what the camp actually does.
 - **The Chronicle** of the campaign, a turn report each season, autosave, and save export and import.
 - **Becoming a village** (the start of the Settlement era): a council that assigns everyone's work, guided by the player's priorities; groups by work; guards, huts, and settlers.
+- **Stone, goods, and a research tree** in five branches, with 19 discoveries in all, one choice that closes off another, and six new village buildings.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks.
 
@@ -98,7 +99,7 @@ The game unfolds in eras. Each era layers new systems on top of the old ones, so
 
 Era advancement is driven by research and growth, not a fixed timer, and the player chooses when to take each step. The Settlement era begins when the player chooses to become a village, any time after the camp has 16 people, a storehouse, a palisade, and farming. It ends, and the Nation era begins, when the village founds a second settlement.
 
-## The Settlement era (part 1 built)
+## The Settlement era (parts 1 and 2 built)
 
 Decisions made with Christopher, October 2026:
 
@@ -125,7 +126,33 @@ Decisions made with Christopher, October 2026:
 - **Settlers:** each season a village with at least 2 seasons of food and room in its shelters has a 15 percent chance of drawing settlers (25 percent in high spirits, 10 percent more with Open hearth), sometimes two at once. Settlers are 16 to 34, with one strong skill.
 - **Advice** in a village points to priorities instead of moving people by hand.
 
-**Still to build:** part 2, stone and crafts with a real research tree; part 3, the valley peoples growing into rival nations (population, strength, territory, treaties, remembered promises); part 4, founding a second settlement, which ends the era.
+**Built so far (part 2: stone, crafts, and the research tree)**
+
+- **Two new resources.** Stone is cut by quarriers (a new task, using the building skill): about 2 plus half their skill a season, plus 1 with stone tools, plus the site's bonus. Loose stones around camp give 1 less; the riverbank gives the base; the Grey cliffs, found by scouting beyond the storm deadfall, give 3 more (they are far, so 10 percent slower). Goods are made by crafters (a new task, also using the building skill): 1 plus 0.4 times their skill a season, plus 1 with kilns and 1 with a workshop.
+- **The council handles the new work.** It sends quarriers whenever the build queue is waiting for stone, enough to keep 20 in hand (one more when building is a high priority), up to a quarter of the workers. A fifth priority, Crafts, sets how many people make goods (low: none; normal: about 6 percent; high: about 12 percent).
+- **Goods are for trade, gifts, and grand buildings.** Once your people can weave, the Tellani trade 10 goods for about 30 food or 25 wood, and any people will receive a gift of 5 fine goods, worth twice an ordinary gift. A market brings every trading people to buy goods and makes every trade half again as good.
+- **Buildings can cost stone and goods.** All of a building's cost is paid when work begins, and the steward says what the queue is short of.
+
+**The research tree.** Every discovery belongs to one of five branches, and the Knowledge screen groups them under a heading for each. Village discoveries show in camp as "becomes possible once your camp is a village."
+
+| Branch | Survival era | Settlement era (cost, needs) |
+| --- | --- | --- |
+| Food and farming | Smoking and drying; Farming | Animal husbandry (50, farming): pastures. Irrigation (60, farming and stonecutting): plots yield 2 more, and drought hurts the harvest half as much |
+| Building and stone | Stone tools | Stonecutting (40, stone tools): the Quarry task. Masonry (60, stonecutting): granaries and the stone wall |
+| Crafts and trade | Warm clothing; Pottery | Weaving (40, warm clothing): the Craft task, the workshop, trade with the Tellani. Kilns (50, weaving and pottery): crafters make 1 more goods. Markets (60, weaving): the market |
+| War and defense | Fire-hardened spears | Bows (40, spears): hunters bring 1 more food, every fighter strikes harder. Shields and drill (50, bows): guards fight half again as hard instead of a quarter |
+| Society and healing | Herbal medicine | Oral law (40): the meeting hall. Then a choice: Council of elders (50: every scholar adds 1 more study point, settlers come more often) or Chieftain (50: guards fight harder still, raids come 15 percent less often). Choosing one closes off the other for good |
+
+| Building | Cost | Work | Effect |
+| --- | --- | --- | --- |
+| Pasture | 30 wood | 12 | 6 food every season, even winter; up to 3 |
+| Granary | 20 wood, 40 stone | 20 | Room for 300 more food; up to 2 |
+| Workshop | 30 wood, 15 stone | 16 | Every crafter makes 1 more goods |
+| Market | 30 wood, 30 stone, 20 goods | 20 | Trades half again as good; every trading people buys goods |
+| Meeting hall | 40 wood, 40 stone, 20 goods | 24 | Spirits settle at 62 instead of 55; quarrels much rarer |
+| Stone wall | 20 wood, 80 stone | 30 | Needs the palisade. Defenders who hold take 35 percent of the harm instead of 45, and strike harder |
+
+**Still to build:** part 3, the valley peoples growing into rival nations (population, strength, territory, treaties, remembered promises); part 4, founding a second settlement, which ends the era.
 
 ## Population and resources
 
@@ -333,7 +360,7 @@ The game is one web app that runs in Safari on iPhone and in any desktop browser
 The game is built in layers, and each phase should be playable and fun on its own before the next begins.
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, keyboard shortcuts, and audio cues (see BACKLOG.md).
-2. **Phase 2: Settlement era (in progress).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers. Still to build: stone and crafts with the full research tree, the valley peoples as rival nations with deeper trade and diplomacy, a second settlement to end the era, the other four starting regions, and unit types in battle.
+2. **Phase 2: Settlement era (in progress).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings. Still to build: the valley peoples as rival nations with deeper trade and diplomacy, a second settlement to end the era, the other four starting regions, and unit types in battle.
 3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
 4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.
@@ -345,7 +372,7 @@ The game is built in layers, and each phase should be playable and fun on its ow
 - [ ] How the game ends: victory conditions, or endless play
 - [ ] Names, cultures, and homelands of the 7 core nations
 - [ ] Exact resource list per era
-- [ ] Shape of the research tree beyond the first seven discoveries
+- [x] Shape of the research tree: five branches, with occasional choices that close off an alternative (built through the Settlement era)
 - [ ] Audio: which sound cues, if any, in Phase 1
 - [x] Phase 1 starting region: forest valley
 - [x] Battle model: zones, simultaneous orders, morale (built in Phase 1)

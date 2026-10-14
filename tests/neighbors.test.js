@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, migrate, hasKnowledge, metNeighbors } from '../js/engine/state.js';
 import { diplomacyOptions, raidModifier, driftRelations } from '../js/engine/neighbors.js';
@@ -110,6 +111,6 @@ test('version 9 saves gain neighbors and a speaker', () => {
   delete old.advisors.speaker;
   delete old.places.velariFields;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 13);
+  assert.equal(s.version, SAVE_VERSION);
   assert.ok(s.neighbors.velari && s.advisors.speaker && s.places.velariFields);
 });

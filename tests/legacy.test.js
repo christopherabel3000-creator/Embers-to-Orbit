@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, migrate } from '../js/engine/state.js';
 import {
@@ -93,7 +94,7 @@ test('version 10 saves gain deeds from what was already done', () => {
   delete old.deeds;
   delete old.traditions;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 13);
+  assert.equal(s.version, SAVE_VERSION);
   assert.equal(s.deeds.built, 2);
   assert.equal(s.deeds.discoveries, 1);
   assert.equal(living(s).length, 12);

@@ -5,13 +5,13 @@
 import { TASKS, BUILDINGS, PLACES, KNOWLEDGE } from './data.js';
 import {
   personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
-  taskAvailable, hasKnowledge, knowledgeBlocker, allowedTasksFor, lifeStage, inVillage,
+  taskAvailable, hasKnowledge, knowledgeBlocker, knowledgeClosed, allowedTasksFor, lifeStage, inVillage,
 } from './state.js';
 import { foundVillage, setPriority } from './village.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
-import { queueBlocker, refundFor } from './building.js';
+import { queueBlocker, refundFor, refundWords } from './building.js';
 import { startNextStudy } from './study.js';
 import { applyDiplomacy } from './neighbors.js';
 import {
@@ -122,10 +122,11 @@ const handlers = {
     const item = state.buildQueue[index];
     if (!item) return { error: 'That building is not in the queue.' };
     const refund = refundFor(item);
-    state.resources.wood += refund;
+    for (const [k, n] of Object.entries(refund)) state.resources[k] = (state.resources[k] || 0) + n;
     state.buildQueue.splice(index, 1);
     const b = BUILDINGS[item.id];
-    return { message: `Removed the ${b.name.toLowerCase()} from the queue.${refund ? ` ${refund} wood recovered.` : ''}` };
+    const back = refundWords(refund);
+    return { message: `Removed the ${b.name.toLowerCase()} from the queue.${back ? ` ${back} recovered.` : ''}` };
   },
 
   // Older name: removes the first building in the queue.
@@ -229,6 +230,8 @@ const handlers = {
     const k = state.knowledge;
     if (!KNOWLEDGE[knowledgeId]) return { error: 'Unknown discovery.' };
     if (hasKnowledge(state, knowledgeId)) return { error: 'Already known.' };
+    const closed = knowledgeClosed(state, knowledgeId);
+    if (closed) return { error: closed };
     if (k.current === knowledgeId || k.queue.includes(knowledgeId)) return { error: `${KNOWLEDGE[knowledgeId].name} is already planned.` };
     k.queue.push(knowledgeId);
     const started = !k.current && startNextStudy(state) === knowledgeId;
@@ -261,13 +264,13 @@ const handlers = {
   setWorkSite(state, { task, placeId }) {
     const stop = blocked(state);
     if (stop) return stop;
-    if (!['hunt', 'forage', 'wood', 'scout'].includes(task)) return { error: 'Unknown task.' };
+    if (!['hunt', 'forage', 'wood', 'scout', 'quarry'].includes(task)) return { error: 'Unknown task.' };
     if (!isKnown(state, placeId)) return { error: 'You have not found that place yet.' };
     if (task !== 'scout' && !PLACES[placeId].tasks.includes(task)) {
       return { error: `${placeName(state, placeId)} is no place for that work.` };
     }
     state.workSites[task] = placeId;
-    const verb = { hunt: 'Hunters will work at', forage: 'Foragers will work at', wood: 'Woodcutters will work at', scout: 'Scouts will explore beyond' }[task];
+    const verb = { hunt: 'Hunters will work at', forage: 'Foragers will work at', wood: 'Woodcutters will work at', scout: 'Scouts will explore beyond', quarry: 'Quarriers will work at' }[task];
     return { message: `${verb} ${placeName(state, placeId)}.` };
   },
 

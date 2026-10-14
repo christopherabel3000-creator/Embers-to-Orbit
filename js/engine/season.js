@@ -20,6 +20,7 @@ import {
 import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
   scoutSuccessChance, siteFor, DEPLETION, RECOVERY, studyPoints, farmerCapacity,
+  expectedStone, expectedGoods, FOOD_PER_PASTURE,
   foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { applyStandingOrders } from './orders.js';
@@ -64,6 +65,8 @@ export function resolveSeason(state) {
   // 1. Work.
   let food = 0;
   let wood = 0;
+  let stone = 0;
+  let goods = 0;
   let work = 0;
   let healPool = 0;
   let studyPool = 0;
@@ -88,6 +91,12 @@ export function resolveSeason(state) {
       case 'build':
         work += expectedWork(p, state);
         break;
+      case 'quarry':
+        stone += expectedStone(state, p) * variance;
+        break;
+      case 'craft':
+        goods += expectedGoods(state, p) * variance;
+        break;
       case 'heal':
         healPool += healingPoints(state, p);
         break;
@@ -107,12 +116,21 @@ export function resolveSeason(state) {
   }
   food = Math.round(food);
   wood = Math.round(wood);
+  stone = Math.round(stone);
+  goods = Math.round(goods);
   state.resources.food += food;
   state.resources.wood += wood;
+  state.resources.stone = (state.resources.stone || 0) + stone;
+  state.resources.goods = (state.resources.goods || 0) + goods;
+  const herds = (state.buildings.pasture || 0) * FOOD_PER_PASTURE;
+  state.resources.food += herds;
   const hunters = people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
   recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
   if (hunters > 0 || food > 0) events.push(`Hunters and foragers brought in ${food} food.`);
   if (wood > 0) events.push(`Woodcutters gathered ${wood} wood.`);
+  if (stone > 0) events.push(`Quarriers cut ${stone} stone.`);
+  if (goods > 0) events.push(`Crafters made ${goods} goods.`);
+  if (herds > 0) events.push(`The herds in the pastures gave ${herds} food.`);
   for (const p of injuredWhileHunting) {
     urgent.push(`${p.name} was injured while ${p.task === 'scout' ? 'scouting' : 'hunting'}.`);
   }
@@ -310,8 +328,9 @@ export function resolveSeason(state) {
     }
     if (state.buildings.healersHut > 0 && p.health < 75) p.health = clamp(p.health + 5);
     // Spirits settle back toward steady: high spirits fade faster the higher they are.
-    if (p.morale < 55) p.morale = clamp(p.morale + 3);
-    else if (p.morale > 55) p.morale = clamp(p.morale - 3 - (p.morale - 55) * 0.2);
+    const settle = state.buildings.meetingHall > 0 ? 62 : 55; // A meeting hall keeps spirits up.
+    if (p.morale < settle) p.morale = clamp(Math.min(settle, p.morale + 3));
+    else if (p.morale > settle) p.morale = clamp(p.morale - 3 - (p.morale - settle) * 0.2);
   }
 
   // 9. Spoilage.
@@ -407,6 +426,7 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   p += Math.min(0.1, Math.max(0, state.resources.food - WEALTH_START) / 3000);
   p *= raidModifier(state);
   p *= Math.max(0.6, 1 - 0.04 * guardsOnWatch(state)); // Guards keep some raiders away.
+  if (hasKnowledge(state, 'chieftain')) p *= 0.85; // A strong chief is feared.
   if (!chance(state, Math.min(state.raidThreat ? 0.8 : 0.35, p))) return;
   // With peace or a truce, the only raiders are small bands of outlaws.
   const from = skarnAtPeace(state) ? 'outlaws' : 'skarn';

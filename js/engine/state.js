@@ -5,14 +5,14 @@ import {
   FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, SHELTER_PER_HUT, BUILDING_ORDER, ERAS,
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
-  NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, LEAN_TIMES,
+  NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, STORAGE_PER_GRANARY, LEAN_TIMES,
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 
 export const DEFAULT_PRIORITIES = {
-  building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal',
+  building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
 };
 
 const STARTING_TASKS = {
@@ -85,14 +85,14 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     rng: seed >>> 0,
     campName: campName.trim() || 'Emberhold',
     turn: 0,
-    resources: { food: 50, wood: 30 },
+    resources: { food: 50, wood: 30, stone: 0, goods: 0 },
     people,
     nextPersonId: people.length + 1,
     wanderersMet: 0,
     buildings,
     buildQueue: [], // Buildings in order: { id, progress, paid }.
     places: initialPlaces(),
-    workSites: { hunt: 'camp', forage: 'camp', wood: 'camp', scout: 'camp' },
+    workSites: { hunt: 'camp', forage: 'camp', wood: 'camp', scout: 'camp', quarry: 'camp' },
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     lastFeast: -99, // The turn of the last feast. One a year.
@@ -224,6 +224,17 @@ export function migrate(data) {
     data.buildings.hut = 0;
     data.version = 13;
   }
+  if (data.version === 13) {
+    data.resources.stone = 0;
+    data.resources.goods = 0;
+    data.workSites.quarry = 'camp';
+    data.priorities = { ...DEFAULT_PRIORITIES, ...(data.priorities || {}) };
+    for (const id of PLACE_ORDER) {
+      if (!data.places[id]) data.places[id] = { known: false, abundance: { hunt: 100, forage: 100 } };
+    }
+    for (const id of BUILDING_ORDER) if (data.buildings[id] === undefined) data.buildings[id] = 0;
+    data.version = 14;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -267,7 +278,8 @@ export function inVillage(state) {
 
 // How much food the stores can hold. Food beyond this rots quickly.
 export function storageCapacity(state) {
-  const room = BASE_STORAGE + (state.buildings.storehouse || 0) * STORAGE_PER_STOREHOUSE;
+  const room = BASE_STORAGE + (state.buildings.storehouse || 0) * STORAGE_PER_STOREHOUSE
+    + (state.buildings.granary || 0) * STORAGE_PER_GRANARY;
   return Math.round(room * (hasKnowledge(state, 'pottery') ? 1.5 : 1));
 }
 
@@ -304,9 +316,18 @@ export function hasKnowledge(state, id) {
 }
 
 // Why a discovery cannot be studied yet, or null if it can.
+// Why a discovery can never be made, because a choice closed it off; or null.
+export function knowledgeClosed(state, id) {
+  const chosen = (state.knowledge.learned || []).find((other) => (KNOWLEDGE[other].excludes || []).includes(id));
+  return chosen ? `Your people chose ${KNOWLEDGE[chosen].name.toLowerCase()} instead.` : null;
+}
+
 export function knowledgeBlocker(state, id) {
   const k = KNOWLEDGE[id];
   if (hasKnowledge(state, id)) return 'Already known.';
+  const closed = knowledgeClosed(state, id);
+  if (closed) return closed;
+  if (k.era && !eraAtLeast(state, k.era)) return 'Becomes possible once your camp is a village.';
   const missing = (k.after || []).filter((a) => !hasKnowledge(state, a));
   if (missing.length) return `Needs ${missing.map((a) => KNOWLEDGE[a].name).join(' and ')} first.`;
   if (k.place && !isKnown(state, k.place)) return `Your people must find ${PLACES[k.place].name} first.`;

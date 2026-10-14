@@ -6,7 +6,7 @@ import { TASKS, WANDERERS } from './data.js';
 import { remainingQueueWork } from './building.js';
 import {
   living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces, fieldPlots,
-  inVillage, woodNeededForWarmth, hasCondition,
+  inVillage, woodNeededForWarmth, hasCondition, taskAvailable,
 } from './state.js';
 import { BUILDINGS } from './data.js';
 import {
@@ -121,7 +121,20 @@ export function councilTargets(state, workers) {
     guard: share(level('defense'), Math.max(1, Math.round(n * 0.08)), Math.max(2, Math.round(n * 0.16))),
     study: !state.knowledge.current ? 0 : [1, Math.max(1, Math.round(n * 0.08)), Math.max(2, Math.round(n * 0.16))][level('learning')],
     scout: !scoutingLeft(state) ? 0 : share(level('exploration'), 1, 2),
+    craft: !taskAvailable(state, 'craft') ? 0 : share(level('crafts'), Math.max(1, Math.round(n * 0.06)), Math.max(2, Math.round(n * 0.12))),
   };
+}
+
+// Quarriers needed to cut the stone the build queue is waiting for, and to
+// keep a little in hand. More when building is a high priority.
+const STONE_IN_HAND = 20;
+function quarriersNeeded(state, workers) {
+  if (!taskAvailable(state, 'quarry')) return 0;
+  const waiting = state.buildQueue.filter((item) => !item.paid).reduce((sum, item) => sum + (BUILDINGS[item.id].stone || 0), 0);
+  const short = waiting + STONE_IN_HAND - (state.resources.stone || 0);
+  if (short <= 0) return 0;
+  const extra = (state.priorities || {}).building === 'high' ? 1 : 0;
+  return Math.min(Math.ceil(workers.length / 4), Math.ceil(short / 12) + extra); // About 5 stone a season each.
 }
 
 // Woodcutters needed so the fires never go cold and the next building can start.
@@ -165,6 +178,8 @@ export function villagePlan(state) {
   // Then what the player asked the council to push.
   const targets = councilTargets(state, workers);
   take('build', targets.build);
+  take('quarry', quarriersNeeded(state, workers));
+  take('craft', targets.craft);
   take('guard', targets.guard);
   take('study', targets.study);
   take('scout', targets.scout);

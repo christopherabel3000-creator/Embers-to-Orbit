@@ -6,7 +6,7 @@ import {
   TASKS, TASK_ORDER, SETTLER_NAMES, SETTLER_NOTES, SKILLS, PRIORITY_AREAS, PRIORITY_LEVELS,
 } from './data.js';
 import {
-  living, inVillage, makePerson, foodNeeded, shelterNeeded, shelterCapacity, lifeStage,
+  living, inVillage, makePerson, foodNeeded, shelterNeeded, shelterCapacity, lifeStage, hasKnowledge,
 } from './state.js';
 import { bestWorkPlan } from './assign.js';
 import { refreshAdvisors } from './advisors.js';
@@ -100,6 +100,7 @@ export function settlerChance(state) {
   let p = 0.15;
   if (spirits >= 70) p += 0.1;
   if (hasTradition(state, 'hearth')) p += 0.1;
+  if (hasKnowledge(state, 'elders')) p += 0.1; // Word of a fair council spreads.
   return p;
 }
 

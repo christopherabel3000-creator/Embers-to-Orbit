@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import {
   living, migrate, makePerson, shelterCapacity, inVillage, taskAvailable,
@@ -142,7 +143,7 @@ test('version 12 saves start as camps', () => {
   delete old.priorities;
   delete old.buildings.hut;
   const s = migrate(JSON.parse(JSON.stringify(old)));
-  assert.equal(s.version, 13);
+  assert.equal(s.version, SAVE_VERSION);
   assert.equal(s.era, 'camp');
   assert.equal(s.priorities.defense, 'normal');
   assert.equal(s.buildings.hut, 0);

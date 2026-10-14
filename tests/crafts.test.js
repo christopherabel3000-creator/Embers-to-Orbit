@@ -125,7 +125,7 @@ test('granaries add room, pastures feed the village even in winter', () => {
   s.buildings.pasture = 2;
   s.turn = 7; // Winter.
   s = act(s, { type: 'endTurn' });
-  assert.ok(s.log.some((l) => /pastures gave 12 food/.test(l.text)));
+  assert.ok(s.report.routine.some((l) => /12 food from the herds/.test(l)), s.report.routine.join(' | '));
 });
 
 test('the Tellani buy goods once you can weave; a market brings everyone and better deals', () => {

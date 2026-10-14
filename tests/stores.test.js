@@ -134,7 +134,7 @@ test('a hard winter burns more wood and spoils the hunting, then passes', () => 
   s.resources.food = 80;
   for (const p of living(s)) p.task = 'rest';
   s = act(s, { type: 'endTurn' });
-  assert.ok(s.report.events.some((l) => /burned 18 wood/.test(l)));
+  assert.ok(s.report.routine.some((l) => /18 wood for the fires/.test(l)), s.report.routine.join(' | '));
   assert.ok(!hasCondition(s, 'hardWinter'));
   assert.ok(s.report.events.some((l) => /hard winter has broken/.test(l)));
 });

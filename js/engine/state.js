@@ -10,7 +10,7 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -101,6 +101,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
     buildQueue: [], // Buildings in order: { id, progress, paid }.
     places: initialPlaces(),
     workSites: { hunt: 'camp', forage: 'camp', wood: 'camp', scout: 'camp', quarry: 'camp' },
+    foreignWorkOk: {}, // Task to a place on another people's land that the player chose to work anyway.
     orders: { ...DEFAULT_ORDERS },
     conditions: [], // Ongoing situations, like wolves at a place.
     lastFeast: -99, // The turn of the last feast. One a year.
@@ -141,6 +142,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold' } = {}) {
       'They know only the riverbank and the oak woods nearby. Scouts can explore farther; the Map screen shows what you know.',
       'People set to study can make discoveries, like better tools or, one day, farming. See the Knowledge screen.',
     ],
+    routine: [],
     orders: [],
   };
   return state;
@@ -303,6 +305,11 @@ export function migrate(data) {
       Object.assign(data.neighbors[id], { peaceWarned: false, honoredUntil: -1, honorsInARow: 0, chief: null, chiefUntil: null });
     }
     data.version = 24;
+  }
+  if (data.version === 24) {
+    data.foreignWorkOk = {};
+    if (data.report && !data.report.routine) data.report.routine = [];
+    data.version = 25;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

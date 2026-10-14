@@ -63,8 +63,9 @@ export function refundWords(refund) {
   return parts.join(', ');
 }
 
-// Applies a season of builders' work. Returns report lines.
-export function applyBuildWork(state, work, { afterFires = false } = {}) {
+// Applies a season of builders' work. Returns report lines. Steady progress
+// on the current building goes into `routine` when it is given.
+export function applyBuildWork(state, work, { afterFires = false, routine = null } = {}) {
   const events = [];
   const finished = [];
   let blocked = null;
@@ -98,7 +99,7 @@ export function applyBuildWork(state, work, { afterFires = false } = {}) {
   const current = state.buildQueue[0];
   if (current && current.progress > 0 && !blocked) {
     const b = BUILDINGS[current.id];
-    events.push(`Work continues on the ${b.name.toLowerCase()}: ${Math.floor(current.progress)} of ${b.work} done.`);
+    (routine || events).push(`Work continues on the ${b.name.toLowerCase()}: ${Math.floor(current.progress)} of ${b.work} done.`);
   }
   if (blocked) {
     const shortWords = blocked.short.map((x) => `${x.short} ${x.kind}`).join(' and ');

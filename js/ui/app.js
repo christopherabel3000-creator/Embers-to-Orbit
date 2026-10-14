@@ -34,7 +34,7 @@ import {
   villageBlocker, groups, notablePeople, GROUP_NAMES,
 } from '../engine/village.js';
 import {
-  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord, valleyLines, skarnArmsWord,
+  nationsActive, owner, landsOf, claimLimit, claimBlocker, nationSummary, trustWord, valleyLines, skarnArmsWord, freeToWork,
 } from '../engine/nations.js';
 import {
   settlementBlocker, settlementSites, settlerRange, governorChoices, settlementProduct, expectedShipment,
@@ -238,6 +238,9 @@ function reportScreen() {
   }
   if (r.events.length) {
     html += `<h2>${r.finished ? 'What happened' : 'Your story begins'}</h2><ul>${r.events.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  }
+  if (r.routine && r.routine.length) {
+    html += `<h2>The season's work</h2><ul>${r.routine.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   }
   if (state.gameOver) {
     html += `<div class="actions"><button type="button" class="primary" data-action="showNewGame">Start a new game</button></div>`;
@@ -443,6 +446,8 @@ function siteOptionText(id, task) {
     return `${name} (${n ? `${n} unexplored ${n === 1 ? 'path' : 'paths'}` : 'all paths explored'})`;
   }
   const bits = [];
+  // Land another people holds: working it angers them.
+  if (nationsActive(state) && !freeToWork(state, id)) bits.push(`${NEIGHBORS[owner(state, id)].name.replace(/^the /, '')} land`);
   const b = PLACES[id].bonus[task] || 0;
   const unit = { wood: 'wood', quarry: 'stone' }[task] || 'food';
   if (b) bits.push(`${b > 0 ? 'plus' : 'minus'} ${Math.abs(b)} ${unit} per worker`);

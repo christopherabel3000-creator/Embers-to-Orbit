@@ -130,13 +130,14 @@ export function expectedShipment(state, t) {
 }
 
 // Runs each season, after the village's own work. Returns report lines.
-export function settlementsSeason(state) {
+// Each season's shipments go into `routine` when it is given.
+export function settlementsSeason(state, routine = null) {
   const lines = [];
   for (const t of state.settlements || []) {
     const ship = expectedShipment(state, t);
     if (ship.amount > 0) {
       state.resources[ship.kind] = (state.resources[ship.kind] || 0) + ship.amount;
-      lines.push(`${t.name} sent home ${ship.amount} ${ship.kind}.`);
+      (routine || lines).push(`${t.name} sent home ${ship.amount} ${ship.kind}.`);
     }
     t.lastShipment = ship;
     // Each spring the settlement grows.

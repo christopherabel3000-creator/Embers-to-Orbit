@@ -11,6 +11,7 @@ import { expectedFood, farmersNeeded } from './rules.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 import { feastBlocker, feastCost, holdFeast } from './stores.js';
+import { moveOffForeignLand } from './nations.js';
 
 function listNames(people) {
   const names = people.map((p) => p.name);
@@ -88,6 +89,11 @@ export function applyStandingOrders(state) {
   if (state.gameOver) return { urgent, orders: done };
 
   const people = living(state);
+
+  // Speaker: the council keeps work off land another people holds, before
+  // it sets anyone's work, so the season is planned on land it can use.
+  const moved = moveOffForeignLand(state);
+  if (moved) say('speaker', moved);
 
   // Steward: put newcomers to work at what they do best.
   const newcomers = people.filter((p) => p.isNew);

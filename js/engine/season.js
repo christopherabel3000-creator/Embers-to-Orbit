@@ -44,6 +44,7 @@ import { gainExperience } from './skills.js';
 import { progressConditions, maybeStartEvent } from './events.js';
 import { nextRandom, randomBetween, randomInt, chance, pick } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
+import { incomeLine, upkeepLine, skillLine } from './report.js';
 
 function shuffle(state, list) {
   const a = [...list];
@@ -73,6 +74,10 @@ export function resolveSeason(state) {
   const urgent = [];
   const events = [];
   const ordersDone = [];
+  // What happens every season (work brought in, upkeep, progress, practice)
+  // is gathered here and reported in a few short lines after the news.
+  const routine = [];
+  const upkeep = { fires: 0, comforts: 0, arms: 0, spoiled: 0 };
   const s = seasonIndex(state);
   const sieged = besieged(state); // No one works outside the walls.
   const finishedLabel = dateLabel(state);
@@ -144,14 +149,10 @@ export function resolveSeason(state) {
   state.resources.goods = (state.resources.goods || 0) + goods;
   const herds = Math.round((state.buildings.pasture || 0) * FOOD_PER_PASTURE * (sieged ? 0.5 : 1)); // Penned close in a siege.
   state.resources.food += herds;
-  const hunters = people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
+  const hunters = sieged ? 0 : people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
   recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
-  if (hunters > 0 || food > 0) events.push(`Hunters and foragers brought in ${food} food.`);
-  if (wood > 0) events.push(`Woodcutters gathered ${wood} wood.`);
+  const income = incomeLine({ food, herds, wood, stone, goods, foodWorkers: hunters });
   if (sieged && people.some((p) => OUTSIDE_TASKS.includes(p.task))) urgent.push('The Skarn siege kept everyone inside the walls: no one could hunt, forage, farm, cut wood or stone, or scout.');
-  if (stone > 0) events.push(`Quarriers cut ${stone} stone.`);
-  if (goods > 0) events.push(`Crafters made ${goods} goods.`);
-  if (herds > 0) events.push(`The herds in the pastures gave ${herds} food.`);
   for (const p of injuredWhileHunting) {
     urgent.push(`${p.name} was injured while ${p.task === 'scout' ? 'scouting' : 'hunting'}.`);
   }
@@ -163,7 +164,7 @@ export function resolveSeason(state) {
   if (woodNeed > 0) {
     if (state.resources.wood >= woodNeed) {
       state.resources.wood -= woodNeed;
-      events.push(`The fires burned ${woodNeed} wood to keep everyone warm.`);
+      upkeep.fires = woodNeed;
     } else {
       const shortfall = woodNeed - state.resources.wood;
       state.resources.wood = 0;
@@ -178,10 +179,12 @@ export function resolveSeason(state) {
   }
 
   // Other settlements send home what they can spare, unless the road is cut.
-  if (!sieged) events.push(...settlementsSeason(state));
+  const shipments = [];
+  if (!sieged) events.push(...settlementsSeason(state, shipments));
 
   // 3. Building, with whatever wood the fires did not need.
-  events.push(...applyBuildWork(state, work, { afterFires: woodNeed > 0 }));
+  const buildProgress = [];
+  events.push(...applyBuildWork(state, work, { afterFires: woodNeed > 0, routine: buildProgress }));
 
   // Practice: everyone who worked gets a little better at it.
   // Badly hurt or sick people learn at half speed. Winter farmers have no
@@ -197,9 +200,9 @@ export function resolveSeason(state) {
     const mentor = people.some((m) => m !== p && m.task === p.task && m.skills[skill] >= 4 && m.skills[skill] > p.skills[skill]);
     if (mentor) amount += 0.5;
     const level = gainExperience(p, skill, amount);
-    if (level) improved.push(`${p.name}'s ${skill} rose to ${level}`);
+    if (level) improved.push({ name: p.name, skill, level });
   }
-  if (improved.length) events.push(`Practice paid off: ${improved.join('; ')}.`);
+  const skills = skillLine(state, improved);
 
   // Study: points flow into the current discovery, then the next in the queue.
   if (studyPool > 0) {
@@ -210,6 +213,7 @@ export function resolveSeason(state) {
 
   // Farming follows the year: plant in spring, tend in summer, harvest in autumn.
   const farmers = sieged ? [] : people.filter((p) => p.task === 'farm');
+  const farmWork = []; // Planting and tending as planned: routine.
   if (farmers.length || state.farm.planted) {
     const plots = fieldPlots(state);
     if (s === 0 && farmers.length) {
@@ -219,14 +223,13 @@ export function resolveSeason(state) {
         const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER));
         const planted = Math.min(plots - state.farm.planted, can);
         state.farm.planted += planted;
-        events.push(`Farmers planted ${planted} ${planted === 1 ? 'plot' : 'plots'} of grain. ${state.farm.planted} of ${plots} plots are sown.`);
+        farmWork.push(`Farmers planted ${planted} ${planted === 1 ? 'plot' : 'plots'} of grain. ${state.farm.planted} of ${plots} plots are sown.`);
       }
     } else if (s === 1 && state.farm.planted) {
       state.farm.tended = Math.min(state.farm.planted, farmerCapacity(people, TEND_PER_FARMER));
       const share = Math.round((state.farm.tended / state.farm.planted) * 100);
-      events.push(share >= 100
-        ? 'Farmers tended every plot. The grain is growing well.'
-        : `Farmers tended ${share} percent of the plots. Untended grain will yield less.`);
+      if (share >= 100) farmWork.push('Farmers tended every plot. The grain is growing well.');
+      else events.push(`Farmers tended ${share} percent of the plots. Untended grain will yield less.`);
     } else if (s === 2 && state.farm.planted) {
       const planted = state.farm.planted;
       const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
@@ -345,6 +348,8 @@ export function resolveSeason(state) {
   // 8. Recovery and morale. Goods for comforts and arms are spent first.
   const spent = spendGoods(state);
   events.push(...spent.events);
+  upkeep.comforts = spent.comforts;
+  upkeep.arms = spent.arms;
   const crowding = crowdingSettle(state);
   for (const p of people) {
     if (p.health <= 0) continue; // Too far gone to recover.
@@ -366,7 +371,7 @@ export function resolveSeason(state) {
   const spoiled = Math.floor(state.resources.food * spoilageRate(state));
   if (spoiled > 0) {
     state.resources.food -= spoiled;
-    events.push(`${spoiled} food spoiled in storage.`);
+    upkeep.spoiled = spoiled;
   }
   // Food beyond the room in the stores rots quickly.
   const rotted = overflowRot(state);
@@ -450,7 +455,11 @@ export function resolveSeason(state) {
   }
 
   state.feastThisSeason = false;
-  state.report = { title: dateLabel(state), finished: finishedLabel, urgent, events, orders: ordersDone };
+  routine.push(...[income, upkeepLine(upkeep), ...farmWork, ...buildProgress, ...shipments, skills].filter(Boolean));
+  state.report = {
+    title: dateLabel(state), finished: finishedLabel, urgent, events, routine, orders: ordersDone,
+  };
+  // The Chronicle keeps the season's news; routine work stays in the report.
   for (const line of [...urgent, ...events, ...ordersDone]) {
     state.log.push({ turn: state.turn - 1, date: finishedLabel, text: line });
   }

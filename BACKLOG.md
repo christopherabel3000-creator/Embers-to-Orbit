@@ -22,13 +22,16 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 
 - [ ] Families and relationships: partners, parents and children named together, grief that lasts.
 - [ ] More events: elders' deaths and succession, a returning trader, a rival camp, a failed harvest.
-- [ ] Desktop keyboard shortcuts that don't clash with screen reader keys.
 - [ ] Optional audio cues (decide which ones first).
+
+Set aside: desktop keyboard shortcuts. Not needed for now; a screen reader's own keys (H for headings, B for buttons) already move through every screen well.
 
 - [ ] Balance, still open: a camp run on standing orders, with sensible building, still does well in the forest valley (about 26 people after 20 years, never wiped out). Food no longer piles up past the stores, but most late surplus now rots. The harder starting regions are the main answer; more uses for food (bulk trade with the Tellani, feeding specialists in the Settlement era) would also help.
 
 ## Done in Phase 2 (Settlement era)
 
+- A quieter season report: news first, then the season's routine work in a few short lines under its own heading; the Chronicle keeps only the news.
+- The council moves work off land another people claims (unless the player chose that land), and the Map screen's work site choices say whose land a place is.
 - Part 1, becoming a village: the player's choice after the milestone, the council with priorities, the Village screen with groups and notable people, guards, huts, and settlers.
 - Nations that act on their own: relations between the nations, Velari and Tellani clashes, treaty offers, land demands, taking sides, caravan escorts, and Skarn bargains.
 - Uses for goods: comforts and arms orders, hiring masters and sell-swords, a shrine, Tellani caravans, tribute and siege ransom in goods.
@@ -48,7 +51,7 @@ Pick up from here in any session. Newest decisions live in DESIGN.md.
 - [ ] The simulator's village only queues a building when it can already pay for it, one at a time, so it rarely uses the extra builders that full food stores free up. A smarter simulated builder would show what the food stores setting does for building.
 - [ ] More either-or choices in the research tree. More laws later (inheritance, worship, taxes), and laws that grow into traditions when kept for years.
 - [ ] Settlement era ideas still to build: more village events and chains of events that follow from earlier choices.
-- [ ] Nations, deeper: the council moving work away from foreign land, the Velari and Tellani making formal treaties with each other, and nations reacting to your strength.
+- [ ] Nations, deeper: the Velari and Tellani making formal treaties with each other, and nations reacting to your strength.
 
 - [ ] Neighbors, deeper: a standing order to pay tribute, and goods beyond food, wood, and crafted goods to trade.
 - [ ] More traditions over the eras, and traditions that can fade if neglected.

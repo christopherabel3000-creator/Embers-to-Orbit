@@ -5,11 +5,14 @@
 
 import { NEIGHBORS, NEIGHBOR_ORDER, NATIONS, TREATIES, PLACES } from './data.js';
 import {
-  living, inVillage, year, isKnown, placeName, seasonIndex, canFight,
+  living, inVillage, year, isKnown, placeName, seasonIndex, canFight, knownPlaces, taskAvailable,
 } from './state.js';
+import {
+  expectedFood, expectedWood, expectedStone, siteFor,
+} from './rules.js';
 import { changeRelation, skarnAtPeace } from './neighbors.js';
 import { chance, randomInt } from './rng.js';
-import { clamp } from './util.js';
+import { clamp, listWords } from './util.js';
 import { lawIs } from './laws.js';
 import { swordsHelp } from './goods.js';
 import { skarnStrength, clanLosses, clansYear, clansMarching } from './clans.js';
@@ -168,6 +171,15 @@ export function claimPlace(state, placeId) {
   return { message: `${placeName(state, placeId)} is now yours.${note}` };
 }
 
+// Whether the village can work a place without angering anyone: its own
+// land, unclaimed land, or the land of a people with an open lands pact.
+export function freeToWork(state, placeId) {
+  const who = owner(state, placeId);
+  if (!who || who === 'player') return true;
+  const nat = nation(state, who);
+  return !nat || Boolean(nat.treaties.openLands);
+}
+
 // Working another people's land without their leave angers them.
 export function borderFriction(state) {
   const lines = [];
@@ -176,10 +188,9 @@ export function borderFriction(state) {
   const offended = new Map();
   for (const task of WORK_TASKS) {
     const site = state.workSites[task];
-    const who = owner(state, site);
-    if (!who || who === 'player') continue;
+    if (freeToWork(state, site)) continue;
     if (!people.some((p) => p.task === task)) continue;
-    if (nation(state, who).treaties.openLands) continue;
+    const who = owner(state, site);
     offended.set(who, [...(offended.get(who) || []), site]);
   }
   for (const [who, sites] of offended) {
@@ -187,6 +198,71 @@ export function borderFriction(state) {
     lines.push(`Your people worked ${[...new Set(sites)].map((id) => placeName(state, id)).join(' and ')}, land that belongs to ${NEIGHBORS[who].name}. They are angry. An open lands pact, or other work sites, would end it.`);
   }
   return lines;
+}
+
+const WORKERS = {
+  hunt: 'hunters', forage: 'foragers', wood: 'woodcutters', quarry: 'quarriers',
+};
+
+// What a season's work at a place is worth, for comparing places. Uses the
+// people on the task now (or anyone, if no one is), and a growing season
+// for foraging, since nothing is foraged in winter.
+function siteValue(state, task, placeId) {
+  const people = living(state);
+  const workers = people.filter((p) => p.task === task);
+  const crew = workers.length ? workers : people.slice(0, 1);
+  const was = state.workSites[task];
+  state.workSites[task] = placeId;
+  const s = task === 'forage' && seasonIndex(state) === 3 ? 1 : seasonIndex(state);
+  let total = 0;
+  for (const p of crew) {
+    if (task === 'hunt' || task === 'forage') total += expectedFood(state, p, task, s);
+    else if (task === 'wood') total += expectedWood(state, p, task, s);
+    else total += expectedStone(state, p);
+  }
+  state.workSites[task] = was;
+  return total;
+}
+
+// The best known place for a task that the village can work freely.
+// The camp always qualifies, so there is always somewhere.
+export function bestFreeSite(state, task) {
+  const options = knownPlaces(state)
+    .filter((id) => PLACES[id].tasks.includes(task) && freeToWork(state, id));
+  let best = null;
+  let bestValue = -Infinity;
+  for (const id of options) {
+    const value = siteValue(state, task, id) - PLACES[id].distance * 0.01; // Ties go to the nearer place.
+    if (value > bestValue) {
+      best = id;
+      bestValue = value;
+    }
+  }
+  return best;
+}
+
+// At the start of each season, the council moves work off land another
+// people holds, unless the player chose that land for the work themselves.
+// Returns a line for the speaker to report, or null.
+export function moveOffForeignLand(state) {
+  if (!nationsActive(state)) return null;
+  const chosen = state.foreignWorkOk || {};
+  const moves = [];
+  for (const task of WORK_TASKS) {
+    if (!taskAvailable(state, task)) continue;
+    const site = siteFor(state, task);
+    if (freeToWork(state, site) || chosen[task] === site) continue;
+    const next = bestFreeSite(state, task);
+    if (!next || next === site) continue;
+    state.workSites[task] = next;
+    moves.push({ task, from: site, to: next, who: owner(state, site) });
+  }
+  if (!moves.length) return null;
+  const places = [...new Set(moves.map((m) => placeName(state, m.from)))];
+  const owners = [...new Set(moves.map((m) => NEIGHBORS[m.who].name))];
+  const moved = moves.map((m) => `the ${WORKERS[m.task]} to ${placeName(state, m.to)}`);
+  return `${listWords(places)} ${places.length === 1 ? 'belongs' : 'belong'} to ${listWords(owners)} now, so the council moved ${listWords(moved)}. `
+    + 'Working another people\'s land angers them every season. To go back, make an open lands pact, or choose the place yourself on the Map screen.';
 }
 
 // ----- Treaties -----
@@ -360,7 +436,7 @@ export function valleyYear(state) {
         state.places[next].owner = id;
         if (state.neighbors[id].known && isKnown(state, next)) {
           const worked = WORK_TASKS.some((t) => state.workSites[t] === next && living(state).some((p) => p.task === t));
-          lines.push(`${capital(NEIGHBORS[id].name)} have claimed ${placeName(state, next)}.${worked && !nat.treaties.openLands ? ' Your people work there; they will need their leave, or another place.' : ''}`);
+          lines.push(`${capital(NEIGHBORS[id].name)} have claimed ${placeName(state, next)}.${worked && !nat.treaties.openLands ? ' Your people work there, so the council will find them other land.' : ''}`);
         }
       }
     }

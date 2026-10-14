@@ -27,9 +27,13 @@ export function armsCost(state) {
 }
 
 // Runs each season, before spirits settle. Pays for comforts and arms under
-// standing orders. Returns { settle, events }.
+// standing orders. Returns { settle, events, comforts, arms }: events are
+// only for what went wrong; comforts and arms are the goods spent, which
+// the season report lists with the rest of the upkeep.
 export function spendGoods(state) {
-  const out = { settle: 0, events: [] };
+  const out = {
+    settle: 0, events: [], comforts: 0, arms: 0,
+  };
   state.guardsArmed = false;
   if (!inVillage(state)) return out;
   const canCraft = taskAvailable(state, 'craft');
@@ -37,7 +41,7 @@ export function spendGoods(state) {
   if (state.orders.comforts && (state.resources.goods || 0) >= cost && cost > 0) {
     state.resources.goods -= cost;
     out.settle += COMFORTS_SETTLE;
-    out.events.push(`The steward shared out ${cost} goods as comforts: blankets, pots, and small treasures. Spirits are steadier.`);
+    out.comforts = cost;
   } else if (canCraft && living(state).length >= COMFORTS_EXPECTED_AT) {
     out.settle -= 3;
     out.events.push(`A village of ${living(state).length} expects some comforts, and there were none to share out this season. Spirits settle lower.`);
@@ -47,7 +51,7 @@ export function spendGoods(state) {
     if ((state.resources.goods || 0) >= arms) {
       state.resources.goods -= arms;
       state.guardsArmed = true;
-      out.events.push(`The war chief spent ${arms} goods on arms and shields for the guards.`);
+      out.arms = arms;
     } else {
       out.events.push(`There were not enough goods to arm the guards this season: ${arms} needed.`);
     }

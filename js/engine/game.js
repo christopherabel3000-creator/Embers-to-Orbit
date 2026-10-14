@@ -2,13 +2,17 @@
 // an action object; applyAction returns a new state and never mutates
 // the old one. This keeps saves simple and leaves room for multiplayer.
 
-import { TASKS, BUILDINGS, PLACES, KNOWLEDGE } from './data.js';
+import {
+  TASKS, BUILDINGS, PLACES, KNOWLEDGE, NEIGHBORS,
+} from './data.js';
 import {
   personById, living, foodNeeded, isKnown, placeName, DEFAULT_ORDERS,
   taskAvailable, hasKnowledge, knowledgeBlocker, knowledgeClosed, allowedTasksFor, lifeStage, inVillage,
 } from './state.js';
 import { foundVillage, setPriority, setFoodStores } from './village.js';
-import { claimPlace } from './nations.js';
+import {
+  claimPlace, nationsActive, freeToWork, owner,
+} from './nations.js';
 import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
 import { hireMaster, hireSwords } from './goods.js';
@@ -338,6 +342,14 @@ const handlers = {
     }
     state.workSites[task] = placeId;
     const verb = { hunt: 'Hunters will work at', forage: 'Foragers will work at', wood: 'Woodcutters will work at', scout: 'Scouts will explore beyond', quarry: 'Quarriers will work at' }[task];
+    // Choosing another people's land on purpose: the council leaves it be.
+    state.foreignWorkOk = state.foreignWorkOk || {};
+    if (task !== 'scout' && nationsActive(state) && !freeToWork(state, placeId)) {
+      state.foreignWorkOk[task] = placeId;
+      const who = NEIGHBORS[owner(state, placeId)].name;
+      return { message: `${verb} ${placeName(state, placeId)}. It belongs to ${who}, who will be angry every season your people work there. The council will leave it to you.` };
+    }
+    delete state.foreignWorkOk[task];
     return { message: `${verb} ${placeName(state, placeId)}.` };
   },
 

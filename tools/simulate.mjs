@@ -9,7 +9,7 @@ import {
 import { feastBlocker, feastCost } from '../js/engine/stores.js';
 import { villageBlocker } from '../js/engine/village.js';
 import { queueBlocker } from '../js/engine/building.js';
-import { claimBlocker } from '../js/engine/nations.js';
+import { claimBlocker, freeToWork } from '../js/engine/nations.js';
 import { sallyEvent, villageDefense, bandPower, coverWeight } from '../js/engine/siege.js';
 import { skarnStrength } from '../js/engine/clans.js';
 import { estimateBattle } from '../js/engine/battle.js';
@@ -61,7 +61,8 @@ function sensiblePlan(state) {
 function chooseSites(state) {
   for (const task of ['hunt', 'forage', 'wood']) {
     const score = (id) => (PLACES[id].bonus[task] || 0) + (task === 'wood' ? 0 : state.places[id].abundance[task] / 25);
-    const best = knownPlaces(state).filter((id) => PLACES[id].tasks.includes(task)).sort((a, b) => score(b) - score(a))[0];
+    // Like the council, a sensible player keeps work off other peoples' land.
+    const best = knownPlaces(state).filter((id) => PLACES[id].tasks.includes(task) && freeToWork(state, id)).sort((a, b) => score(b) - score(a))[0];
     if (best && best !== state.workSites[task]) state = act(state, { type: 'setWorkSite', task, placeId: best });
   }
   const scoutFrom = knownPlaces(state).find((id) => unexploredNeighbors(state, id).length > 0);
@@ -207,7 +208,7 @@ function play(seed, strategy) {
       if (project) state = act(state, { type: 'queueBuilding', buildingId: project });
     }
     state = act(state, { type: 'endTurn' });
-    const lines = [...state.report.urgent, ...state.report.events, ...(state.report.decisions || [])];
+    const lines = [...state.report.urgent, ...state.report.events, ...(state.report.routine || []), ...(state.report.decisions || [])];
     const alive = living(state).filter((p) => p.age >= 16 && p.task !== 'rest');
     if (alive.length) {
       tally.morale += alive.reduce((sum, p) => sum + p.morale, 0) / alive.length;

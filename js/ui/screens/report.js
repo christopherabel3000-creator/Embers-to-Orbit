@@ -7,7 +7,7 @@ import { NEIGHBORS, LEAN_TIMES } from '../../engine/data.js';
 import { settlementBlocker, MIN_VILLAGE } from '../../engine/settlements.js';
 import { ransom, ransomGoods, sallyEvent } from '../../engine/siege.js';
 import {
-  living, foodNeeded, storageCapacity, leanTimesNow, inVillage, taskAvailable,
+  living, foodNeeded, storageCapacity, leanTimesNow, inVillage, taskAvailable, hasKnowledge, saltNeeded,
 } from '../../engine/state.js';
 import {
   feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD, feastLift, fullFeastLift, feastsInARow, feastExpected,
@@ -99,6 +99,8 @@ function storesSection() {
   if (taskAvailable(state, 'quarry') || state.resources.stone) extras.push(`Stone: ${state.resources.stone || 0}, cut by quarriers.`);
   if (taskAvailable(state, 'craft') || state.resources.goods) extras.push(`Goods: ${state.resources.goods || 0}, made by crafters, for trade, fine gifts, and grand buildings.`);
   if (state.buildings.pasture) extras.push(`Pastures give ${state.buildings.pasture * 6} food every season.`);
+  if (state.resources.iron || hasKnowledge(state, 'ironWorking')) extras.push(`Iron: ${state.resources.iron || 0}, from mining towns${hasKnowledge(state, 'ironWorking') ? `. While there is iron, builders, quarriers, and woodcutters use iron tools, which wear out` : ''}.`);
+  if (state.resources.salt || hasKnowledge(state, 'salting')) extras.push(`Salt: ${state.resources.salt || 0}, from mining towns at salt flats and pans${hasKnowledge(state, 'salting') ? `. While there is salt, the stores spoil half as much, using ${saltNeeded(state)} salt a season now` : ''}.`);
   if (extras.length) html += `<p>${esc(extras.join(' '))}</p>`;
   const lean = leanTimesNow(state);
   if (lean.length) html += `<ul>${lean.map((c) => `<li>${esc(LEAN_TIMES[c.id].name)}: ${esc(LEAN_TIMES[c.id].effect)}</li>`).join('')}</ul>`;

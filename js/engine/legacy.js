@@ -19,6 +19,7 @@ export const DEED_NAMES = {
   hid: 'raids hidden from',
   attacks: 'attacks launched',
   feasts: 'feasts held',
+  wonders: 'wonders seen by your expeditions',
 };
 
 export function emptyDeeds() {
@@ -101,6 +102,13 @@ export const TRADITIONS = {
     need: 3,
     effect: 'When you hide from raiders, they find only half as much.',
     story: 'Your people have learned to vanish into the trees, and to take their stores with them.',
+  },
+  horizons: {
+    name: 'Far horizons',
+    deed: 'wonders',
+    need: 2,
+    effect: 'Expeditions find places more often, and come to less harm.',
+    story: 'Tales of the wonders your travelers have seen are told at every fire, and the young dream of going farther.',
   },
 };
 

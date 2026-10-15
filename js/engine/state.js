@@ -3,15 +3,16 @@
 
 import {
   FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, SHELTER_PER_HUT, BUILDING_ORDER, ERAS, BUILDINGS,
-  PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
+  PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME, placeData,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
   NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, STORAGE_PER_GRANARY, LEAN_TIMES,
   DEFAULT_FOOD_STORES,
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
+import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -94,7 +95,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     rng: seed >>> 0,
     campName: campName.trim() || 'Emberhold',
     turn: 0,
-    resources: { food: 50, wood: 30, stone: 0, goods: 0 },
+    resources: { food: 50, wood: 30, stone: 0, goods: 0, iron: 0, salt: 0 },
     people,
     nextPersonId: people.length + 1,
     wanderersMet: 0,
@@ -117,6 +118,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
     settlements: [], // Other settlements the village has founded.
     capitalCounted: false, // Past 100 people, the capital counts its ordinary people instead of naming them.
+    world: initialWorld(), // The regions beyond the valley, and expeditions to them.
     laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
@@ -335,6 +337,14 @@ export function migrate(data) {
     data.buildings.road = 0;
     data.version = 29;
   }
+  if (data.version === 29) {
+    // The world beyond the valley; in the Nation era, its nearest regions are known by name.
+    data.world = initialWorld();
+    if (data.era === 'nation') for (const id of REGIONS.valley.neighbors) data.world.regions[id].status = 'heard';
+    data.resources.iron = 0;
+    data.resources.salt = 0;
+    data.version = 30;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -413,7 +423,14 @@ export function isKnown(state, placeId) {
 }
 
 export function placeName(state, placeId) {
-  return placeId === 'camp' ? state.campName : PLACES[placeId].name;
+  return placeId === 'camp' ? state.campName : placeData(placeId).name;
+}
+
+// Whether expeditions have found a place beyond the valley with this
+// feature (ore, salt, horses).
+export function worldFound(state, feature) {
+  const places = (state.world && state.world.places) || {};
+  return Object.keys(places).some((id) => places[id].known && WORLD_PLACES[id][feature]);
 }
 
 export function knownPlaces(state) {
@@ -461,6 +478,8 @@ export function knowledgeBlocker(state, id) {
   if (missing.length) return `Needs ${missing.map((a) => KNOWLEDGE[a].name).join(' and ')} first.`;
   if (k.place && !isKnown(state, k.place)) return `Your people must find ${PLACES[k.place].name} first.`;
   if (k.needsBuilding && !(state.buildings[k.needsBuilding] > 0)) return `Needs a ${BUILDINGS[k.needsBuilding].name.toLowerCase()} first.`;
+  if (k.needsFind && !worldFound(state, k.needsFind)) return `Your expeditions must find ${k.needsFind === 'ore' ? 'iron ore' : k.needsFind} first.`;
+  if (k.needsResource && !(state.resources[k.needsResource] > 0)) return `Needs ${k.needsResource} in store first.`;
   return null;
 }
 
@@ -551,7 +570,19 @@ export function spoilageRate(state) {
   let rate = state.buildings.storehouse > 0 ? 0.04 : 0.12;
   if (hasKnowledge(state, 'smoking')) rate *= 2 / 3;
   if (hasKnowledge(state, 'pottery')) rate *= 0.5;
+  if (salting(state)) rate *= 0.5;
   return rate;
+}
+
+// Food packed in salt, while there is salt to pack it in.
+export function salting(state) {
+  return hasKnowledge(state, 'salting') && (state.resources.salt || 0) > 0;
+}
+
+// Salt the stores use each season: 1 for every 100 food.
+export const FOOD_PER_SALT = 100;
+export function saltNeeded(state) {
+  return salting(state) ? Math.ceil(Math.max(0, state.resources.food) / FOOD_PER_SALT) : 0;
 }
 
 export function healthWord(health) {

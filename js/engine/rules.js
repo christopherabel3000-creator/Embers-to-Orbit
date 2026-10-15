@@ -82,11 +82,25 @@ export function expectedFood(state, person, task, seasonIdx) {
   return amount * workFactor(person) * lawWork(state);
 }
 
+// Iron tools, while there is iron to keep them in repair.
+export function ironTools(state) {
+  return Boolean(state) && hasKnowledge(state, 'ironWorking') && (state.resources.iron || 0) > 0;
+}
+
+// The capital's workers who use iron tools, and the iron their tools wear
+// out each season: 1 for every 4 of them.
+export const TOOL_USERS = ['build', 'quarry', 'wood'];
+export function toolWear(state, people) {
+  if (!ironTools(state)) return 0;
+  return Math.ceil(people.filter((p) => TOOL_USERS.includes(p.task)).length / 4);
+}
+
 export function expectedWood(state, person, task, seasonIdx) {
   if (task !== 'wood') return 0;
   const site = siteFor(state, 'wood');
   let amount = (4 + person.skills.building * 0.6) * WOOD_SEASON[seasonIdx] + bonus(site, 'wood');
   if (hasKnowledge(state, 'stoneTools')) amount += 1;
+  if (ironTools(state)) amount += 1;
   amount *= distanceFactor(site);
   return amount * workFactor(person) * lawWork(state);
 }
@@ -96,6 +110,7 @@ export function expectedStone(state, person) {
   const site = siteFor(state, 'quarry');
   let amount = 2 + person.skills.building * 0.5 + bonus(site, 'quarry');
   if (hasKnowledge(state, 'stoneTools')) amount += 1;
+  if (ironTools(state)) amount += 1;
   amount *= distanceFactor(site);
   return Math.max(0, amount) * workFactor(person) * lawWork(state);
 }
@@ -117,7 +132,8 @@ export function expectedWork(person, state = null) {
   const masters = state && hasTradition(state, 'builders') ? 1 : 0;
   const guild = lawGuilds(state) ? 1 : 0;
   const measure = state && hasKnowledge(state, 'mathematics') ? 1 : 0;
-  return (2 + person.skills.building + tools + masters + guild + measure) * workFactor(person) * lawWork(state);
+  const iron = ironTools(state) ? 1 : 0;
+  return (2 + person.skills.building + tools + masters + guild + measure + iron) * workFactor(person) * lawWork(state);
 }
 
 // Study points a person adds toward the current discovery each season.

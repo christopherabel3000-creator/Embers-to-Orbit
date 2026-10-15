@@ -129,11 +129,14 @@ export function councilTargets(state, workers) {
 
 // Quarriers needed to cut the stone the build queue is waiting for, and to
 // keep a little in hand. More when building is a high priority.
+// In the Nation era, enough to found another settlement as well.
 const STONE_IN_HAND = 20;
+const NATION_STONE_IN_HAND = 40;
 function quarriersNeeded(state, workers) {
   if (!taskAvailable(state, 'quarry')) return 0;
   const waiting = state.buildQueue.filter((item) => !item.paid).reduce((sum, item) => sum + (BUILDINGS[item.id].stone || 0), 0);
-  const short = waiting + STONE_IN_HAND - (state.resources.stone || 0);
+  const inHand = state.era === 'nation' ? NATION_STONE_IN_HAND : STONE_IN_HAND;
+  const short = waiting + inHand - (state.resources.stone || 0);
   if (short <= 0) return 0;
   const extra = (state.priorities || {}).building === 'high' ? 1 : 0;
   return Math.min(Math.ceil(workers.length / 4), Math.ceil(short / 12) + extra); // About 5 stone a season each.

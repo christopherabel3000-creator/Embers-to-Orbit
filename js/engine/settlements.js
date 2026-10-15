@@ -6,7 +6,9 @@
 // in realm.js; this file holds the player's decisions and each season's
 // running of the settlements.
 
-import { SKILLS } from './data.js';
+import { SKILLS, placeRegion } from './data.js';
+import { REGIONS, WORLD_PLACES, WORLD_PLACE_ORDER } from './worldData.js';
+import { openWorld } from './world.js';
 import {
   living, inVillage, eraAtLeast, placeName, seasonIndex, isKnown, makePerson, hasKnowledge,
 } from './state.js';
@@ -19,7 +21,9 @@ import {
 } from './realm.js';
 import { gainExperience } from './skills.js';
 import { chance, randomInt, pick } from './rng.js';
-import { shuffle, listNames, clamp } from './util.js';
+import {
+  shuffle, listNames, listWords, clamp,
+} from './util.js';
 
 export const SETTLEMENT_COST = { food: 80, wood: 60, stone: 30 };
 export const MIN_VILLAGE = 40; // People the capital needs before it can found another.
@@ -38,11 +42,15 @@ export function settlementProduct(placeId) {
   return ROLES[bestRole(placeId)].kind;
 }
 
-// Places where a settlement could be founded.
+// Places where a settlement could be founded: in the valley, a place the
+// nation holds; beyond it, a place expeditions have found that no one holds.
 export function settlementSites(state) {
   const settled = new Set((state.settlements || []).map((t) => t.place));
-  return Object.keys(state.places).filter((id) => id !== 'camp' && state.places[id].owner === 'player'
+  const valley = Object.keys(state.places).filter((id) => id !== 'camp' && state.places[id].owner === 'player'
     && isKnown(state, id) && !settled.has(id));
+  const world = state.world ? WORLD_PLACE_ORDER.filter((id) => WORLD_PLACES[id].kind === 'settle'
+    && state.world.places[id].known && !state.world.places[id].owner && !settled.has(id)) : [];
+  return [...valley, ...world];
 }
 
 // How many settlers can go from the capital ('capital') or a settlement (its id).
@@ -190,6 +198,7 @@ export function foundSettlement(state, {
     notables = going.filter((p) => p !== governor && isNotable(state, p));
   }
   state.settlements = state.settlements || [];
+  if (WORLD_PLACES[placeId]) state.world.places[placeId].owner = 'player';
   const town = newTown(state, {
     name: title, placeId, count, governor, notables, role: chosenRole, demands: chosenDemands,
   });
@@ -197,11 +206,12 @@ export function foundSettlement(state, {
   refreshAdvisors(state);
   const firstSettlement = state.era !== 'nation';
   state.era = 'nation';
+  const heard = firstSettlement ? openWorld(state) : [];
   const whence = fromTown ? fromTown.name : state.campName;
   const names = fromTown ? `${count} settlers from ${whence}` : count > 3 ? `${going.slice(0, 3).map((p) => p.name).join(', ')}, and ${count - 3} more` : listNames(going);
   const leaving = roles.length ? `, leaving the post of ${roles.join(' and ')} to another` : '';
   const line = firstSettlement
-    ? `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your people now live in two settlements: the Nation era has begun. ${state.campName} is your capital, and the Nation screen shows every settlement.`
+    ? `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your people now live in two settlements: the Nation era has begun. ${state.campName} is your capital, and the Nation screen shows every settlement.${heard.length ? ` Travelers speak of lands beyond the valley: ${listWords(heard.map((id) => REGIONS[id].name.toLowerCase()))}. Expeditions can set out for them from the World screen.` : ''}`
     : `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your nation now has ${state.settlements.length + 1} settlements.`;
   state.log.push({ turn: state.turn, date: state.report.title, text: line });
   state.report.decisions = [...(state.report.decisions || []), line];
@@ -487,6 +497,7 @@ export function townDefense(state, t) {
 export function harrySettlements(state) {
   const lines = [];
   for (const t of state.settlements || []) {
+    if (!REGIONS[placeRegion(t.place)].skarn) continue; // Beyond the Skarn's reach.
     if (!chance(state, harryChance(state) * 0.5 * (hasRoad(state, t) ? 0.7 : 1))) continue;
     if (chance(state, townDefense(state, t))) {
       skarnLosses(state, 1);

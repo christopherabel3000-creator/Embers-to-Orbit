@@ -6,7 +6,7 @@ import {
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
-  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage, capitalCounted,
+  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage, capitalCounted, saltNeeded,
 } from './state.js';
 import { maybeSettlers, isNotable, CAPITAL_COUNTED_FROM } from './village.js';
 import { lawSettle } from './laws.js';
@@ -16,6 +16,7 @@ import {
 } from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
 import { townStudy } from './realm.js';
+import { expeditionsSeason } from './world.js';
 import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
 import { peaceYear } from './peace.js';
 import { raidGrowth } from './rules.js';
@@ -34,7 +35,7 @@ import {
 import {
   expectedFood, expectedWood, expectedWork, healingPoints, huntInjuryChance,
   scoutSuccessChance, siteFor, DEPLETION, RECOVERY, studyPoints, farmerCapacity,
-  expectedStone, expectedGoods, FOOD_PER_PASTURE,
+  expectedStone, expectedGoods, FOOD_PER_PASTURE, toolWear,
   foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
 } from './rules.js';
 import { applyStandingOrders } from './orders.js';
@@ -64,7 +65,9 @@ export function resolveSeason(state) {
   // What happens every season (work brought in, upkeep, progress, practice)
   // is gathered here and reported in a few short lines after the news.
   const routine = [];
-  const upkeep = { fires: 0, comforts: 0, arms: 0, spoiled: 0 };
+  const upkeep = {
+    fires: 0, comforts: 0, arms: 0, spoiled: 0, tools: 0, salt: 0,
+  };
   const s = seasonIndex(state);
   const sieged = besieged(state); // No one works outside the walls.
   const finishedLabel = dateLabel(state);
@@ -135,6 +138,13 @@ export function resolveSeason(state) {
   state.resources.wood += wood;
   state.resources.stone = (state.resources.stone || 0) + stone;
   state.resources.goods = (state.resources.goods || 0) + goods;
+  // Iron tools wear out.
+  const wear = Math.min(state.resources.iron || 0, toolWear(state, people));
+  if (wear > 0) {
+    state.resources.iron -= wear;
+    upkeep.tools = wear;
+    if (!state.resources.iron) events.push('The last of the iron went into mending tools. Without more, your workers are back to stone tools.');
+  }
   const herds = Math.round((state.buildings.pasture || 0) * FOOD_PER_PASTURE * (sieged ? 0.5 : 1)); // Penned close in a siege.
   state.resources.food += herds;
   const hunters = sieged ? 0 : people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
@@ -285,6 +295,11 @@ export function resolveSeason(state) {
     }
   }
 
+  // Expeditions beyond the valley travel, explore, and come home.
+  const trips = expeditionsSeason(state);
+  urgent.push(...trips.urgent);
+  events.push(...trips.events);
+
   // Hunting and foraging use up a place; every place slowly recovers.
   const huntSite = siteFor(state, 'hunt');
   const forageSite = siteFor(state, 'forage');
@@ -372,8 +387,13 @@ export function resolveSeason(state) {
     else if (p.morale > settle) p.morale = clamp(p.morale - 3 - (p.morale - settle) * 0.2);
   }
 
-  // 9. Spoilage.
+  // 9. Spoilage. Salt keeps the food, and is used up doing it.
+  const salt = Math.min(state.resources.salt || 0, saltNeeded(state));
   const spoiled = Math.floor(state.resources.food * spoilageRate(state));
+  if (salt > 0) {
+    state.resources.salt -= salt;
+    upkeep.salt = salt;
+  }
   if (spoiled > 0) {
     state.resources.food -= spoiled;
     upkeep.spoiled = spoiled;

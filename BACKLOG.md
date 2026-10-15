@@ -70,9 +70,10 @@ The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The 
 
 - Phase 1, the nation at home: more settlements (from the capital or a large settlement), each with a role (farming, timber, mining, market town, or fortress), demands, and defense and learning priorities; named governors with skills who grow, age, and are succeeded; loyalty with its reasons, aid, and defiance; settlements counted by groups, with buildings their governors raise; fortresses that meet raiders on the road; roads; the Learning branch (Writing, Mathematics, Astronomy, Schools); a capital that counts its people by group past 100; the Nation and Settlement screens.
 
+- Phase 2, the wider world: seven regions around the valley with 25 hand-crafted places; expeditions (send and wait) with finds, dangers, and choices on the road; small peoples, wonders, and ruins, and a Far horizons tradition; iron and salt from mining towns, iron tools and salting; settlements beyond the valley; River boats, Mapmaking, Mining, Iron working, and Salting; the World and Region screens.
+
 ### Next
 
-- [ ] Phase 2, the wider world: the regional map of about eight regions, expeditions, river boats, mapmaking, iron and salt with Mining and Salting.
 - [ ] Phase 3, the first great nations: a river and coast people of traders and a riding people of the plains, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
 - [ ] Phase 4, armies: companies and commanders, campaigns and supply, sieges the player lays, six kinds of soldiers, horses and cavalry.
 - [ ] Phase 5, toward the sea: the rest of the tree, the remaining five great nations, harbors and ships, Navigation, and the voyage that ends the era.

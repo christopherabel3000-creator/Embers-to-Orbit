@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first of which is playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first two of which are playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -37,6 +37,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Four difficulty levels**, chosen at the start and changeable at any time from the Menu screen.
 - **A second settlement** under a governor, whose founding begins the Nation era.
 - **The nation at home** (the Nation era, phase 1): more settlements, each with a role, demands, and priorities set by the player and a named governor who runs it; loyalty, aid, and defiance; settlements counted by groups, and a capital that counts its people once it passes 100; the Nation and Settlement screens; roads; and a Learning branch of four discoveries.
+- **The wider world** (the Nation era, phase 2): seven regions around the valley with 25 places, expeditions with choices on the road, small peoples, wonders, and ruins; iron and salt; settlements beyond the valley; and five more discoveries, including River boats and Mapmaking.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -54,7 +55,7 @@ Every screen must be usable by swiping through it with VoiceOver, with no visual
 
 **Built so far**
 
-- Nine screens reached from a navigation list: Report, People, Map, Build, Knowledge, Neighbors, Advisors, Chronicle, and Menu, plus an End season button; in the Nation era a tenth, Nation, from which each settlement's own screen opens. Each screen has one h1, which takes focus when the screen opens.
+- Nine screens reached from a navigation list: Report, People, Map, Build, Knowledge, Neighbors, Advisors, Chronicle, and Menu, plus an End season button; in the Nation era two more, Nation (from which each settlement's own screen opens) and World (from which each region's screen opens). Each screen has one h1, which takes focus when the screen opens.
 - Decisions that stop the game (choice events, raids, battle deployment, each battle round) get their own screen with the advisors' views and one button per choice.
 - Short confirmations are spoken through a live region; after a screen redraws, focus returns to the control the player was using.
 - **A quieter season report** (October 2026). The news comes first: Urgent, Your decision, and What happened. Then the season's routine work sits under its own heading, "The season's work," in a few short lines: what work brought in, what upkeep used (fires, comforts, arms, spoilage), farm and building progress, what other settlements sent home, and skills grown, grouped by skill (a village names only those who reach 4 or 5 and counts the rest). The heading lets the player skip past it. The Chronicle keeps the news, not the routine.
@@ -310,7 +311,7 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 ### The five phases
 
 1. **The nation at home (built):** the Nation and Settlement screens, roles and priorities, governors and loyalty, people as groups, the Learning branch with Writing, and Roads.
-2. **The wider world:** the regional map and its regions, expeditions, river boats, mapmaking, and iron and salt with Mining and Salting.
+2. **The wider world (built):** the regional map and its regions, expeditions, river boats, mapmaking, and iron and salt with Mining and Salting.
 3. **The first great nations:** the two designed first, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
 4. **Armies:** companies and commanders, campaigns and supply, sieges the player lays, the six kinds of soldiers, and horses with cavalry.
 5. **Toward the sea:** the rest of the tree, the remaining great nations, harbors and ships, Navigation, and the voyage that ends the era.
@@ -387,14 +388,61 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 
 A **road** (20 wood, 30 stone, 20 work) is built in the capital's build queue and joins the next settlement without one to the capital, in the order they were founded. A settlement with a road sends home everything it ships (no 15 percent lost on the way, for one two or more places away), is 5 more loyal, and is skirmished seven tenths as often. Later, armies march faster on roads.
 
-### Phase 2: the wider world (planned)
+### Phase 2: the wider world (built)
 
-A hand-crafted regional map of about eight regions around the forest valley, drilled into region by region (the region list, then a region's places, then a settlement). The valley is the home region.
+**Regions.** Eight hand-crafted regions, the forest valley at their center. The World screen (a navigation button in the Nation era) lists the regions your people know; a Region screen drills into one and lists the places found there. The valley's own places stay on the Map screen.
 
-- **Regions:** the coast (fishing, salt flats, sea traders, and the only place a harbor can stand); the iron hills (ore, high passes closed in winter, isolated hill clans); the great plains (wild horses, open battlefields, riders who live by raiding); the lake country (fish, reeds, river routes, easy to reach by boat); the northern woods (furs, timber, the hardest winters); the desert edge (salt, trade routes to distant peoples); the old ruins (lore and lost knowledge); and the homelands of the great nations at the edges. The coast, iron hills, desert edge, and northern woods echo the four starting regions still to be built.
-- **Ways to explore:** scouts, as today; expeditions (a party of 3 to 8 with a leader and food, sent to a neighboring region for 1 to 4 seasons, which can meet a choice event on the way and be lost to winter, hunger, or ambush); riders, once there are horses (twice as far); river boats (down to the lake country and the coast); mapmaking (mapped routes are safer and quicker); caravans and envoys (a road to another people reveals the places along it); and guides, hired for goods or coin, to cross mountains or desert safely.
-- **Finds:** places to settle, sources of the new resources, ruins that give study points or reveal a discovery, natural wonders that lift spirits or grow a tradition, dangers such as beasts and bandits, small peoples to trade with or take in, and the great nations.
-- **Iron and salt.** Iron comes from mines at ore places: iron tools (builders, quarriers, and woodcutters work more) and iron arms. Salt comes from salt flats on the coast and the desert edge, and from salt springs: food keeps far longer, including what expeditions and armies carry, and it is a prized trade good.
+| Region | Where | Borders | Its character |
+| --- | --- | --- | --- |
+| The forest valley | Home | Lake country, iron hills, great plains, northern woods | Your home |
+| The lake country | South, downriver | Valley, coast, great plains | Fish, reeds, and river routes; reached by river |
+| The coast | South, beyond the lakes | Lake country, desert edge | Salt flats, the richest fishing, and the one harbor site; reached by river |
+| The iron hills | East, beyond the Skarn | Valley, old ruins | Iron ore. The passes close in winter; the Skarn's skirmishers reach it |
+| The great plains | West | Valley, lake country, desert edge | Grass, wild horses, and signs of riders |
+| The northern woods | North | Valley, old ruins | The best timber and trapping, the hardest winters, and wolves |
+| The desert edge | Southwest, beyond the plains | Great plains, coast | Salt pans, an oasis, and a caravan track to distant peoples |
+| The old ruins | Northeast | Northern woods, iron hills | The broken towns of an older people, and what they left |
+
+When the Nation era begins, travelers bring word of the four regions around the valley; a region becomes known by name once an expedition reaches one next to it. Each region holds three or four places (25 in all) of six kinds: places to settle (13), small peoples (the Reed folk of the lake country and the Cairn folk of the iron hills), wonders (Willow isle, the Frozen falls, the Stone circle), ruins (the wreck on the coast, the Broken city, the Sealed vault), dangers (Wolf country and a Burned riders' camp), and routes (the High pass and the Caravan track, for later phases).
+
+**Expeditions** are sent and waited for, from the World screen: the player chooses where (a region heard of, next to one already explored, with places left to find), the leader (from the ten best scouts in the capital), how many go (3 to 8, keeping 20 at home), and how many seasons they explore (1 to 4). The rest of the party are the best scouts and hunters who can be spared; the council stays home unless one of them leads. At most two expeditions are out at once.
+
+- **Travel.** Next to the valley, no time is lost on the way. Each region between adds a season each way, one less through a mapped region; with River boats, the lake country and the coast are reached at once.
+- **Food.** The party carries food for the whole journey: 2 for each traveler each season, 1 with Salting while there is salt. If it runs out, everyone is hurt and they turn for home. Food left over comes home.
+- **Finding places.** Each season of exploring, the party finds a place with a chance of 35 percent, plus 7 for each point of the leader's scouting and 4 for each traveler beyond three, plus 15 in a mapped region and 10 with the Far horizons tradition, up to 90 percent. A party that has found everything turns for home.
+- **Dangers.** Each season away, someone may come to harm: 5 percent, 10 more in winter (20 in the northern woods), and 6 more for each danger found in the region; a fifth less for a party of 6 or more, a fifth less under a leader with scouting or hunting of 4 or more, half in a mapped region, and a fifth less with Far horizons. One time in three the one harmed is killed; otherwise they are hurt. In winter, snow closes the passes of the iron hills, and a party there shelters until spring.
+- **Choices on the way.** A quarter of the seasons spent exploring bring a choice, which comes before other events: a river in flood (cross, and someone may be hurt, or go around and lose a season), smoke ahead (bring a season's food as gifts, and the strangers point the way to a place, though in a region with dangers they may be bandits; or avoid them), fever (turn for home, or press on with a 40 percent chance that the sick one dies), and, in the ruins, the iron hills, the coast, and the desert edge, something buried (dig, for 20 study points and a one-in-five chance of a collapse, or leave it).
+- **Practice.** Every season on the road is scouting practice, half again as much for the leader.
+- **Coming home.** The party rejoins the capital and the report says what they found and who was lost. With Mapmaking, they bring back a map of the region.
+
+**What expeditions find.**
+
+- **Places to settle** become sites for new settlements. Founding one claims it; places beyond the valley count as far from the capital (4 places away next to the valley, 5 beyond), so a settlement there loses 15 percent of what it sends home without a road, and its loyalty is 5 lower for being in another region.
+- **Small peoples.** Meeting one is a choice: send 10 goods as gifts (they become friends and guide your people, so the region counts as mapped), invite any who wish to join (2 to 4 come home with the expedition), or greet them and go on.
+- **Wonders** lift the spirits of everyone in the capital by 6, and count toward a new tradition, **Far horizons** (two wonders seen): expeditions find places 10 percent more often and come to a fifth less harm.
+- **Ruins** give study points to the current discovery (30 at the wreck, 40 at the Broken city, 20 at the Stone circle). The Sealed vault reveals a discovery outright: the one being studied if it can be made, else the next in the queue, else the first ready, or 60 study points if none is.
+- **Dangers** make the region more dangerous to travel.
+
+**Iron and salt.** Two new resources, shown in the status line and the stores once there are any.
+
+- **Salt** comes from a mining town at the coast's salt flats or the desert's salt pans: 1 salt for each worker at the role, where stone would be 1.1.
+- **Iron** comes from a mining town at an ore place in the iron hills (the Red scar or the Old diggings), once your people know Mining: 0.5 iron for each worker at the role. Before Mining, those towns cut stone.
+- **Iron tools** (Iron working): while there is iron in store, the capital's builders, quarriers, and woodcutters do 1 more each. The tools wear out: 1 iron each season for every 4 who use them.
+- **Salting**: while there is salt in store, food spoils half as much, using 1 salt each season for every 100 food in store, and expeditions eat half as much on the road.
+
+**The council keeps 40 stone in hand in the Nation era** (20 before), enough to found another settlement.
+
+**Settlements beyond the valley.** Mining towns choose what they send by their land: salt where there is salt, iron from ore once Mining is known, otherwise stone. A farming town counts fishing as well as hunting and foraging. With River boats, settlements in the lake country and on the coast send home by boat and lose nothing on the way, road or not. The Skarn's skirmishers reach only the valley and the iron hills.
+
+**The discoveries of phase 2:**
+
+| Discovery | Branch | Cost | Needs | Effect |
+| --- | --- | --- | --- | --- |
+| River boats | Exploration | 70 | Weaving | Expeditions reach the lake country and the coast at once; settlements there lose nothing on the way home |
+| Mapmaking | Exploration | 90 | Writing | Expeditions map the regions they come home from: a season closer, half the danger, and places 15 percent easier to find |
+| Mining | Building and stone | 80 | Stonecutting; iron ore found | Mining towns at ore places send iron instead of stone |
+| Iron working | Crafts and trade | 100 | Mining | Iron tools, while there is iron |
+| Salting | Food and farming | 70 | Smoking and drying; salt in store | Salted food, while there is salt |
 
 ### Phase 3: the first great nations (planned)
 
@@ -664,7 +712,7 @@ The game is built in layers, and each phase should be playable and fun on its ow
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, and audio cues (see BACKLOG.md).
 2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still open: late-game challenge, the other four starting regions, and unit types in battle (see BACKLOG.md).
-3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world, the first great nations, armies, and toward the sea.
+3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world (built), the first great nations, armies, and toward the sea.
 4. **Phase 4: Age of Discovery.** Voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies.
 5. **Phase 5: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 6. **Phase 6: Space age.** Satellites, mining, colonization, space combat.

@@ -23,11 +23,15 @@ export function incomeLine({ food = 0, herds = 0, wood = 0, stone = 0, goods = 0
 
 // "Used: 18 wood for the fires, 6 goods for comforts, and 3 goods to arm
 // the guards. 5 food spoiled in storage."
-export function upkeepLine({ fires = 0, comforts = 0, arms = 0, spoiled = 0 }) {
+export function upkeepLine({
+  fires = 0, comforts = 0, arms = 0, spoiled = 0, tools = 0, salt = 0,
+}) {
   const parts = [];
   if (fires > 0) parts.push(`${fires} wood for the fires`);
   if (comforts > 0) parts.push(`${comforts} goods for comforts`);
   if (arms > 0) parts.push(`${arms} goods to arm the guards`);
+  if (tools > 0) parts.push(`${tools} iron for worn tools`);
+  if (salt > 0) parts.push(`${salt} salt to keep the food`);
   const lines = [];
   if (parts.length) lines.push(`Used: ${listWords(parts)}.`);
   if (spoiled > 0) lines.push(`${spoiled} food spoiled in storage.`);

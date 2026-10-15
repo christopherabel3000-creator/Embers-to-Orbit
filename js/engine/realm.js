@@ -4,7 +4,7 @@
 // it. The player's decisions about settlements, and each season's running of
 // them, are in settlements.js.
 
-import { PLACES } from './data.js';
+import { placeData, placeRegion } from './data.js';
 import { hasKnowledge, seasonIndex } from './state.js';
 import { hasTradition } from './legacy.js';
 import { listWords } from './util.js';
@@ -72,10 +72,10 @@ export function settlementById(state, id) {
 // place's matching bonus. A timber or mining town with nothing to work
 // brings in half, and a farming town on bare land four fifths.
 export function landFit(role, placeId) {
-  const p = PLACES[placeId];
+  const p = placeData(placeId);
   const b = p.bonus || {};
   if (role === 'farming') {
-    const best = Math.max(b.hunt || 0, b.forage || 0);
+    const best = Math.max(b.hunt || 0, b.forage || 0, b.fish || 0);
     if (!p.tasks.includes('hunt') && !p.tasks.includes('forage')) return 0.8;
     return 1 + 0.1 * Math.max(0, best);
   }
@@ -87,8 +87,10 @@ export function landFit(role, placeId) {
 // The role a place suits best: stone, wood, or food, whichever its land is
 // richest in.
 export function bestRole(placeId) {
-  const b = PLACES[placeId].bonus || {};
-  const best = [['mining', b.quarry || 0], ['timber', b.wood || 0], ['farming', Math.max(b.hunt || 0, b.forage || 0)]]
+  const p = placeData(placeId);
+  if (p.ore || p.salt) return 'mining';
+  const b = p.bonus || {};
+  const best = [['mining', b.quarry || 0], ['timber', b.wood || 0], ['farming', Math.max(b.hunt || 0, b.forage || 0, b.fish || 0)]]
     .sort((x, y) => y[1] - x[1])[0];
   return best[1] > 0 ? best[0] : 'farming';
 }
@@ -110,8 +112,28 @@ export function nextUnroaded(state) {
 }
 
 export function far(t) {
-  return PLACES[t.place].distance >= 2;
+  return placeData(t.place).distance >= 2;
 }
+
+// Settlements in the lake country and on the coast send home by river
+// boat once your people have them: nothing is lost on the way.
+export function byRiver(state, t) {
+  const region = placeRegion(t.place);
+  return (region === 'lakes' || region === 'coast') && hasKnowledge(state, 'riverBoats');
+}
+
+// What a settlement sends home: its role's kind, except that a mining town
+// rakes salt where there is salt, and sends iron from ore once your people
+// know Mining.
+export function townKind(state, t) {
+  const role = ROLES[t.role];
+  if (t.role !== 'mining') return role.kind;
+  const p = placeData(t.place);
+  if (p.salt) return 'salt';
+  if (p.ore && hasKnowledge(state, 'mining')) return 'iron';
+  return 'stone';
+}
+const KIND_RATE = { iron: 0.5, salt: 1 }; // For each mining town worker, instead of stone.
 
 // ----- Groups -----
 
@@ -184,7 +206,8 @@ export function loyaltyTarget(state, t) {
   add(`${t.governor ? t.governor.name : 'no governor'}'s ${learning > 2 ? 'wisdom' : 'inexperience'} as governor`, 2 * (learning - 2));
   add('their hall', t.buildings.hall ? 5 : 0);
   add('a road to the capital', hasRoad(state, t) ? 5 : 0);
-  add('being far from the capital', PLACES[t.place].distance >= 3 ? -3 : 0);
+  const distance = placeData(t.place).distance;
+  add(distance >= 4 ? 'being in another region' : 'being far from the capital', distance >= 4 ? -5 : distance >= 3 ? -3 : 0);
   const without = state.turn - (t.lastAid ?? t.founded);
   if (without > NEGLECT_AFTER) add(`no aid from the capital in ${Math.floor(without / 4)} years`, -Math.min(15, 3 * Math.floor((without - NEGLECT_AFTER) / 4) + 3));
   if (t.harriedAt != null && state.turn - t.harriedAt < 4) add('settlers killed by Skarn skirmishers this past year', -5);
@@ -211,7 +234,8 @@ export function townOutput(state, t) {
   const role = ROLES[t.role];
   if (!role.kind) return 0;
   const g = townGroups(state, t);
-  let amount = g.makers * role.rate * landFit(t.role, t.place) * governorFactor(t)
+  const rate = KIND_RATE[townKind(state, t)] || role.rate;
+  let amount = g.makers * rate * landFit(t.role, t.place) * governorFactor(t)
     * loyaltyFactor(t.loyalty) * (1 + WORKS_BONUS * worksLevel(t));
   if (role.kind === 'food' && seasonIndex(state) === 3) amount *= 0.5; // Lean winters there too.
   if (t.role === 'farming' && hasKnowledge(state, 'astronomy')) amount *= 1.1;
@@ -220,10 +244,10 @@ export function townOutput(state, t) {
 
 // What it sends home this season: { kind, amount, lost }.
 export function expectedShipment(state, t) {
-  const kind = ROLES[t.role].kind;
+  const kind = townKind(state, t);
   if (!kind || keepingAll(state, t)) return { kind, amount: 0, lost: 0 };
   const sent = townOutput(state, t) * (DEMANDS[t.demands] || DEMANDS.normal).share;
-  const loss = !hasRoad(state, t) && far(t) ? UNROADED_LOSS : 0;
+  const loss = !hasRoad(state, t) && !byRiver(state, t) && far(t) ? UNROADED_LOSS : 0;
   return { kind, amount: Math.round(sent * (1 - loss)), lost: Math.round(sent * loss) };
 }
 
@@ -263,7 +287,9 @@ export function fortressWatch(state) {
   return Math.max(0.55, 1 - 0.15 * fortresses(state).length);
 }
 
-// The whole nation's people: the capital and every settlement.
+// The whole nation's people: the capital, every settlement, and anyone
+// away on an expedition.
 export function nationPopulation(state, capitalCount) {
-  return capitalCount + (state.settlements || []).reduce((sum, t) => sum + t.population, 0);
+  const away = state.world ? state.world.expeditions.reduce((sum, x) => sum + x.party.length, 0) : 0;
+  return capitalCount + away + (state.settlements || []).reduce((sum, t) => sum + t.population, 0);
 }

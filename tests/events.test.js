@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { VILLAGE_EVENTS } from '../js/engine/villageEvents.js';
 import { NATION_EVENTS } from '../js/engine/nationEvents.js';
+import { EXPEDITION_EVENTS } from '../js/engine/expeditionEvents.js';
 import { SAVE_VERSION } from '../js/engine/state.js';
 import { newGame, applyAction } from '../js/engine/game.js';
 import { living, wolvesAt, migrate } from '../js/engine/state.js';
@@ -37,7 +38,8 @@ test('every choice event offers options and resolves each one', () => {
   // The ally's call and a new Skarn chief are only started by the year;
   // they have their own tests. Village events have their own tests, with a village.
   // A settlement's defiance comes with the Nation era, and has its own tests too.
-  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && key !== 'skarnChief' && key !== 'defiance' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS))) {
+  // Expeditions' choices come with them, and have their own tests too.
+  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && key !== 'skarnChief' && key !== 'defiance' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS) && !(key in EXPEDITION_EVENTS))) {
     const base = richState();
     if (id === 'firstContact') base.neighbors.skarn.contactPending = true;
     else assert.ok(ev.weight(base) > 0, `${id} should be possible`);

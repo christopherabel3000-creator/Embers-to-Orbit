@@ -8,7 +8,7 @@ import { newGame } from '../engine/game.js';
 import { dateLabel, personById, inVillage } from '../engine/state.js';
 import { storage } from '../storage.js';
 import {
-  $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens, setTown,
+  $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens, setTown, setRegion,
 } from './core.js';
 import { advisorsScreen } from './screens/advisors.js';
 import { raidScreen, positionSummary, readPositions } from './screens/battle.js';
@@ -19,6 +19,7 @@ import { knowledgeScreen } from './screens/knowledge.js';
 import { mapScreen } from './screens/map.js';
 import { menuScreen } from './screens/menu.js';
 import { nationScreen, settlementScreen } from './screens/nation.js';
+import { worldScreen, regionScreen, expeditionScreen } from './screens/world.js';
 import { neighborsScreen } from './screens/neighbors.js';
 import { taskCounts, peopleScreen } from './screens/people.js';
 import { reportScreen } from './screens/report.js';
@@ -35,6 +36,9 @@ registerScreens({
   people: () => (inVillage(state) ? villageScreen() : peopleScreen()),
   nation: nationScreen,
   settlement: settlementScreen,
+  world: worldScreen,
+  region: regionScreen,
+  expedition: expeditionScreen,
   map: mapScreen,
   build: buildScreen,
   knowledge: knowledgeScreen,
@@ -172,6 +176,19 @@ function handleAction(action, btn) {
       setTown(Number(btn.dataset.town));
       show('settlement');
       break;
+    case 'openRegion':
+      setRegion(btn.dataset.region);
+      show('region');
+      break;
+    case 'recallExpedition': {
+      const msg = act({ type: 'recallExpedition', id: Number(btn.dataset.expedition) });
+      if (msg) {
+        show('world', { focus: false });
+        refocus('#expeditionsHeading');
+        announce(msg);
+      }
+      break;
+    }
     case 'sendAid': {
       const msg = act({ type: 'sendAid', settlementId: Number(btn.dataset.town), kind: btn.dataset.kind });
       if (msg) {
@@ -432,6 +449,22 @@ $main.addEventListener('submit', (e) => {
     if (msg) {
       setFoundingFrom('capital');
       show('nation');
+      announce(msg);
+    }
+    return;
+  }
+  if (e.target.id === 'expeditionForm') {
+    const region = e.target.querySelector('input[name="expeditionRegion"]:checked');
+    const msg = act({
+      type: 'sendExpedition',
+      region: region ? region.value : null,
+      leaderId: Number(document.getElementById('expeditionLeader').value),
+      size: Number(document.getElementById('expeditionSize').value),
+      seasons: Number(document.getElementById('expeditionSeasons').value),
+    });
+    if (msg) {
+      show('world', { focus: false });
+      refocus('#expeditionsHeading');
       announce(msg);
     }
     return;

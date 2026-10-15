@@ -27,11 +27,17 @@ export function setState(next) {
 
 export let screen = 'title';
 
-// The settlement the Settlement screen shows.
+// The settlement the Settlement screen shows, and the region the Region
+// screen shows.
 export let townId = null;
+export let regionId = null;
 
 export function setTown(id) {
   townId = id;
+}
+
+export function setRegion(id) {
+  regionId = id;
 }
 
 const SCREENS = [
@@ -39,6 +45,7 @@ const SCREENS = [
   ['people', 'People'],
   ['nation', 'Nation'],
   ['map', 'Map'],
+  ['world', 'World'],
   ['build', 'Build'],
   ['knowledge', 'Knowledge'],
   ['neighbors', 'Neighbors'],
@@ -92,6 +99,7 @@ function updateStatus() {
     + `food ${state.resources.food} of ${storageCapacity(state)}, wood ${state.resources.wood}, `
     + `${taskAvailable(state, 'quarry') || state.resources.stone ? `stone ${state.resources.stone || 0}, ` : ''}`
     + `${taskAvailable(state, 'craft') || state.resources.goods ? `goods ${state.resources.goods || 0}, ` : ''}`
+    + `${state.resources.iron ? `iron ${state.resources.iron}, ` : ''}${state.resources.salt ? `salt ${state.resources.salt}, ` : ''}`
     + `shelter for ${shelterCapacity(state)}.${state.siege ? ' Under siege.' : ''}`
     + `${(state.settlements || []).length ? ` ${plural(state.settlements.length, 'other settlement', 'other settlements')}.` : ''}`;
 }
@@ -119,9 +127,9 @@ function renderNav() {
   }
   const items = SCREENS
     .filter(([id]) => !state.gameOver || ['report', 'chronicle', 'menu'].includes(id))
-    .filter(([id]) => id !== 'nation' || eraAtLeast(state, 'nation'))
+    .filter(([id]) => !['nation', 'world'].includes(id) || eraAtLeast(state, 'nation'))
     .map(([id, label]) => [id, id === 'people' && inVillage(state) ? 'Village' : label])
-    .map(([id, label]) => `<li><button type="button" data-nav="${id}"${screen === id || (id === 'nation' && screen === 'settlement') ? ' aria-current="page"' : ''}>${label}</button></li>`);
+    .map(([id, label]) => `<li><button type="button" data-nav="${id}"${screen === id || (id === 'nation' && screen === 'settlement') || (id === 'world' && ['region', 'expedition'].includes(screen)) ? ' aria-current="page"' : ''}>${label}</button></li>`);
   if (!state.gameOver) items.push('<li><button type="button" class="primary" data-action="endTurn">End season</button></li>');
   $nav.innerHTML = `<ul>${items.join('')}</ul>`;
 }

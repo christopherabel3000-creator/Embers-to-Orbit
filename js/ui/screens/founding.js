@@ -1,6 +1,7 @@
 // The founding screens: becoming a village, and planning a second settlement.
 
-import { PLACES } from '../../engine/data.js';
+import { placeData } from '../../engine/data.js';
+import { REGIONS, WORLD_PLACES } from '../../engine/worldData.js';
 import {
   ROLES, ROLE_ORDER, DEMANDS, DEMAND_ORDER, bestRole, roleAvailable, settlementById,
 } from '../../engine/realm.js';
@@ -58,7 +59,7 @@ export function foundSettlementScreen() {
       ${sources.length > 1 ? `<p><label for="foundingFrom">Where the settlers come from</label>
         <select id="foundingFrom">${sources.map((x) => `<option value="${x.from}"${x.from === foundingFrom ? ' selected' : ''}>${esc(x.name)}${x.from === 'capital' ? ', the capital' : ''}</option>`).join('')}</select></p>` : `<input type="hidden" id="foundingFrom" value="${foundingFrom}">`}
       <fieldset><legend>Where will it stand?</legend>
-        ${sites.map((id, i) => `<label class="choice"><input type="radio" name="settlementPlace" value="${id}"${i === 0 ? ' checked' : ''}> ${esc(placeName(state, id))}: best for a ${esc(ROLES[bestRole(id)].name.toLowerCase())}. ${esc(PLACES[id].description)}</label>`).join('')}
+        ${sites.map((id, i) => `<label class="choice"><input type="radio" name="settlementPlace" value="${id}"${i === 0 ? ' checked' : ''}> ${esc(placeName(state, id))}: best for a ${esc(ROLES[bestRole(id)].name.toLowerCase())}${WORLD_PLACES[id] ? `, in ${esc(REGIONS[WORLD_PLACES[id].region].name.toLowerCase())}` : ''}. ${esc(placeData(id).description)}</label>`).join('')}
       </fieldset>
       <p><label for="settlementName">Name the settlement</label>
         <input type="text" id="settlementName" maxlength="30" autocomplete="off" value="${esc(`New ${placeName(state, sites[0])}`)}"></p>

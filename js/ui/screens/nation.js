@@ -2,7 +2,7 @@
 // screen, which drills into one of them.
 
 import { ADVISOR_ROLES } from '../../engine/advisors.js';
-import { SKILLS, PLACES } from '../../engine/data.js';
+import { SKILLS, placeData } from '../../engine/data.js';
 import {
   ROLES, ROLE_ORDER, DEMANDS, DEMAND_ORDER, TOWN_PRIORITIES, MAKER_NAMES, HOME_ROOM,
   settlementById, townGroups, expectedShipment, governorFactor, governorSkill, loyaltyWord, loyaltyTarget,
@@ -136,7 +136,7 @@ export function settlementScreen() {
     <p>${t.project ? `Now building ${esc(projectName(t, t.project.id))}: ${Math.floor(t.project.progress)} of ${projectWork(t, t.project.id)} work done.` : 'The governor has nothing to build right now.'} The governor builds homes as it grows, walls, its works, and a hall.</p>`;
   html += `<h2>Notable people (${t.notables.length + 1})</h2>
     <ul><li>${esc(notableRow(gov))} Governor.</li>${t.notables.map((p) => `<li>${esc(notableRow(p))}</li>`).join('')}</ul>
-    <p class="muted">${esc(PLACES[t.place].description)}</p>
+    <p class="muted">${esc(placeData(t.place).description)}</p>
     <div class="actions"><button type="button" data-nav="nation">Back to the Nation screen</button></div>`;
   return html;
 }

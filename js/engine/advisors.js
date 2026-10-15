@@ -27,6 +27,9 @@ import { estimateBattle } from './battle.js';
 import {
   loyaltyWord, loyaltyReasonsText, nextUnroaded, far,
 } from './realm.js';
+import { expeditionBlocker, expeditionTargets } from './world.js';
+import { REGIONS } from './worldData.js';
+import { listWords } from './util.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -334,6 +337,10 @@ export function getAdvice(state) {
     } else if (t.loyalty < 55) {
       add('speaker', 'note', `${t.name} is restless (loyalty ${t.loyalty}), because of ${why}. It sends home a little less.`);
     }
+  }
+  // Speaker: the world beyond the valley.
+  if (state.world && !state.world.expeditions.length && !expeditionBlocker(state)) {
+    add('speaker', 'note', `No expedition is out. ${listWords(expeditionTargets(state).map((id) => REGIONS[id].name.toLowerCase()))} ${expeditionTargets(state).length === 1 ? 'waits' : 'wait'} to be explored; send a party from the World screen.`);
   }
   const unroaded = nextUnroaded(state);
   if (unroaded && hasKnowledge(state, 'roads') && !state.buildQueue.some((item) => item.id === 'road')) {

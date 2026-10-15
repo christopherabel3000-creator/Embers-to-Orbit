@@ -1,6 +1,8 @@
 // Static game data for the Survival era: seasons, tasks, buildings,
 // the hand-crafted starting survivors, and discoveries.
 
+import { WORLD_PLACES } from './worldData.js';
+
 export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
 
 export const SKILLS = ['hunting', 'foraging', 'building', 'healing', 'scouting', 'learning'];
@@ -310,6 +312,15 @@ export const PLACES = {
 };
 
 export const PLACE_ORDER = Object.keys(PLACES);
+
+// Any place, in the valley or beyond it.
+export function placeData(id) {
+  return PLACES[id] || WORLD_PLACES[id];
+}
+
+export function placeRegion(id) {
+  return PLACES[id] ? 'valley' : WORLD_PLACES[id].region;
+}
 export const STARTING_PLACES = ['camp', 'riverbank', 'oakWoods'];
 
 // Version 1 saves recorded discoveries instead of places.
@@ -494,6 +505,43 @@ export const KNOWLEDGE = {
     after: ['stonecutting'],
     effect: 'Cleared, stone-laid roads. Unlocks roads to your settlements: nothing is lost on the way home, their people feel closer to the capital, and skirmishers trouble them less.',
   },
+  riverBoats: {
+    branch: 'exploration', era: 'nation',
+    name: 'River boats',
+    cost: 70,
+    after: ['weaving'],
+    effect: 'Plank boats with woven sails. Expeditions reach the lake country and the coast by river, with no days lost on the way, and settlements there send home by boat, so nothing is lost even without a road.',
+  },
+  mapmaking: {
+    branch: 'exploration', era: 'nation',
+    name: 'Mapmaking',
+    cost: 90,
+    after: ['writing'],
+    effect: 'Expeditions draw maps of where they have been. A mapped region is a season closer, its dangers are halved, and its places are easier to find.',
+  },
+  mining: {
+    branch: 'building', era: 'nation',
+    name: 'Mining',
+    cost: 80,
+    after: ['stonecutting'],
+    needsFind: 'ore',
+    effect: 'Shafts and galleries into the rock. A mining town at a place with iron ore sends home iron instead of stone.',
+  },
+  ironWorking: {
+    branch: 'crafts', era: 'nation',
+    name: 'Iron working',
+    cost: 100,
+    after: ['mining'],
+    effect: 'Smelting and forging. While there is iron in store, the capital\'s builders, quarriers, and woodcutters use iron tools and do 1 more each; the tools wear out, using 1 iron a season for every 4 who use them.',
+  },
+  salting: {
+    branch: 'food', era: 'nation',
+    name: 'Salting',
+    cost: 70,
+    after: ['smoking'],
+    needsResource: 'salt',
+    effect: 'Meat and fish packed in salt. While there is salt in store, food spoils half as much, using 1 salt a season for every 100 food in store, and expeditions carry food for twice as long.',
+  },
 };
 
 // The branches of the research tree.
@@ -504,6 +552,7 @@ export const BRANCHES = {
   war: 'War and defense',
   society: 'Society and healing',
   learning: 'Learning',
+  exploration: 'Exploration',
 };
 
 export const KNOWLEDGE_ORDER = Object.keys(KNOWLEDGE);

@@ -5,9 +5,9 @@ What the simulator says about the game's balance. [DESIGN.md](DESIGN.md) says ho
 ## Running the checks
 
 - `npm run simulate` plays 200 five-year campaigns with each of three strategies. `node tools/simulate.mjs [games] [years] [strategies]` changes the count, the length, and the strategies (comma-separated).
-- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds settlements when ready (up to 4: the first with heavy demands, the rest normal, each taking the role its land suits and the most learned governor it can), sends aid to any settlement whose loyalty falls below 55, builds roads once it knows how, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
+- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds settlements when ready (up to 6, one every two years at most, from the capital only while it keeps 55 people: the first with heavy demands, the rest normal, salt and iron first, then the richest land, each taking the role its land suits and the most learned governor it can), sends an expedition of 5 for 3 seasons whenever none is out (to the nearest region with places left, led by its best scout), sends aid to any settlement whose loyalty falls below 55, builds roads once it knows how, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
 - `DIFFICULTY=easy` (or normal, hard, insane) sets the difficulty; runs use Normal, the default for a new game, unless told otherwise. Notes before October 14, 2026 were measured on what is now Easy.
-- Settings for the village strategy, as environment variables: `MAXTOWNS=1` caps how many settlements it founds (4 by default); `NOAID=1` never sends aid to its settlements; `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
+- Settings for the village strategy, as environment variables: `MAXTOWNS=1` caps how many settlements it founds (6 by default); `NOAID=1` never sends aid to its settlements; `NOEXPLORE=1` sends no expeditions; `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
 - `npm run battles` fights hundreds of battles to check combat odds.
 - Each run counts fights won and not won (raids, sallies, ambushes, and attacks on Skarn hold) and ambushes scattered from. Before October 14, 2026, the count missed sallies and raids the simulated player answered itself, so older notes undercount lost fights.
 
@@ -62,6 +62,21 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 ## Notes by system
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
+
+### The Nation era, phase 2: the wider world (October 14, 2026)
+
+Thirty-five-year campaigns on Normal, with the village strategy as it now plays (a more careful founder than in phase 1; see Running the checks):
+
+| | Capital | Whole nation | Settlements | Beyond the valley | Places found | Iron, salt in store |
+| --- | --- | --- | --- | --- | --- | --- |
+| Sends expeditions | 65 | 162 | 5.4 | 2.7 | 24.7 of 25 | 166, 87 |
+| Sends none | 70 | 169 | 5.5 | 0 | 0 | 0, 0 |
+
+- **Exploring.** One expedition out at a time finds almost the whole world (6.9 of 7 regions) between the start of the Nation era (about year 17) and year 35, about 14 expeditions in all, with about one death on the road in every two campaigns. That is about the length the era is meant to take.
+- **Settling.** With expeditions, about half the settlements stand beyond the valley, most of them mining towns for salt and iron. Without them, the valley holds about five or six; a nation that never explores is barely smaller by year 35, but it has no iron or salt.
+- **Stone.** The simulated village could not found a third settlement until the council kept stone for it: it only quarried what the build queue needed, never the 30 a settlement takes. The council now keeps 40 stone in the Nation era.
+- **Iron and salt** pile up modestly. Their later uses (iron arms in phase 4, salt in trade in phase 3) will draw them down.
+- **The capital** ends smaller than in phase 1 (65 instead of about 105) because the simulated nation now founds more settlements; the whole nation is about the same size. The era's end asks for a capital of 150, which phase 5 will weigh against how many settlers a nation sends out.
 
 ### The Nation era, phase 1: the nation at home (October 14, 2026)
 

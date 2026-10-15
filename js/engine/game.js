@@ -22,6 +22,7 @@ import {
   foundSettlement, setPolicy, setTownRole, setTownDemands, setTownPriority, sendAid, appointGovernor,
 } from './settlements.js';
 import { resolveSeason } from './season.js';
+import { sendExpedition, recallExpedition } from './world.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 import { queueBlocker, refundFor, refundWords } from './building.js';
@@ -144,6 +145,19 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return sendAid(state, action);
+  },
+
+  sendExpedition(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return sendExpedition(state, action);
+  },
+
+  recallExpedition(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return recallExpedition(state, action);
   },
 
   appointGovernor(state, action) {

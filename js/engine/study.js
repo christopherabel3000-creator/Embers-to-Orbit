@@ -15,6 +15,25 @@ export function startNextStudy(state) {
   return k.current;
 }
 
+// Makes a discovery at once, as when ruins reveal it. Returns the line to report.
+export function learnNow(state, id) {
+  const k = state.knowledge;
+  const item = KNOWLEDGE[id];
+  k.learned.push(id);
+  recordDeed(state, 'discoveries');
+  for (const other of item.excludes || []) {
+    k.queue = k.queue.filter((x) => x !== other);
+    delete k.progress[other];
+  }
+  k.queue = k.queue.filter((x) => x !== id);
+  delete k.progress[id];
+  if (k.current === id) {
+    k.current = null;
+    startNextStudy(state);
+  }
+  return `Discovery: ${item.name}. ${item.effect}`;
+}
+
 // Applies a season of study points. Returns { urgent, events }.
 export function applyStudy(state, points) {
   const out = { urgent: [], events: [] };

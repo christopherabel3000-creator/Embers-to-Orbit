@@ -17,7 +17,7 @@ import { applyStudy, learnNow } from './study.js';
 import { chance, pick, randomInt } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
 import { meetGreat } from './great.js';
-import { listWords, clamp } from './util.js';
+import { listWords, clamp, lowerFirst } from './util.js';
 
 export const PARTY_SIZE = [3, 8];
 export const EXPLORE_SEASONS = [1, 4];
@@ -83,6 +83,7 @@ export function travelTime(state, regionId) {
   if (REGIONS[regionId].river && hasKnowledge(state, 'riverBoats')) t = 0;
   const between = REGIONS[regionId].neighbors.filter((n) => HOPS[n] === HOPS[regionId] - 1);
   if (t > 0 && (regionMapped(state, regionId) || between.some((n) => n !== 'valley' && regionMapped(state, n)))) t -= 1;
+  if (t > 0 && hasKnowledge(state, 'horseRiding')) t -= 1; // Riders go far and fast.
   return t;
 }
 
@@ -161,7 +162,7 @@ export function sendExpedition(state, {
   };
   state.world.expeditions.push(exp);
   if (travel === 0) arrive(state, exp);
-  return { message: `${leader.name} leads ${n - 1} others toward ${REGIONS[region].name.toLowerCase()}, with ${food} food. ${travel ? `The journey there takes ${travel === 1 ? 'a season' : `${travel} seasons`}; then they` : 'They'} will explore for ${stay === 1 ? 'a season' : `${stay} seasons`} and come home.` };
+  return { message: `${leader.name} leads ${n - 1} others toward ${lowerFirst(REGIONS[region].name)}, with ${food} food. ${travel ? `The journey there takes ${travel === 1 ? 'a season' : `${travel} seasons`}; then they` : 'They'} will explore for ${stay === 1 ? 'a season' : `${stay} seasons`} and come home.` };
 }
 
 // The party reaches its region: it is explored, and its neighbors heard of.
@@ -190,7 +191,7 @@ export function recallExpedition(state, { id }) {
   if (!exp) return { error: 'There is no such expedition.' };
   if (exp.stage === 'home') return { error: 'They are already on their way home.' };
   turnHome(state, exp);
-  return { message: `A runner has gone to call ${leaderName(exp)}'s party home from ${REGIONS[exp.region].name.toLowerCase()}.` };
+  return { message: `A runner has gone to call ${leaderName(exp)}'s party home from ${lowerFirst(REGIONS[exp.region].name)}.` };
 }
 
 // Turns a party for home: the way back is as long as they have come.
@@ -287,7 +288,7 @@ function comeHome(state, exp) {
   for (const p of exp.party) state.people.push({ ...p, task: 'rest', orderReturn: null });
   state.world.expeditions = state.world.expeditions.filter((x) => x !== exp);
   refreshAdvisors(state);
-  const region = REGIONS[exp.region].name.toLowerCase();
+  const region = lowerFirst(REGIONS[exp.region].name);
   let mapped = '';
   if (hasKnowledge(state, 'mapmaking') && !state.world.regions[exp.region].mapped && regionStatus(state, exp.region) === 'explored') {
     state.world.regions[exp.region].mapped = true;
@@ -309,7 +310,7 @@ export function expeditionsSeason(state) {
   const s = seasonIndex(state);
   for (const exp of [...state.world.expeditions]) {
     const region = REGIONS[exp.region];
-    const where = region.name.toLowerCase();
+    const where = lowerFirst(region.name);
     const word = (text) => out.events.push(`Word from ${leaderName(exp)}'s expedition to ${where}: ${text}`);
     // They eat what they carry.
     const need = exp.party.length * travelRation(state);
@@ -343,7 +344,7 @@ export function expeditionsSeason(state) {
         const { first, heard } = arrive(state, exp);
         exp.stage = 'exploring';
         exp.left = exp.plan;
-        word(`They have reached it${first ? '' : ' again'}.${heard.length ? ` Beyond it, they hear, lies ${listWords(heard.map((n) => REGIONS[n].name.toLowerCase()))}.` : ''}`);
+        word(`They have reached it${first ? '' : ' again'}.${heard.length ? ` Beyond it, they hear, lies ${listWords(heard.map((n) => lowerFirst(REGIONS[n].name)))}.` : ''}`);
       }
       continue;
     }

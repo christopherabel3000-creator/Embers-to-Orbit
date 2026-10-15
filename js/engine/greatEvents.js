@@ -17,9 +17,10 @@ import { changeRelation } from './neighbors.js';
 import { nation, remember } from './nations.js';
 import { fortresses } from './realm.js';
 import { inOrhaiReach } from './great.js';
+import { atWar, armyHolding } from './warStatus.js';
 import { reputation, recordDeed } from './legacy.js';
 import { pick } from './rng.js';
-import { capital } from './util.js';
+import { capital, lowerFirst } from './util.js';
 
 const FLEET = { goods: 40 };
 
@@ -64,7 +65,7 @@ export const GREAT_EVENTS = {
       } else {
         changeGreat(state, ev.nation, -5);
       }
-      return [`Your people have met ${def.name}, ${def.nature} of ${REGIONS[def.homeland].name.toLowerCase()}. Relations stand at ${g.relation}. Envoys can go to them from the Neighbors screen.`];
+      return [`Your people have met ${def.name}, ${def.nature} of ${lowerFirst(REGIONS[def.homeland].name)}. Relations stand at ${g.relation}. Envoys can go to them from the Neighbors screen.`];
     },
   },
 
@@ -72,7 +73,7 @@ export const GREAT_EVENTS = {
     choice: true,
     weight: (state) => {
       const g = great(state, 'orhai');
-      if (!g || !g.met || g.treaties.peace || g.paidUntil > state.turn || state.turn - g.lastDemand < 8 || g.relation >= 30) return 0;
+      if (!g || !g.met || g.treaties.peace || atWar(state, 'orhai') || g.paidUntil > state.turn || state.turn - g.lastDemand < 8 || g.relation >= 30) return 0;
       return 0.5;
     },
     start(state) {
@@ -80,7 +81,7 @@ export const GREAT_EVENTS = {
       return { coin: tributeCost(state) };
     },
     view(state, ev) {
-      const strong = fortresses(state).some(inOrhaiReach) || reputation(state).fierce >= 15;
+      const strong = fortresses(state).some((t) => inOrhaiReach(t, state)) || reputation(state).fierce >= 15 || ['plains', 'desert'].some((r) => armyHolding(state, r));
       const options = [];
       if ((state.resources.coin || 0) >= ev.coin) options.push({ id: 'pay', label: `Pay ${ev.coin} coin, and their riders stay away for a year.` });
       options.push({ id: 'refuse', label: 'Refuse. Their riders will come more often for a year.' });
@@ -91,7 +92,7 @@ export const GREAT_EVENTS = {
         options,
         advice: [
           ['speaker', 'They despise a people who pay, and each year they will ask for more. But their riders are fast, and our settlements out there are small.'],
-          ['warChief', strong ? 'We have a fortress on the plains, or a name they respect. They know what they would face.' : 'We have no fortress on the plains. If they come, the settlers there stand alone.'],
+          ['warChief', strong ? 'We have a fortress or an army on the plains, or a name they respect. They know what they would face.' : 'We have no fortress on the plains. If they come, the settlers there stand alone.'],
         ],
       };
     },

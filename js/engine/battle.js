@@ -90,7 +90,8 @@ export function fighterStrength(state, p) {
   const spears = hasKnowledge(state, 'spears') ? 1.5 : 0;
   const warriors = hasTradition(state, 'warrior') ? 1.5 : 0;
   const bows = hasKnowledge(state, 'bows') ? 1.5 : 0;
-  return (4 + p.skills.hunting * 1.5 + spears + warriors + bows) * Math.max(0.3, p.health / 100) * guardBonus(state, p) * lawFight(state, p);
+  const iron = hasKnowledge(state, 'ironWeapons') ? 1.5 : 0;
+  return (4 + p.skills.hunting * 1.5 + spears + warriors + bows + iron) * Math.max(0.3, p.health / 100) * guardBonus(state, p) * lawFight(state, p);
 }
 
 // Guards are trained and ready; drill and a chieftain make them stronger.

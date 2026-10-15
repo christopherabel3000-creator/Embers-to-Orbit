@@ -101,6 +101,7 @@ function storesSection() {
   if (state.buildings.pasture) extras.push(`Pastures give ${state.buildings.pasture * 6} food every season.`);
   if (state.resources.iron || hasKnowledge(state, 'ironWorking')) extras.push(`Iron: ${state.resources.iron || 0}, from mining towns${hasKnowledge(state, 'ironWorking') ? `. While there is iron, builders, quarriers, and woodcutters use iron tools, which wear out` : ''}.`);
   if (state.resources.coin || hasKnowledge(state, 'coinage')) extras.push(`Coin: ${state.resources.coin || 0}, from trade with the great nations, trade routes, taxes, and silver.`);
+  if (state.resources.horses || hasKnowledge(state, 'horseBreeding')) extras.push(`Horses: ${state.resources.horses || 0}, bred in the pastures and at the wild horse grounds, or bought from the Orhai, for cavalry${hasKnowledge(state, 'horseBreeding') ? `. With 10 or more, carts pull your loads${(state.resources.horses || 0) >= 10 ? ', as they do now' : ''}` : ''}.`);
   if (state.resources.salt || hasKnowledge(state, 'salting')) extras.push(`Salt: ${state.resources.salt || 0}, from mining towns at salt flats and pans${hasKnowledge(state, 'salting') ? `. While there is salt, the stores spoil half as much, using ${saltNeeded(state)} salt a season now` : ''}.`);
   if (extras.length) html += `<p>${esc(extras.join(' '))}</p>`;
   const lean = leanTimesNow(state);

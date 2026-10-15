@@ -21,6 +21,8 @@ import {
 import { lawSettle, taxRate } from './laws.js';
 import { vassalYear } from './union.js';
 import { expeditionsSeason } from './world.js';
+import { warSeason, meetOnRoad, tributesYear } from './war.js';
+import { warWeariness, homeBesieged, armyHolding } from './warStatus.js';
 import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
 import { peaceYear } from './peace.js';
 import { raidGrowth } from './rules.js';
@@ -151,6 +153,9 @@ export function resolveSeason(state) {
   }
   const herds = Math.round((state.buildings.pasture || 0) * FOOD_PER_PASTURE * (sieged ? 0.5 : 1)); // Penned close in a siege.
   state.resources.food += herds;
+  // With Horse breeding, every 2 pastures raise a horse each season but winter.
+  const foals = hasKnowledge(state, 'horseBreeding') && s !== 3 && state.buildings.pasture > 0 ? Math.max(1, Math.floor(state.buildings.pasture / 2)) : 0;
+  state.resources.horses = (state.resources.horses || 0) + foals;
   const hunters = sieged ? 0 : people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
   recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
   // Coin: taxes from the capital and the settlements, and trade routes.
@@ -159,7 +164,7 @@ export function resolveSeason(state) {
   const routes = routesIncome(state);
   state.resources.coin = (state.resources.coin || 0) + taxes + routes;
   const income = incomeLine({
-    food, herds, wood, stone, goods, foodWorkers: hunters, taxes, routes,
+    food, herds, wood, stone, goods, foodWorkers: hunters, taxes, routes, foals,
   });
   // Governors are paid from the treasury, if there is coin to pay them.
   const due = wagesDue(state);
@@ -320,6 +325,12 @@ export function resolveSeason(state) {
   urgent.push(...trips.urgent);
   events.push(...trips.events);
 
+  // Armies eat, march, raid, and lay siege; the enemy's hosts ride.
+  const war = warSeason(state);
+  urgent.push(...war.urgent);
+  events.push(...war.events);
+  routine.push(...war.routine);
+
   // Hunting and foraging use up a place; every place slowly recovers.
   const huntSite = siteFor(state, 'hunt');
   const forageSite = siteFor(state, 'forage');
@@ -391,6 +402,7 @@ export function resolveSeason(state) {
   upkeep.comforts = spent.comforts;
   upkeep.arms = spent.arms;
   const crowding = crowdingSettle(state);
+  const weary = warWeariness(state).spirits;
   for (const p of people) {
     if (p.health <= 0) continue; // Too far gone to recover.
     if (!unfed.has(p.id) && !cold.has(p.id)) p.health = clamp(p.health + 5);
@@ -402,7 +414,8 @@ export function resolveSeason(state) {
     // Spirits settle back toward steady: high spirits fade faster the higher they are.
     const settle = (state.buildings.meetingHall > 0 ? 62 : 55) + lawSettle(state) + spent.settle
       + (state.buildings.shrine > 0 ? 2 : 0) // A meeting hall, the laws, comforts, and a shrine move where spirits settle.
-      - crowding; // A large village frays.
+      - crowding // A large village frays.
+      - weary; // So does a long war.
     if (p.morale < settle) p.morale = clamp(Math.min(settle, p.morale + 3));
     else if (p.morale > settle) p.morale = clamp(p.morale - 3 - (p.morale - settle) * 0.2);
   }
@@ -485,6 +498,7 @@ export function resolveSeason(state) {
       const vassal = vassalYear(state); // Skarn vassals pay tribute, or rebel.
       urgent.push(...vassal.urgent);
       events.push(...vassal.events);
+      events.push(...tributesYear(state)); // Tribute owed by a peace.
     }
     if (living(state).length === 0) {
       state.gameOver = true;
@@ -539,16 +553,31 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   // A great host gathered last season marches now, unless peace was made.
   if (state.skarnHost && state.turn >= state.skarnHost) {
     state.skarnHost = null;
+    if (homeBesieged(state, 'skarn')) {
+      urgent.push('The Skarn host never marched: your army has them penned in their hold.');
+      return;
+    }
     if (!skarnAtPeace(state) && state.neighbors.skarn.nation) {
       let raiders = Math.max(6, Math.round(skarnStrength(state) * 0.9));
-      // Facing walls they cannot take, the host settles in for a siege.
+      harmedBy(state, 'skarn');
+      // Facing walls they cannot take, the host settles in for a siege,
+      // unless an army meets it on the road.
       if (skarnApproach(state, raiders) === 'siege') {
-        urgent.unshift(startSiege(state, raiders));
+        const road = meetOnRoad(state, {
+          raiders, from: 'skarn', host: true, siege: true,
+        });
+        urgent.unshift(...(road || [startSiege(state, raiders)]));
         return;
       }
       const helpers = alliedHelpers(state);
       const stopped = Math.min(helpers, raiders - 4);
       raiders -= Math.max(0, stopped);
+      const road = meetOnRoad(state, { raiders, from: 'skarn', host: true });
+      if (road) {
+        urgent.unshift(...road);
+        if (stopped > 0) urgent.unshift(`The Skarn host has come, and ${helpersText(state)} turned back ${stopped} of them on the road.`);
+        return;
+      }
       state.pendingEvent = { type: 'raid', raiders, warned: true, from: 'skarn', host: true };
       state.pendingEvent.battle = createBattle(state, state.pendingEvent);
       urgent.unshift(`The Skarn host has come: about ${raiders} warriors at the edge of ${state.campName}.${stopped > 0 ? ` ${helpersText(state)} turned back ${stopped} more.` : ''} Decide how to respond before anything else.`);
@@ -564,6 +593,11 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     const helpers = alliedHelpers(state);
     const stopped = Math.min(helpers, raiders - 2);
     raiders -= Math.max(0, stopped);
+    const road = meetOnRoad(state, { raiders, from: 'clans' });
+    if (road) {
+      urgent.unshift(...road);
+      return;
+    }
     const warned = raidSpotted(state, scoutsOut, { trail: false });
     state.pendingEvent = { type: 'raid', raiders, warned, from: 'clans' };
     state.pendingEvent.battle = createBattle(state, state.pendingEvent);
@@ -593,11 +627,15 @@ function maybeStartRaid(state, scoutsOut, urgent) {
   if (nationsActive(state) && from === 'skarn') {
     const approach = skarnApproach(state, raiders);
     if (approach === 'siege') {
-      urgent.unshift(startSiege(state, raiders));
+      harmedBy(state, 'skarn');
+      const road = meetOnRoad(state, { raiders, from: 'skarn', siege: true });
+      urgent.unshift(...(road || [startSiege(state, raiders)]));
       return;
     }
     if (approach === 'wait') return;
   }
+  // Outlaws keep well away from an army.
+  if (from === 'outlaws' && armyHolding(state, 'valley')) return;
   if (from === 'outlaws') raiders = Math.max(3, Math.ceil((randomInt(state, 4, 7) + raidGrowth(y)) / 2));
   // Harder difficulties send more. (A Skarn nation's bands already come from
   // the warriors it keeps under arms, which difficulty sets.)
@@ -609,6 +647,13 @@ function maybeStartRaid(state, scoutsOut, urgent) {
     const stopped = Math.min(helpers, raiders - 2);
     raiders -= stopped;
     allyNote = ` ${helpersText(state)} met them on the road with ${helpers} fighters, and turned back ${stopped} of them.`;
+  }
+  if (from === 'skarn') harmedBy(state, 'skarn');
+  const road = from === 'skarn' ? meetOnRoad(state, { raiders, from }) : null;
+  if (road) {
+    state.raidThreat = false;
+    urgent.unshift(...road, ...(allyNote ? [allyNote.trim()] : []));
+    return;
   }
   const warned = raidSpotted(state, scoutsOut);
   state.raidThreat = false;
@@ -625,10 +670,17 @@ function maybeStartRaid(state, scoutsOut, urgent) {
 // by two guards on watch, or by scouts who happen to be out. In fog only the
 // guards on the paths, and scouts half as often, see them.
 export function raidSpotted(state, scoutsOut, { trail = true } = {}) {
+  if (hasKnowledge(state, 'signalBeacons')) return true; // The beacons are lit.
   const fog = state.weather === 'fog';
   if (!fog && (state.buildings.watchtower > 0 || (trail && isKnown(state, 'raiderTrail')))) return true;
   if (guardsOnWatch(state) >= 2) return true;
   return scoutsOut && chance(state, fog ? 0.3 : 0.6);
+}
+
+// A people that raids you gives you a reason for war.
+function harmedBy(state, foe) {
+  if (!state.lastHarm) state.lastHarm = {};
+  state.lastHarm[foe] = state.turn;
 }
 
 export function guardsOnWatch(state) {

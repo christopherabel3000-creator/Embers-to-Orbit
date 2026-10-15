@@ -9,11 +9,12 @@ import { listWords, capital } from './util.js';
 // "Brought in: 38 food from hunting and foraging, 18 food from the herds,
 // 12 wood, 18 stone, and 8 goods."
 export function incomeLine({
-  food = 0, herds = 0, wood = 0, stone = 0, goods = 0, foodWorkers = 0, taxes = 0, routes = 0,
+  food = 0, herds = 0, wood = 0, stone = 0, goods = 0, foodWorkers = 0, taxes = 0, routes = 0, foals = 0,
 }) {
   const parts = [];
   if (food > 0) parts.push(`${food} food from hunting and foraging`);
   if (herds > 0) parts.push(`${herds} food from the herds`);
+  if (foals > 0) parts.push(`${foals} ${foals === 1 ? 'horse' : 'horses'} from the pastures`);
   if (wood > 0) parts.push(`${wood} wood`);
   if (stone > 0) parts.push(`${stone} stone`);
   if (goods > 0) parts.push(`${goods} goods`);

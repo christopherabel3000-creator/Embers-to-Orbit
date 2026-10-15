@@ -13,7 +13,7 @@ import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
 import { initialGreat } from './greatData.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 31;
+export const SAVE_VERSION = 32;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -97,7 +97,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     campName: campName.trim() || 'Emberhold',
     turn: 0,
     resources: {
-      food: 50, wood: 30, stone: 0, goods: 0, iron: 0, salt: 0, coin: 0,
+      food: 50, wood: 30, stone: 0, goods: 0, iron: 0, salt: 0, coin: 0, horses: 0,
     },
     people,
     nextPersonId: people.length + 1,
@@ -124,6 +124,13 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     world: initialWorld(), // The regions beyond the valley, and expeditions to them.
     great: initialGreat(), // The great nations beyond the valley.
     nationFounded: null, // The turn the Nation era began.
+    armies: [], // Armies in the field: see armies.js.
+    nextArmyId: 1,
+    nextCompanyId: 1,
+    wars: {}, // People to { since, score, reason, stormed, battles }: see war.js.
+    warEnded: {}, // People to the turn peace was made with them.
+    tributes: [], // Tribute owed to you: { foe, until, food, goods, coin, horses }.
+    lastHarm: {}, // People to the turn they last raided you: a reason for war.
     laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
@@ -366,6 +373,18 @@ export function migrate(data) {
     data.nationFounded = nation ? Math.min(...(data.settlements || []).map((t) => t.founded), data.turn) : null;
     data.version = 31;
   }
+  if (data.version === 31) {
+    // Armies, wars, and horses.
+    Object.assign(data, {
+      armies: [], nextArmyId: 1, nextCompanyId: 1, wars: {}, warEnded: {}, tributes: [], lastHarm: {},
+    });
+    data.resources.horses = 0;
+    if (data.great) {
+      const fresh = initialGreat();
+      for (const id of Object.keys(data.great)) data.great[id].strength = fresh[id].strength;
+    }
+    data.version = 32;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -506,7 +525,7 @@ export function knowledgeBlocker(state, id) {
   if (missing.length) return `Needs ${missing.map((a) => KNOWLEDGE[a].name).join(' and ')} first.`;
   if (k.place && !isKnown(state, k.place)) return `Your people must find ${PLACES[k.place].name} first.`;
   if (k.needsBuilding && !(state.buildings[k.needsBuilding] > 0)) return `Needs a ${BUILDINGS[k.needsBuilding].name.toLowerCase()} first.`;
-  if (k.needsFind && !worldFound(state, k.needsFind)) return `Your expeditions must find ${k.needsFind === 'ore' ? 'iron ore' : k.needsFind} first.`;
+  if (k.needsFind && !worldFound(state, k.needsFind)) return `Your expeditions must find ${{ ore: 'iron ore', horses: 'the wild horse grounds' }[k.needsFind] || k.needsFind} first.`;
   if (k.needsResource && !(state.resources[k.needsResource] > 0)) return `Needs ${k.needsResource} in store first.`;
   return null;
 }

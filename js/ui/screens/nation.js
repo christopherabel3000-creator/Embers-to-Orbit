@@ -4,6 +4,7 @@
 import { ADVISOR_ROLES } from '../../engine/advisors.js';
 import { SKILLS, placeData, NEIGHBORS } from '../../engine/data.js';
 import { taxRate } from '../../engine/laws.js';
+import { soldiersFromTown } from '../../engine/armies.js';
 import {
   ROLES, ROLE_ORDER, DEMANDS, DEMAND_ORDER, TOWN_PRIORITIES, MAKER_NAMES, HOME_ROOM,
   settlementById, townGroups, expectedShipment, governorFactor, governorSkill, loyaltyWord, loyaltyTarget,
@@ -129,7 +130,8 @@ export function settlementScreen() {
   const groupRows = [
     [MAKER_NAMES[t.role], g.makers], ['Guards', g.guards], ['Scholars', g.scholars], ['Healers', g.healers], ['Builders', g.builders], ['Children and elders', g.young],
   ].filter(([, n]) => n > 0);
-  html += `<h2>Groups</h2><ul>${groupRows.map(([name, n]) => `<li>${esc(name)}: ${n}.</li>`).join('')}</ul>`;
+  const soldiers = soldiersFromTown(state, t);
+  html += `<h2>Groups</h2><ul>${groupRows.map(([name, n]) => `<li>${esc(name)}: ${n}.</li>`).join('')}${soldiers ? `<li>Away with your armies: ${soldiers}.</li>` : ''}</ul>`;
   const b = t.buildings;
   const level = worksLevel(t);
   const built = [
@@ -137,6 +139,7 @@ export function settlementScreen() {
     b.stoneWall ? 'A stone wall.' : b.palisade ? 'A palisade.' : 'No walls yet.',
     `${capitalize(ROLES[t.role].works)}: ${level ? `level ${level} of 3, ${level * 15} percent more from its role` : 'not yet built'}.`,
     b.hall ? 'A hall, where its people gather: loyalty 5 higher.' : null,
+    b.keep ? 'A stone keep: its soldiers do half again as much, and it holds out far longer against a host.' : null,
     hasRoad(state, t) ? `A road to ${state.campName}.` : far(t) ? `No road to ${state.campName}.` : null,
   ].filter(Boolean);
   html += `<h2>Buildings</h2><ul>${built.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>

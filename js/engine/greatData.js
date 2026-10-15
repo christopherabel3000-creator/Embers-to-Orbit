@@ -28,7 +28,7 @@ export const GREAT_NATIONS = {
     description: 'Riders of the far steppe, who live on horseback and follow their herds and their khans. Proud and restless, they are growing in number, and their grazing grounds are moving east, toward your land.',
     values: 'They respect strength and courage, and despise a people who pay to be left alone.',
     wants: 'grazing land, tribute, and respect',
-    offers: 'peace, at a price, and one day horses',
+    offers: 'peace, at a price, and horses',
     signature: 'Their riders: they strike far and fast, and nothing on foot can catch them.',
     rumor: 'Hunters from the west speak of the Orhai, riders of the far steppe who are never seen on foot, and whose herds grow larger every year.',
     baseline: -10,
@@ -46,11 +46,12 @@ export const TRADE_LOTS = {
   buyIron: { get: 'iron', amount: 10, coin: 10, label: 'Buy 10 iron' },
   buySalt: { get: 'salt', amount: 10, coin: 8, label: 'Buy 10 salt' },
   buyFood: { get: 'food', amount: 40, coin: 6, label: 'Buy 40 food' },
+  buyHorses: { get: 'horses', amount: 10, coin: 15, label: 'Buy 10 horses' },
 };
 // The Ostrani trade in everything; the Orhai will not trade until there is a peace pact.
 export const TRADES_BY = {
   ostrani: ['sellGoods', 'sellFine', 'sellSalt', 'sellIron', 'buyIron', 'buySalt', 'buyFood'],
-  orhai: ['sellGoods', 'sellIron', 'buyFood'],
+  orhai: ['sellGoods', 'sellIron', 'buyFood', 'buyHorses'],
 };
 
 // Treaties with the great nations, once there is an embassy.
@@ -85,6 +86,9 @@ export function initialGreat() {
       paidUntil: -1, // Tribute keeps the Orhai away until this turn.
       angryUntil: -1, // A refusal makes their raids more likely until this turn.
       lastDemand: -99,
+      strength: id === 'orhai' ? 50 : 30, // Riders or soldiers under arms.
+      pulledBack: false, // The Orhai pulled back to the steppe, by a peace.
+      quay: false, // A free quay in Ostra, by a peace.
     };
   }
   return all;

@@ -607,6 +607,81 @@ export const KNOWLEDGE = {
     needsResource: 'salt',
     effect: 'Meat and fish packed in salt. While there is salt in store, food spoils half as much, using 1 salt a season for every 100 food in store, and expeditions carry food for twice as long.',
   },
+
+  // ----- The Nation era: armies -----
+  ironWeapons: {
+    branch: 'war', era: 'nation',
+    name: 'Iron weapons',
+    cost: 90,
+    after: ['ironWorking'],
+    effect: 'Iron blades and spearheads. Each company raised while there is iron is armed with it, for 5 iron, and its soldiers are worth a fifth more. Your fighters at home strike harder too.',
+  },
+  horseBreeding: {
+    branch: 'food', era: 'nation',
+    name: 'Horse breeding',
+    cost: 90,
+    after: ['husbandry'],
+    needsFind: 'horses',
+    effect: 'Wild horses caught and bred. Every 2 pastures raise a horse each season but winter, and a farming town at the wild horse grounds sends home horses as well. With 10 horses in store, carts pull your loads: settlements without a road lose half as much on the way home, and armies carry a season more food.',
+  },
+  horseRiding: {
+    branch: 'exploration', era: 'nation',
+    name: 'Horse riding',
+    cost: 70,
+    after: ['horseBreeding'],
+    effect: 'Riders who scout far and fast. Expeditions to a region beyond the next one reach it a season sooner.',
+  },
+  cavalry: {
+    branch: 'war', era: 'nation',
+    name: 'Cavalry',
+    cost: 100,
+    after: ['horseRiding'],
+    effect: 'Soldiers who fight from horseback. Unlocks companies of cavalry, for 10 horses each.',
+  },
+  siegeEngines: {
+    branch: 'war', era: 'nation',
+    name: 'Siege engines',
+    cost: 110,
+    after: ['mathematics'],
+    effect: 'Rams and catapults. Unlocks companies with siege engines, which batter down walls.',
+  },
+  logistics: {
+    branch: 'war', era: 'nation',
+    name: 'Logistics',
+    cost: 90,
+    after: ['roads', 'salting'],
+    effect: 'Supply trains and depots. Armies carry two seasons more food, and your stores reach them one region further.',
+  },
+  signalBeacons: {
+    branch: 'war', era: 'nation',
+    name: 'Signal beacons',
+    cost: 70,
+    after: ['writing'],
+    effect: 'Fires on the hilltops, lit when raiders are seen. Raiders heading for the capital are always seen coming, and every settlement drives off raiders more often.',
+  },
+  fortresses: {
+    branch: 'building', era: 'nation',
+    name: 'Fortresses',
+    cost: 110,
+    after: ['masonry', 'drill'],
+    effect: 'The stone keep. A fortress settlement builds one after its stone wall: its soldiers do half again as much on the road to the capital, and it holds out far longer against a host.',
+  },
+  levies: {
+    branch: 'war', era: 'nation',
+    name: 'Levies',
+    cost: 60,
+    after: ['drill', 'lawCodes'],
+    excludes: ['standingArmy'],
+    effect: 'Every settlement owes soldiers when war comes. Settlements can send two fifths of their people instead of a fifth, and companies cost half as much to raise, but levies are worth less in battle. Choosing this closes off a standing army.',
+  },
+  standingArmy: {
+    branch: 'war', era: 'nation',
+    name: 'A standing army',
+    cost: 80,
+    after: ['drill', 'coinage'],
+    excludes: ['levies'],
+    effect: 'Soldiers by trade, always ready and well trained: new companies are worth a quarter more in battle, and their settlements do not miss them, but each company costs 2 coin a season. Choosing this closes off levies.',
+  },
 };
 
 // The branches of the research tree.

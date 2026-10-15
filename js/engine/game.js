@@ -24,6 +24,15 @@ import {
 import { resolveSeason } from './season.js';
 import { sendExpedition, recallExpedition } from './world.js';
 import { greatDiplomacy } from './great.js';
+import {
+  raiseArmy, raiseCompany, disbandCompany, disbandArmy, appointCommander, setArmyOrder, setStance,
+} from './armies.js';
+import {
+  declareWar, makePeace, stormHome, pendingField, finishField, fieldWithdraw,
+} from './war.js';
+import {
+  deployField, fieldFormation, resolveField, autoField,
+} from './field.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 import { queueBlocker, refundFor, refundWords } from './building.js';
@@ -203,6 +212,86 @@ const handlers = {
     if (stop) return stop;
     if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
     return greatDiplomacy(state, nationId, act);
+  },
+
+  // ----- Armies and war -----
+  raiseArmy(state, action) {
+    return armyAct(state, () => raiseArmy(state, action));
+  },
+  raiseCompany(state, action) {
+    return armyAct(state, () => raiseCompany(state, action));
+  },
+  disbandCompany(state, action) {
+    return armyAct(state, () => disbandCompany(state, action));
+  },
+  disbandArmy(state, action) {
+    return armyAct(state, () => disbandArmy(state, action));
+  },
+  armyCommander(state, action) {
+    return armyAct(state, () => appointCommander(state, action));
+  },
+  armyOrder(state, action) {
+    return armyAct(state, () => setArmyOrder(state, action));
+  },
+  armyStance(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setStance(state, action); // Allowed even mid-battle: it shapes what comes next.
+  },
+  declareWar(state, { foe }) {
+    return armyAct(state, () => declareWar(state, { foe }));
+  },
+  makePeace(state, { foe, terms }) {
+    return armyAct(state, () => makePeace(state, { foe, terms }));
+  },
+  stormHome(state, { armyId }) {
+    return armyAct(state, () => {
+      const result = stormHome(state, { armyId });
+      if (result.error) return result;
+      if (!pendingField(state)) recordBattle(state, result.lines);
+      return { message: result.lines.join(' ') };
+    });
+  },
+
+  // A field battle: deploy, give orders each round, or let the commander fight.
+  fieldDeploy(state, { plan = null, formation = null }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = pendingField(state);
+    if (!ev) return { error: 'There is no battle to fight.' };
+    if (ev.battle.phase !== 'deploy') return { error: 'The battle has already begun.' };
+    const placed = deployField(ev.battle, plan || fieldFormation(ev.battle, formation || 'match'));
+    if (placed.error) return placed;
+    return { message: 'Your companies are in position. Give your orders for the first round.' };
+  },
+  fieldOrders(state, { orders }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = pendingField(state);
+    if (!ev || ev.battle.phase !== 'fight') return { error: 'There is no battle underway.' };
+    const { lines, outcome } = resolveField(state, ev.battle, orders || {});
+    if (!outcome) return { message: lines.join(' ') };
+    ev.battle.phase = 'done';
+    const final = finishField(state, ev, outcome);
+    recordBattle(state, final);
+    return { message: [...lines, ...final].join(' ') };
+  },
+  fieldAuto(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const ev = pendingField(state);
+    if (!ev) return { error: 'There is no battle to fight.' };
+    const final = finishField(state, ev, autoField(state, ev.battle));
+    recordBattle(state, final);
+    return { message: final.join(' ') };
+  },
+  fieldWithdraw(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const result = fieldWithdraw(state);
+    if (result.error) return result;
+    recordBattle(state, result.lines);
+    return { message: result.lines.join(' ') };
   },
 
   setLaw(state, { law, option = null }) {
@@ -444,12 +533,21 @@ const handlers = {
     if (state.pendingEvent) {
       return { error: state.pendingEvent.type === 'raid'
         ? 'Deal with the raiders before ending the season.'
-        : 'A decision is waiting. Make it before ending the season.' };
+        : state.pendingEvent.type === 'field' ? 'Deal with the battle before ending the season.'
+          : 'A decision is waiting. Make it before ending the season.' };
     }
     resolveSeason(state);
     return { message: `Season ended. It is now ${state.report.title}.` };
   },
 };
+
+// Army and war actions wait while something else is happening.
+function armyAct(state, fn) {
+  const stop = blocked(state);
+  if (stop) return stop;
+  if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+  return fn();
+}
 
 function recordBattle(state, lines) {
   state.report.urgent.push(...lines);

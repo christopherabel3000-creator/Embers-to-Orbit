@@ -6,7 +6,8 @@
 // in realm.js; this file holds the player's decisions and each season's
 // running of the settlements.
 
-import { SKILLS, placeRegion } from './data.js';
+import { SKILLS, placeRegion, placeData } from './data.js';
+import { armyHolding, passHeld } from './warStatus.js';
 import { REGIONS, WORLD_PLACES, WORLD_PLACE_ORDER } from './worldData.js';
 import { openWorld } from './world.js';
 import { hearOfGreat } from './great.js';
@@ -23,7 +24,7 @@ import {
 import { gainExperience } from './skills.js';
 import { chance, randomInt, pick } from './rng.js';
 import {
-  shuffle, listNames, listWords, clamp,
+  shuffle, listNames, listWords, clamp, lowerFirst,
 } from './util.js';
 
 export const SETTLEMENT_COST = { food: 80, wood: 60, stone: 30 };
@@ -137,7 +138,9 @@ function newTown(state, { name, placeId, count, governor, notables, role, demand
     governor: { ...governor, task: 'govern' },
     governorSince: state.turn,
     notables: notables.map((p) => ({ ...p, task: 'settler' })),
-    buildings: { homes: Math.ceil((count + 2) / HOME_ROOM), palisade: 0, stoneWall: 0, hall: 0, works: {} },
+    buildings: {
+      homes: Math.ceil((count + 2) / HOME_ROOM), palisade: 0, stoneWall: 0, hall: 0, keep: 0, works: {},
+    },
     project: null,
     lastAid: state.turn,
     harriedAt: null,
@@ -214,7 +217,7 @@ export function foundSettlement(state, {
   const names = fromTown ? `${count} settlers from ${whence}` : count > 3 ? `${going.slice(0, 3).map((p) => p.name).join(', ')}, and ${count - 3} more` : listNames(going);
   const leaving = roles.length ? `, leaving the post of ${roles.join(' and ')} to another` : '';
   const line = firstSettlement
-    ? `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your people now live in two settlements: the Nation era has begun. ${state.campName} is your capital, and the Nation screen shows every settlement.${heard.length ? ` Travelers speak of lands beyond the valley: ${listWords(heard.map((id) => REGIONS[id].name.toLowerCase()))}. Expeditions can set out for them from the World screen.` : ''}${rumors.length ? ` ${rumors.join(' ')}` : ''}`
+    ? `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your people now live in two settlements: the Nation era has begun. ${state.campName} is your capital, and the Nation screen shows every settlement.${heard.length ? ` Travelers speak of lands beyond the valley: ${listWords(heard.map((id) => lowerFirst(REGIONS[id].name)))}. Expeditions can set out for them from the World screen.` : ''}${rumors.length ? ` ${rumors.join(' ')}` : ''}`
     : `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your nation now has ${state.settlements.length + 1} settlements.`;
   state.log.push({ turn: state.turn, date: state.report.title, text: line });
   state.report.decisions = [...(state.report.decisions || []), line];
@@ -342,6 +345,7 @@ export function nextProject(state, t) {
   if (pop + 3 > room) return 'homes';
   if (!b.palisade && (pop >= 15 || fortress)) return 'palisade';
   if (fortress && b.palisade && !b.stoneWall && hasKnowledge(state, 'masonry')) return 'stoneWall';
+  if (fortress && b.stoneWall && !b.keep && hasKnowledge(state, 'fortresses')) return 'keep';
   if (level < 3 && pop >= 10 * (level + 1)) return 'works';
   if (!b.hall && pop >= 25 && hasKnowledge(state, 'oralLaw')) return 'hall';
   if (b.palisade && !b.stoneWall && pop >= 30 && hasKnowledge(state, 'masonry')) return 'stoneWall';
@@ -351,12 +355,12 @@ export function nextProject(state, t) {
 
 export function projectWork(t, id) {
   if (id === 'works') return 16 * (worksLevel(t) + 1);
-  return { homes: 14, palisade: 20, hall: 24, stoneWall: 30 }[id];
+  return { homes: 14, palisade: 20, hall: 24, stoneWall: 30, keep: 40 }[id];
 }
 
 export function projectName(t, id) {
   if (id === 'works') return `${ROLES[t.role].works}${worksLevel(t) ? ` (level ${worksLevel(t) + 1})` : ''}`;
-  return { homes: 'homes', palisade: 'a palisade', hall: 'a hall', stoneWall: 'a stone wall' }[id];
+  return { homes: 'homes', palisade: 'a palisade', hall: 'a hall', stoneWall: 'a stone wall', keep: 'a stone keep' }[id];
 }
 
 function finishProject(t, id) {
@@ -453,6 +457,12 @@ export function settlementsSeason(state, { routine = null, cutOff = false } = {}
       quiet.push(`${t.name} sent home ${ship.amount} ${ship.kind}${ship.lost ? `; ${ship.lost} more was lost on the way, with no road` : ''}.`);
     }
     t.lastShipment = cutOff ? { kind: ship.kind, amount: 0, lost: 0 } : ship;
+    // Horses from the wild horse grounds, once your people breed them.
+    if (!cutOff && t.role === 'farming' && placeData(t.place).horses && hasKnowledge(state, 'horseBreeding') && seasonIndex(state) !== 3) {
+      const foals = Math.max(1, Math.floor(townGroups(state, t).makers / 6));
+      state.resources.horses = (state.resources.horses || 0) + foals;
+      quiet.push(`${t.name} sent home ${foals} ${foals === 1 ? 'horse' : 'horses'}.`);
+    }
 
     // Loyalty drifts a quarter of the way toward where it would settle.
     const before = t.loyalty;
@@ -494,14 +504,18 @@ export function settlementsSeason(state, { routine = null, cutOff = false } = {}
 // twice behind a stone wall), up to 90.
 export function townDefense(state, t) {
   const walls = 1 + (t.buildings.stoneWall ? 1 : t.buildings.palisade ? 0.5 : 0);
-  return Math.min(0.9, 0.1 + t.population / 100 + 0.1 * townGroups(state, t).guards * walls);
+  const beacons = hasKnowledge(state, 'signalBeacons') ? 0.15 : 0; // Seen coming.
+  return Math.min(0.9, 0.1 + beacons + t.population / 100 + 0.1 * townGroups(state, t).guards * walls);
 }
 
 // Skarn skirmishers fall on the settlements too. Returns report lines.
 export function harrySettlements(state) {
   const lines = [];
   for (const t of state.settlements || []) {
-    if (!REGIONS[placeRegion(t.place)].skarn) continue; // Beyond the Skarn's reach.
+    const region = placeRegion(t.place);
+    if (!REGIONS[region].skarn) continue; // Beyond the Skarn's reach.
+    if (region === 'hills' && passHeld(state)) continue; // The pass is held against them.
+    if (armyHolding(state, region) && region !== 'valley') continue; // Your army there keeps them off.
     if (!chance(state, harryChance(state) * 0.5 * (hasRoad(state, t) ? 0.7 : 1))) continue;
     if (chance(state, townDefense(state, t))) {
       skarnLosses(state, 1);
@@ -512,6 +526,8 @@ export function harrySettlements(state) {
     t.population = Math.max(3, t.population - lost);
     t.harriedAt = state.turn;
     t.loyalty = clamp(t.loyalty - 5);
+    if (!state.lastHarm) state.lastHarm = {};
+    state.lastHarm.skarn = state.turn;
     lines.push(`Skarn skirmishers fell on ${t.name}. ${lost === 1 ? 'One settler was' : `${lost} settlers were`} killed, and its people feel unprotected. More guards there would help.`);
   }
   return lines;

@@ -29,7 +29,9 @@ import {
 } from './realm.js';
 import { expeditionBlocker, expeditionTargets } from './world.js';
 import { REGIONS } from './worldData.js';
-import { listWords } from './util.js';
+import { armyRation, inSupply } from './armies.js';
+import { STANDING_PAY } from './armyData.js';
+import { listWords, lowerFirst } from './util.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -340,11 +342,28 @@ export function getAdvice(state) {
   }
   // Speaker: the world beyond the valley.
   if (state.world && !state.world.expeditions.length && !expeditionBlocker(state)) {
-    add('speaker', 'note', `No expedition is out. ${listWords(expeditionTargets(state).map((id) => REGIONS[id].name.toLowerCase()))} ${expeditionTargets(state).length === 1 ? 'waits' : 'wait'} to be explored; send a party from the World screen.`);
+    add('speaker', 'note', `No expedition is out. ${listWords(expeditionTargets(state).map((id) => lowerFirst(REGIONS[id].name)))} ${expeditionTargets(state).length === 1 ? 'waits' : 'wait'} to be explored; send a party from the World screen.`);
   }
   const unroaded = nextUnroaded(state);
   if (unroaded && hasKnowledge(state, 'roads') && !state.buildQueue.some((item) => item.id === 'road')) {
     add('steward', 'note', `A road to ${unroaded.name} would ${far(unroaded) ? 'bring home all it sends, and ' : ''}make its people feel closer to us, and keep skirmishers off it. Add one on the Build screen.`);
+  }
+
+  // War chief: the armies in the field.
+  for (const army of state.armies || []) {
+    const need = armyRation(state, army);
+    const seasons = need ? Math.floor(army.food / need) : 9;
+    if (!inSupply(state, army.location) && seasons <= 1) {
+      add('warChief', 'warning', `The ${army.name.toLowerCase()} has food for ${seasons ? 'one more season' : 'less than a season'} in ${lowerFirst(REGIONS[army.location].name)}, beyond the reach of our stores. Bring it back within reach, or it will starve.`);
+    }
+  }
+  const idle = (state.armies || []).find((a) => a.location === 'valley' && !a.march && a.order === 'hold' && state.turn - a.raised >= 8);
+  if (idle && !Object.keys(state.wars || {}).length) {
+    add('steward', 'note', `The ${idle.name.toLowerCase()} has stood in the valley for over two years, and we are at war with no one. Its soldiers would bring in food and goods at home; it can be disbanded on its screen.`);
+  }
+  const standing = (state.armies || []).flatMap((a) => a.companies).filter((c) => c.training === 'standing').length;
+  if (standing && (state.resources.coin || 0) < standing * STANDING_PAY * 2) {
+    add('steward', 'warning', `The treasury has ${state.resources.coin || 0} coin, and the standing army costs ${standing * STANDING_PAY} a season. Unpaid soldiers go home.`);
   }
 
   // War chief: raids.

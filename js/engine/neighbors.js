@@ -8,6 +8,7 @@ import {
 import { createBattle } from './battle.js';
 import { raidScale } from './difficulty.js';
 import { honorPeace, honorCost, honored } from './peace.js';
+import { atWar } from './warStatus.js';
 import { recordDeed, hasTradition, effectiveBaseline } from './legacy.js';
 import { TREATIES, TREATY_ORDER } from './data.js';
 import {
@@ -157,7 +158,9 @@ export function diplomacyOptions(state, id) {
     add('honorFood', `Honor the peace with gifts to the chiefs: ${cost.food} food. They will hold to it for a year, whatever they think of your strength`, r.food >= cost.food, `You need ${cost.food} food.`);
     if (hasKnowledge(state, 'weaving')) add('honorGoods', `Honor the peace with gifts to the chiefs: ${cost.goods} goods`, (r.goods || 0) >= cost.goods, `You need ${cost.goods} goods.`);
   }
-  if (id === 'skarn' && !n.peace) {
+  if (id === 'skarn' && !n.peace && atWar(state, 'skarn')) {
+    add('peace', 'Propose a lasting peace', false, 'You are at war with them: the terms of peace are on the Armies screen.');
+  } else if (id === 'skarn' && !n.peace) {
     const fighters = living(state).filter(canFight).length;
     add('attack', `Lead an attack on Skarn hold. About ${skarnGarrison(state)} warriors defend it, behind their walls. Costs 10 food for the march.`,
       isKnown(state, 'skarnHold') && fighters >= 4 && r.food >= 10,

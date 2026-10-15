@@ -6,7 +6,15 @@ import { settlementById, loyaltyReasonsText, governorSkill, ROLES } from './real
 import {
   defiantTown, aidCost, appointGovernor, bestGovernorFor,
 } from './settlements.js';
+import { placeRegion } from './data.js';
 import { clamp } from './util.js';
+
+// An army close enough to bring a defiant settlement to heel: in the valley,
+// or in the settlement's own region.
+function armyNear(state, t) {
+  return (state.armies || []).find((a) => !a.march && (a.location === 'valley' || a.location === placeRegion(t.place))
+    && a.companies.some((c) => c.soldiers > 0)) || null;
+}
 
 export const TOWN_EVENTS = {
   defiance: {
@@ -24,6 +32,8 @@ export const TOWN_EVENTS = {
       if ((state.resources.goods || 0) >= goods) options.push({ id: 'goods', label: `Send ${goods} goods to win them back.` });
       if (state.resources.food >= food) options.push({ id: 'food', label: `Send ${food} food to win them back.` });
       if (next) options.push({ id: 'governor', label: `Send ${next.name} to govern in ${t.governor.name}'s place.` });
+      const army = armyNear(state, t);
+      if (army) options.push({ id: 'army', label: `Send the ${army.name.toLowerCase()} to bring them to heel. They will obey, but resent it, and your other settlements will hear of it.` });
       options.push({ id: 'keep', label: 'Let them keep all they make for a year.' });
       const skill = governorSkill(t);
       return {
@@ -52,6 +62,13 @@ export const TOWN_EVENTS = {
         appointGovernor(state, { settlementId: t.id, personId: next.id });
         t.loyalty = clamp(before + 20);
         return [`${next.name} rode to ${t.name} to govern in ${old}'s place, and ${old} came home to ${state.campName}. The settlement will send home what its demands ask; its loyalty is ${t.loyalty} now.`];
+      }
+      if (choice === 'army' && armyNear(state, t)) {
+        const army = armyNear(state, t);
+        t.loyalty = 35;
+        t.population = Math.max(3, t.population - 1);
+        for (const other of state.settlements.filter((x) => x !== t)) other.loyalty = clamp(other.loyalty - 5);
+        return [`The ${army.name.toLowerCase()} marched into ${t.name}, and ${t.governor.name} gave way. One of its people was killed in the scuffles. It will send home what its demands ask, though its loyalty is only ${t.loyalty}, and your other settlements, hearing of it, are 5 less loyal.`];
       }
       t.keepUntil = state.turn + 4;
       t.demands = 'light';

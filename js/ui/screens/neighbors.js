@@ -15,7 +15,10 @@ import {
   greatActs, greatRegard, greatTarget, routeIncome, tributeCost, orhaiRaidChance, inOrhaiReach,
 } from '../../engine/great.js';
 import { REGIONS } from '../../engine/worldData.js';
-import { state, esc, capitalize, listWords, plural } from '../core.js';
+import { atWar } from '../../engine/warStatus.js';
+import {
+  state, esc, capitalize, listWords, plural, lowerFirst,
+} from '../core.js';
 
 function nationSection(id) {
   const nat = state.neighbors[id].nation;
@@ -66,7 +69,8 @@ export function neighborsScreen() {
     const ready = opts.filter((o) => o.ok);
     const blocked = opts.filter((o) => !o.ok);
     let status = '';
-    if (id === 'skarn' && n.vassal) status = ` They are your vassals: they pay you tribute each spring and keep the peace, for as long as they think you stronger.`;
+    if (id === 'skarn' && atWar(state, 'skarn')) status = ' You are at war with them. The Armies screen has the war, and the terms they would take for peace.';
+    else if (id === 'skarn' && n.vassal) status = ` They are your vassals: they pay you tribute each spring and keep the peace, for as long as they think you stronger.`;
     else if (id === 'skarn' && n.peace) status = ` You are at peace with them. ${peaceStatus(state)}`;
     else if (id === 'skarn' && n.truceUntil > state.turn) status = ` A truce holds for ${plural(n.truceUntil - state.turn, 'more season', 'more seasons')}.`;
     html += `<h2 id="neighbor-${id}">${esc(def.title)}</h2>
@@ -107,7 +111,7 @@ function greatSection() {
     const def = GREAT_NATIONS[id];
     const g = state.great[id];
     if (!g.met) {
-      html += `<h3 id="great-${id}">${esc(def.title)}</h3><p>Known only by rumor: ${esc(def.rumor)} An expedition to ${esc(REGIONS[def.homeland].name.toLowerCase())} would find them.</p>`;
+      html += `<h3 id="great-${id}">${esc(def.title)}</h3><p>Known only by rumor: ${esc(def.rumor)} An expedition to ${esc(lowerFirst(REGIONS[def.homeland].name))} would find them.</p>`;
       continue;
     }
     const regard = greatRegard(state, id);
@@ -123,7 +127,8 @@ function greatSection() {
       <p>${ties.length ? `Between you: ${esc(listWords(ties))}.` : 'Nothing binds you yet.'}</p>
       ${id === 'orhai' ? `<p>${esc(orhaiStatus())}</p>` : ''}
       ${g.memory.length ? `<p>They remember that you ${esc(listWords([...g.memory].reverse().slice(0, 4)))}.</p>` : ''}`;
-    if (g.lastEnvoy === state.turn) html += '<p>Your envoy has already gone to them this season.</p>';
+    if (atWar(state, id)) html += '<p>You are at war with them: no envoys go between you. The Armies screen has the war, and the terms they would take for peace.</p>';
+    else if (g.lastEnvoy === state.turn) html += '<p>Your envoy has already gone to them this season.</p>';
     else if (ready.length) html += `<div class="actions">${ready.map((a) => `<button type="button" data-action="greatDiplomacy" data-nation="${id}" data-act="${a.act}">${esc(a.label)}</button>`).join('')}</div>`;
     if (g.lastEnvoy !== state.turn && notNow.length) html += `<p>Not possible now:</p><ul>${notNow.map((a) => `<li>${esc(a.label)}. ${esc(a.why)}</li>`).join('')}</ul>`;
   }
@@ -132,9 +137,10 @@ function greatSection() {
 
 function orhaiStatus() {
   const g = state.great.orhai;
+  if (atWar(state, 'orhai')) return 'At war, their hosts ride against your armies and settlements within their reach.';
   if (g.treaties.peace) return 'Under the peace pact, their riders leave your settlements alone.';
   if (g.paidUntil > state.turn) return `Your tribute keeps their riders away for ${plural(g.paidUntil - state.turn, 'more season', 'more seasons')}. Next year they will ask for ${tributeCost(state)} coin.`;
-  const reach = (state.settlements || []).filter(inOrhaiReach);
+  const reach = (state.settlements || []).filter((t) => inOrhaiReach(t, state));
   return reach.length
     ? `Their riders may fall on your settlements within their reach (${listWords(reach.map((t) => t.name))}): about ${Math.round(orhaiRaidChance(state) * 100)} percent each season.${g.angryUntil > state.turn ? ' They are angry, and come more often.' : ''}`
     : 'None of your settlements stands within reach of their riders, on the plains or the desert edge.';

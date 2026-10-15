@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first three of which are playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first four of which are playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -39,6 +39,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **The nation at home** (the Nation era, phase 1): more settlements, each with a role, demands, and priorities set by the player and a named governor who runs it; loyalty, aid, and defiance; settlements counted by groups, and a capital that counts its people once it passes 100; the Nation and Settlement screens; roads; and a Learning branch of four discoveries.
 - **The wider world** (the Nation era, phase 2): seven regions around the valley with 25 places, expeditions with choices on the road, small peoples, wonders, and ruins; iron and salt; settlements beyond the valley; and five more discoveries, including River boats and Mapmaking.
 - **The first great nations** (the Nation era, phase 3): the Ostrani and the Orhai, met in their homelands at the edge of the map; envoys, trade for coin, embassies, treaties, marriages, and trade routes; Orhai raids and demands; coin, governors' wages, and taxes; laws on inheritance and worship; the Velari and Tellani joining the nation, and the Skarn as vassals; and nine more discoveries.
+- **Armies** (the Nation era, phase 4): companies of six kinds raised from the capital and the settlements under named commanders; marches, supply, and standing orders on the regional map; field battles on the ground of each region; wars declared with or without a reason, raids, sieges the player lays, storming with siege engines, and peace on terms; enemy hosts against your settlements; horses; and ten more discoveries.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -314,7 +315,7 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 1. **The nation at home (built):** the Nation and Settlement screens, roles and priorities, governors and loyalty, people as groups, the Learning branch with Writing, and Roads.
 2. **The wider world (built):** the regional map and its regions, expeditions, river boats, mapmaking, and iron and salt with Mining and Salting.
 3. **The first great nations (built):** the two designed first, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
-4. **Armies:** companies and commanders, campaigns and supply, sieges the player lays, the six kinds of soldiers, and horses with cavalry.
+4. **Armies (built):** companies and commanders, campaigns and supply, sieges the player lays, the six kinds of soldiers, wars and peace, and horses with cavalry.
 5. **Toward the sea:** the rest of the tree, the remaining great nations, harbors and ships, Navigation, and the voyage that ends the era.
 
 ### Phase 1: the nation at home (built)
@@ -513,18 +514,114 @@ When the Nation era begins, travelers bring word of the four regions around the 
 | Taxes | Society and law | 90 | Coinage, Law codes | The tax law |
 | Diplomacy | Society and law | 80 | Writing | Embassies, treaties, and marriages with the great nations |
 
-### Phase 4: armies (planned)
+### Phase 4: armies (built)
 
-- **Raising an army:** each settlement provides companies, levies or paid soldiers depending on the choice in the tree. An army is a few companies, each of one kind, under one commander.
-- **Six kinds of soldiers:** spearmen brace against charges and hold a line; shield infantry form shield walls against arrows; archers; cavalry are fast, strong on the flanks, and run down a breaking enemy; skirmishers are light, quick, and good scouts; siege engines break walls.
-- **Commanders** are named people whose skill grows with every battle, each with one trait such as bold, careful, or beloved. A commander sets the army's stance and can fight a battle for the player. The war chief still commands at home.
-- **Campaigns** are orders on the regional map: march to a region, raid it, besiege a settlement, relieve an ally, or hold a pass. Winter stops most marching, mud slows spring, and roads speed everything.
-- **Supply:** an army carries a set number of seasons of food. Salt and Logistics carry it further, foraging in enemy land stretches it, and an army cut off from home starves.
-- **Sieges the player lays:** surround an enemy settlement, build siege engines, then storm it or starve it out.
-- **A bigger battlefield:** terrain by region (hills, fords, forests, open plains), cavalry on the flanks, a choice of formation and stance before battle, and morale that breaks a line long before it is destroyed.
-- **War and peace:** declare war with a reason, and make peace on terms (tribute, land, or a vassal). A long war wears down loyalty at home.
-- **By ear:** one army on screen at a time; standing orders for armies (hold the region, defend, or fall back if outnumbered); and the commander can always fight the battle, with honest odds first.
-- **Horses** come from wild herds on the plains, then are bred in pastures: riders who scout far, cavalry, ploughs, and carts that speed shipments and supply.
+**Armies** are raised from the Armies screen (a navigation button in the Nation era), and each opens on its own Army screen, one army at a time. A nation can have up to 3 armies, each of up to 8 companies under one commander. A new army gathers in the valley with its commander and its first company.
+
+**Companies** hold up to 10 soldiers, and at least 5.
+
+- **From the capital:** the people it can best spare (healthy adults from 16 to 50, never the council, masters, or heroes, the least skilled first), keeping 30 at home. They leave the capital's work and come home, by name, when they are sent home.
+- **From a settlement:** up to 3 in 10 of its people (half, with Levies), keeping 12 at home. They are counted, and rejoin their settlement when sent home; a settlement that has lost its people to the armies is less loyal (see War, below).
+- **Where:** new companies join an army in the valley, or in the region of the settlement that raises them. Companies are sent home, and armies disbanded, the same way: in the valley, or where they were raised.
+
+| Kind | Cost | Needs | In battle |
+| --- | --- | --- | --- |
+| Spearmen | 10 wood | | Strike 1. Brace spears: riders who charge them are struck 1.5 times as hard, and take half again as much harm |
+| Shield infantry | 10 wood, 10 goods | Shields and drill | Strike 0.9; take 6 tenths of the harm from arrows. Shield wall: 3 tenths from arrows, but strike at half |
+| Archers | 10 wood | Bows | Strike 0.4, shoot 1; take 1.3 times the harm when charged |
+| Cavalry | 10 horses, 5 goods | Cavalry | Strike 1.3, and charge 1.4 times as hard (by the ground); swing round a flank to strike the center 1.3 times as hard; cut down a fifth of a company that breaks before them |
+| Skirmishers | 5 goods | | Strike 0.6, shoot 0.5; take 7 tenths of the harm; fight better on rough ground; scout, so the enemy's numbers are seen even in fog |
+| Siege engines | 30 wood, 20 stone | Siege engines | Strike 0.15, shoot 0.3; stay in the reserve, and each round each company knocks a tenth off the cover of the enemy's walls |
+
+With Levies, a company costs half (horses excepted). With Iron weapons and 5 iron in store, each new company is armed with iron, for 5 iron.
+
+**What a soldier is worth,** against an ordinary raider: (7, plus 1.5 each for Fire-hardened spears, Bows, and the Warrior tradition) divided by 6; times 1.5 with Shields and drill (1.25 without); times the training of the company's time: militia 1, levies 0.85, a standing army 1.25; and times 1.2 with iron arms. A drilled company with spears and bows is worth 2.5 a soldier. The Skarn are worth 1 at first and grow 0.06 a year as a nation, up to 2; the Orhai 1.8, growing 0.03 a year of the Nation era, up to 2.4; the Ostrani's hired soldiers 2.2.
+
+- **A standing army** costs 2 coin a season for each of its companies. If the treasury cannot pay, 2 in 10 of each unpaid company's soldiers go home.
+
+**Commanders** are healthy adults from the capital, from 18 to 60 (not the war chief, who commands at home). Each has one trait, fixed by who they are: **bold** (their soldiers strike 15 percent harder when they attack or charge, and take a tenth more harm), **careful** (15 percent less harm), or **beloved** (companies hold until 3 in 10 remain, instead of half). Their skill is half their hunting skill, plus one for every two battles, up to 5; each point makes the army strike 4 percent harder. A commander is killed in a lost battle one time in seven. They can be replaced from the Army screen.
+
+**Food and supply.** An army carries food for everyone in it: each eats 2 a season, 1 with Salting while there is salt. It carries two seasons of full rations (so four with Salting), two more with Logistics, and one more with carts.
+
+- **Within reach of your stores,** its packs are filled from the capital's stores each season: in the valley, the regions next to it, and any region with a settlement of yours, and with Logistics the regions next to those. Nothing reaches an army while the capital is besieged.
+- **Beyond them,** it lives on what it carries, and forages a quarter of what it eats in summer and autumn (half while raiding). An army that runs out of food loses 1 in 10 of its soldiers each season, to hunger and desertion, and turns for home.
+- **The wounded** rest with the army: half of them rejoin their companies each season.
+
+**Marching** goes through regions your expeditions have explored, a region a season in summer and autumn, half a region in the spring mud, and none in winter. A step between two regions joined by roads (the valley, or a region with a settlement of yours that has a road) takes half as long. An army of only cavalry and skirmishers marches half again as fast. The Army screen says how long a march will take.
+
+**Orders.**
+
+| Order | Where | What it does |
+| --- | --- | --- |
+| Hold | Anywhere | Stand and defend the region. In the valley, the army meets raiders on the road to the capital, relieves allies the Skarn attack, and can attack besiegers. Elsewhere, Skarn skirmishers and Orhai riders keep off your settlements there, and enemy hosts must face the army |
+| March | To an explored region | The army holds the region it reaches |
+| Raid | The enemy's home region, at war | Burn and plunder (see War) |
+| Besiege | The enemy's home region, at war | Surround their home (see War) |
+| Hold the high pass | The iron hills, once the high pass is found | The hill clans cannot come through to march with the Skarn or raid on their own, and Skarn skirmishers cannot reach the iron hills |
+
+**When a battle comes,** each army's stance decides: **ask me** (the player commands it, or lets the commander fight it; the default), **the commander fights**, or **fight only with good odds** (when the enemy attacks and the commander's odds are below even, the army falls back a region toward the valley before they can; riders cut down or wound 1 in 10 of it on the way).
+
+**An army at home.** An army standing in the valley counts toward the capital's strength when the Skarn weigh an attack. When raiders come for the capital and an army holds the valley, it meets them on the road in a field battle; if it pulls back or is beaten, the raiders go on, less half the army's soldiers, who fight from the walls. While the capital is besieged, the army outside harries the besiegers (4 in 10 of its number fall each season) and can attack them: unless it fights only with good odds and they are worse than 6 in 10, it does each season. An army in the valley, or in a defiant settlement's region, can also bring that settlement to heel (its loyalty becomes 35, one of its people is killed, and every other settlement is 5 less loyal). The steward points out an army that has stood idle in the valley for two years with no war.
+
+**Field battles** use the same zones as a raid (left flank, center, right flank, and a reserve) on the ground of the region where they are fought, up to 6 rounds. The Field battle screen gives the commander's honest odds, then the player deploys (formations: match the enemy, an even line, a strong center, cavalry on the flanks, or a line with a reserve; then each company's place) and orders each zone each round (hold, attack, shield wall, brace spears, swing round the flank, fall back), or lets the commander fight it, or pulls back.
+
+| Ground | Cavalry | Arrows | Rough ground | Holding |
+| --- | --- | --- | --- | --- |
+| The forest valley | 0.85 | 0.9 | 1.15 | 1 |
+| The lake country | 0.7 | 1 | 1.1 | 1.05 |
+| The coast | 0.9 | 1 | 1 | 1 |
+| The iron hills | 0.6 | 0.9 | 1.2 | 1.2 |
+| The great plains | 1.25 | 1.1 | 0.9 | 1 |
+| The northern woods | 0.6 | 0.7 | 1.3 | 1.05 |
+| The desert edge | 1.1 | 1.05 | 0.95 | 1 |
+| The old ruins | 0.7 | 0.9 | 1.15 | 1.15 |
+| The far steppe | 1.3 | 1.1 | 0.9 | 1 |
+| The Ostran delta | 0.5 | 1 | 1.1 | 1.1 |
+
+- **A round:** the reserve joins the line where ordered; companies with no enemy before them turn to the enemy's strongest zone; siege engines batter walls; arrows fly (rain halves them, fog takes 3 tenths); then the lines meet, and cavalry swinging round a flank strike the enemy center. Each company that falls below half its soldiers breaks (3 in 10 under a beloved commander, a quarter behind walls); an army breaks when fewer than 4 in 10 of its soldiers are still fighting.
+- **After six rounds,** walls still standing hold out; otherwise the attacker had to win the field, and the defender holds it unless the attacker is clearly the stronger (a fifth more).
+- **Luck and numbers:** each side has its fortune for the battle (0.75 to 1.25) and each round its own (0.75 to 1.25). Better soldiers count, but less than numbers do: a soldier worth a quarter more strikes about a seventh harder. With equal soldiers and numbers, a battle is about even; a quarter better soldiers win about nine times in ten; three companies against four of equal soldiers win about one time in eight.
+- **Losses:** of your soldiers lost, 4 in 10 are killed after a victory and half after a defeat; the rest are wounded. Of the enemy's, 6 in 10 are killed. A victory lifts spirits in the capital by 3, and a defeat lowers them by 3. Every battle is a step in the commander's skill.
+
+**War** is declared from the Armies screen, on the Skarn (once met, unless they are your vassals), the Orhai, or the Ostrani (once met), and not within two years of making peace with them.
+
+- **A reason:** their raids on your people (Skarn raids, hosts, sieges, and skirmishes; Orhai raids on your settlements) or an Orhai demand for tribute, within the last two years. Without one, or by breaking your word (a peace or truce with the Skarn, a peace pact with the Orhai), every other people thinks less of you (relations 10 lower) and your settlements are 5 less loyal for two years.
+- **What it ends:** a peace with the Skarn (relations 15 lower); with the Orhai or the Ostrani, your embassy, treaties, trade route, trade, and envoys (relations 20 lower).
+- **The war score** runs from -100 to 100: a battle won 12, a battle lost -12, a season of raiding 4, a season of siege 6, their home stormed 40, starved out 30, a settlement saved 5, sacked -10.
+- **A long war** wears on your people: in its third year and after, the settlements are 2 less loyal for each year after the first (up to 8), and spirits in the capital settle 1 lower for each (up to 4). Each settlement is also 1 less loyal for every 5 of its people away in companies of militia or levies (up to 8); a standing army's soldiers are not missed.
+- **The enemy at war.** The Skarn raid as they always have. The Orhai's hosts ride four seasons in ten, and the Ostrani's galleys three, against a settlement of yours within reach (for the Orhai the great plains, the desert edge, and the steppe; for the Ostrani the coast, the lake country, and the delta), with a third of their strength (at least 12). An army in that region fights them before the settlement (with its walls behind it); otherwise the settlement holds out with six tenths of its chance against skirmishers, three tenths more with a keep (up to 95 percent), or is sacked: 15 percent of its people (at least 2) are killed or carried off, and its loyalty falls by 15. With no settlement within reach, they attack an army there. The Orhai keep 50 riders under arms, 4 more each year of the Nation era (up to 100), times the difficulty; the Ostrani 30 soldiers, 2 more each year (up to 60), half again at war; each spring they make good a quarter of what they have lost.
+- **Raiding** their home region brings in, each season, 2 food for each soldier (1 in winter and spring), and from the Skarn half a goods each, from the Ostrani a third of a coin each, and from the Orhai a horse for every 10. The army fills its packs first; the rest goes to the capital. Four times in ten they come out to stop it, with 6 tenths of their strength.
+- **Sieges.** Their homes: Skarn hold (a palisade, which takes 6 tenths of the harm; all their warriors and the clansmen with them inside; hunger takes 8 percent a season; it yields after 6 seasons), the great camp of the Orhai (no walls; 45 percent of their riders; 6 percent; 6 seasons), and Ostra (stone walls, 4 tenths; 6 tenths of their soldiers; 4 percent, since ships still reach it; 10 seasons). It also yields when fewer than 45 percent of its first defenders, or fewer than 5, remain. An army worth less than half the garrison cannot hem them in: the siege does not begin, and they come out to fight it often. Each season they may come out to break the siege, more often the stronger they are against the army (from 1 to 7 times in 10). While a home is besieged, its people send no hosts, and the Skarn neither raid, skirmish, gather a host, nor raid the other valley peoples.
+- **Storming** is a battle against the defenders behind their walls; siege engines batter them down, and the commander gives honest odds first. A home that falls, stormed or starved out, gives up its stores (Skarn hold 60 food and 30 goods; the great camp 20 horses and 20 coin; Ostra 80 coin and 40 goods), lifts spirits by 6, and its people will accept any terms. The Skarn lose a sixth of their people.
+
+**Peace** is offered from the Armies screen, on terms the enemy will take now, by the war score:
+
+| Terms | They agree at | What it brings |
+| --- | --- | --- |
+| Peace on even terms | Skarn -20, Orhai -10, Ostrani -40 or more | A peace with the Skarn (kept for a year at least), a peace pact with the Orhai |
+| Peace, and they pay tribute | 30 | That peace, and each spring for five years: the Skarn 25 food and 10 goods, the Orhai 10 horses, the Ostrani 20 coin |
+| Peace, and they give up land | 50 | That peace, and: the Skarn's lands beyond their hold become yours; the Orhai pull back to the steppe, so their riders no longer reach the plains or the desert edge; a free quay in Ostra, so every trade with the Ostrani brings a fifth more |
+| They become your vassals (the Skarn) | 70 | As vassals (see phase 3) |
+| Pay them for peace | Only when even terms are refused | The Skarn 40 food and 20 goods; the Orhai twice their tribute in coin; the Ostrani 40 coin |
+
+Every term is open once their home has fallen. Peace raises relations by 10.
+
+**Horses,** a new resource, shown in the status line and the stores. With Horse breeding, every 2 pastures in the capital raise a horse each season but winter (at least 1 with any pasture), and a farming town at the wild horse grounds sends home a horse for every 6 of its workers at the role (at least 1) each season but winter. The Orhai sell 10 horses for 15 coin under a peace pact, and pay them in tribute. They mount cavalry, and with 10 or more in store, carts pull your loads: settlements without a road lose half as much on the way home, and armies carry a season more food. (Ploughs come in phase 5.)
+
+**The discoveries of phase 4:**
+
+| Discovery | Branch | Cost | Needs | Effect |
+| --- | --- | --- | --- | --- |
+| Iron weapons | War and defense | 90 | Iron working | Companies armed with iron (5 iron each) are worth a fifth more; your fighters at home strike harder (1.5 more strength) |
+| Horse breeding | Food and farming | 90 | Animal husbandry; the wild horse grounds found | Horses from the pastures and the horse grounds, and carts |
+| Horse riding | Exploration | 70 | Horse breeding | Expeditions to a region beyond the next reach it a season sooner |
+| Cavalry | War and defense | 100 | Horse riding | Companies of cavalry |
+| Siege engines | War and defense | 110 | Mathematics | Companies with siege engines |
+| Logistics | War and defense | 90 | Roads, Salting | Armies carry two seasons more food, and your stores reach one region further |
+| Signal beacons | War and defense | 70 | Writing | Raiders heading for the capital are always seen coming; settlements drive off raiders 15 percent more often |
+| Fortresses | Building and stone | 110 | Masonry, Shields and drill | A fortress settlement builds a stone keep after its stone wall (40 work): its soldiers do half again as much on the road to the capital, and it holds out against a host three tenths more often |
+| Levies | War and defense | 60 | Shields and drill, Law codes; closes off a standing army | Settlements can send half their people, companies cost half, and new companies are worth 0.85 |
+| A standing army | War and defense | 80 | Shields and drill, Coinage; closes off Levies | New companies are worth 1.25 and are not missed at home, for 2 coin a season each |
 
 ### Phase 5: toward the sea (planned)
 
@@ -532,7 +629,7 @@ The rest of the tree, the five remaining great nations, harbors and ships, Navig
 
 ### The Nation era's knowledge tree
 
-36 discoveries in seven branches, plus three either-or choices, taking the tree from 19 discoveries to about 55. Writing is the gate to most of them. Each costs about 60 to 160 study points; scholars in every settlement add to one shared study queue, and ruins can give study points or reveal a discovery. Each phase adds the ones its systems need; phase 1's are marked.
+36 discoveries in seven branches, plus three either-or choices, taking the tree from 19 discoveries to about 55. Writing is the gate to most of them. Each costs about 60 to 160 study points; scholars in every settlement add to one shared study queue, and ruins can give study points or reveal a discovery. Each phase adds the ones its systems need; phase 1's are marked, and phases 2 to 4 list theirs in their own sections. Built so far: 25 of the 36, and two of the three choices. Phase 5 adds the rest: Crop rotation, The plough, Mills, Fishing boats, Bridges, Wells and cisterns, Harbors, Shipbuilding, Navigation, Temples, Medicine, and the Crown or the Assembly.
 
 - **Learning (new branch):** Writing (Oral law; phase 1), Mathematics (Writing; phase 1), Astronomy (Mathematics; phase 1), Schools (Writing, a meeting hall; phase 1).
 - **Food and farming:** Crop rotation (Irrigation: plots yield 2 more, and drought hurts less), The plough (Iron working, horses: each farmer plants and tends half again as many plots), Mills (Masonry: every harvest a fifth more), Salting (salt in hand: stored food spoils far less; expeditions and armies carry food twice as long), Fishing boats (River boats: fishing, a food task that works in winter too), Horse breeding (Animal husbandry, the plains found: pastures raise horses).
@@ -725,6 +822,8 @@ Battles happen on a battlefield split into zones, and both sides make tactical d
 - **Attacking Skarn hold** (from the Neighbors screen, once your scouts have found it): 8 warriors plus 1 per year defend it. Victory brings their stores (30 food and 20 wood), two years of truce, and enough respect for a lasting peace. Defeat brings revenge raids.
 - **Raid choices:** before a raid the player can deploy and fight, let the war chief command, or hide in the woods and lose some stores. A standing order can decide for them.
 
+**Field battles between armies** (the Nation era) use the same zones, with six kinds of soldiers, the ground of each region, and morale that breaks a line long before it is destroyed: see Phase 4: armies, under The Nation era.
+
 **Modern era additions**
 
 - **Air and sea layers** sit above the ground zones. Air superiority gives ground forces a major edge.
@@ -774,7 +873,7 @@ The game is built in layers, and each phase should be playable and fun on its ow
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, and audio cues (see BACKLOG.md).
 2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still open: late-game challenge, the other four starting regions, and unit types in battle (see BACKLOG.md).
-3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world (built), the first great nations (built), armies, and toward the sea.
+3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world (built), the first great nations (built), armies (built), and toward the sea.
 4. **Phase 4: Age of Discovery.** Voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies.
 5. **Phase 5: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 6. **Phase 6: Space age.** Satellites, mining, colonization, space combat.
@@ -785,7 +884,7 @@ The game is built in layers, and each phase should be playable and fun on its ow
 - [x] Game title: Embers to Orbit
 - [ ] How the game ends: victory conditions, or endless play
 - [ ] Names, cultures, and homelands of the 7 core nations. Partly answered: the first two are a river and coast people of traders and a riding people of the plains (see The Nation era); their names and the other five are still to come
-- [ ] Exact resource list per era. Answered for the Nation era: iron, horses, coin, and salt
+- [ ] Exact resource list per era. Answered for the Nation era: iron, horses, coin, and salt (all built)
 - [x] What comes between the Nation and Modern eras: the Age of Discovery, which the Nation era's first ocean voyage begins
 - [x] Shape of the research tree: five branches, with occasional choices that close off an alternative (built through the Settlement era)
 - [ ] Audio: which sound cues, if any, in Phase 1

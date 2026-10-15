@@ -4,12 +4,15 @@
 // shares, and each screen lives in js/ui/screens/.
 
 import { formationPlan } from '../engine/battle.js';
+import { fieldFormation } from '../engine/field.js';
 import { newGame } from '../engine/game.js';
 import { dateLabel, personById, inVillage } from '../engine/state.js';
 import { storage } from '../storage.js';
 import {
-  $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens, setTown, setRegion,
+  $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens, setTown, setRegion, setArmy,
 } from './core.js';
+import { armiesScreen, armyScreen } from './screens/armies.js';
+import { fieldScreen, fieldSummary, readFieldPlan } from './screens/field.js';
 import { advisorsScreen } from './screens/advisors.js';
 import { raidScreen, positionSummary, readPositions } from './screens/battle.js';
 import { buildScreen } from './screens/build.js';
@@ -39,6 +42,9 @@ registerScreens({
   world: worldScreen,
   region: regionScreen,
   expedition: expeditionScreen,
+  armies: armiesScreen,
+  army: armyScreen,
+  field: fieldScreen,
   map: mapScreen,
   build: buildScreen,
   knowledge: knowledgeScreen,
@@ -188,6 +194,74 @@ function handleAction(action, btn) {
         refocus('#expeditionsHeading');
         announce(msg);
       }
+      break;
+    }
+    case 'openArmy':
+      setArmy(Number(btn.dataset.army));
+      show('army');
+      break;
+    case 'declareWar': {
+      const foe = btn.dataset.foe;
+      if (!window.confirm(`Declare war? ${btn.textContent}.`)) break;
+      const msg = act({ type: 'declareWar', foe });
+      if (msg) {
+        show('armies', { focus: false });
+        refocus(`#war-${foe}`);
+        announce(msg);
+      }
+      break;
+    }
+    case 'stormHome': {
+      const msg = act({ type: 'stormHome', armyId: Number(btn.dataset.army) });
+      if (msg) {
+        show('report');
+        announce(msg);
+      }
+      break;
+    }
+    case 'disbandCompany': {
+      const msg = act({ type: 'disbandCompany', armyId: Number(btn.dataset.army), companyId: Number(btn.dataset.company) });
+      if (msg) {
+        show('army', { focus: false });
+        refocus('#companiesHeading', 'h1');
+        announce(msg);
+      }
+      break;
+    }
+    case 'disbandArmy': {
+      const msg = act({ type: 'disbandArmy', armyId: Number(btn.dataset.army) });
+      if (msg) {
+        show('armies', { focus: false });
+        refocus('#armiesHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'armyCommander': {
+      const msg = act({ type: 'armyCommander', armyId: Number(btn.dataset.army), personId: Number(document.getElementById('newCommander').value) });
+      if (msg) {
+        show('army', { focus: false });
+        refocus('#commanderHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'fieldAuto': {
+      const msg = act({ type: 'fieldAuto' });
+      if (msg) show('report');
+      break;
+    }
+    case 'fieldWithdraw': {
+      if (!window.confirm('Pull back? Whatever the army was there to protect is left to the enemy.')) break;
+      const msg = act({ type: 'fieldWithdraw' });
+      if (msg) show('report');
+      break;
+    }
+    case 'fieldArrange': {
+      const plan = fieldFormation(state.pendingEvent.battle, document.getElementById('fieldFormation').value);
+      for (const sel of $main.querySelectorAll('select[data-company]')) sel.value = plan[sel.dataset.company] || 'center';
+      document.getElementById('fieldSummary').textContent = fieldSummary(readFieldPlan());
+      announce(`Companies arranged. ${fieldSummary(readFieldPlan())}`);
       break;
     }
     case 'sendAid': {
@@ -409,6 +483,16 @@ $main.addEventListener('change', (e) => {
     act({ type: 'setOrder', id: order.dataset.order, value });
     return;
   }
+  const stance = e.target.closest('select[data-army-stance]');
+  if (stance) {
+    const msg = act({ type: 'armyStance', armyId: Number(stance.dataset.armyStance), stance: stance.value });
+    if (msg) announce(msg);
+    return;
+  }
+  if (e.target.matches('select[data-company]')) {
+    document.getElementById('fieldSummary').textContent = fieldSummary(readFieldPlan());
+    return;
+  }
   if (e.target.matches('select[data-position]')) {
     document.getElementById('deploySummary').textContent = positionSummary(readPositions());
     return;
@@ -478,6 +562,71 @@ $main.addEventListener('submit', (e) => {
       refocus('#expeditionsHeading');
       announce(msg);
     }
+    return;
+  }
+  if (e.target.id === 'raiseArmyForm') {
+    const msg = act({
+      type: 'raiseArmy',
+      commanderId: Number(document.getElementById('armyCommander').value),
+      kind: document.getElementById('armyKind').value,
+      from: document.getElementById('armyFrom').value,
+    });
+    if (msg) {
+      setArmy(state.armies[state.armies.length - 1].id);
+      show('army');
+      announce(msg);
+    }
+    return;
+  }
+  if (e.target.id === 'armyOrderForm') {
+    const order = document.getElementById('armyOrder').value;
+    const to = document.getElementById('armyMarchTo');
+    const msg = act({
+      type: 'armyOrder', armyId: Number(e.target.dataset.army), order, to: order === 'march' && to ? to.value : null,
+    });
+    if (msg) {
+      show('army', { focus: false });
+      refocus('#armyOrdersHeading');
+      announce(msg);
+    }
+    return;
+  }
+  if (e.target.id === 'addCompanyForm') {
+    const msg = act({
+      type: 'raiseCompany', armyId: Number(e.target.dataset.army), kind: document.getElementById('companyKind').value, from: document.getElementById('companyFrom').value,
+    });
+    if (msg) {
+      show('army', { focus: false });
+      refocus('#companiesHeading');
+      announce(msg);
+    }
+    return;
+  }
+  if (e.target.dataset.peace) {
+    const foe = e.target.dataset.peace;
+    const picked = e.target.querySelector(`input[name="peace-${foe}"]:checked`);
+    if (!picked) {
+      announce('Choose terms first.');
+      return;
+    }
+    const msg = act({ type: 'makePeace', foe, terms: picked.value });
+    if (msg) {
+      show('armies', { focus: false });
+      refocus(`#war-${foe}`);
+      announce(msg);
+    }
+    return;
+  }
+  if (e.target.id === 'fieldDeployForm') {
+    const msg = act({ type: 'fieldDeploy', plan: readFieldPlan() });
+    if (msg) show('report');
+    return;
+  }
+  if (e.target.id === 'fieldOrdersForm') {
+    const orders = {};
+    for (const sel of e.target.querySelectorAll('select[data-field-zone]')) orders[sel.dataset.fieldZone] = sel.value;
+    const msg = act({ type: 'fieldOrders', orders });
+    if (msg) show('report');
     return;
   }
   if (e.target.id === 'deployForm') {

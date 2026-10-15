@@ -10,7 +10,7 @@ import {
 import { ROLES, bestRole, landFit } from '../../engine/realm.js';
 import { living, hasKnowledge } from '../../engine/state.js';
 import {
-  state, regionId, esc, plural, listWords,
+  state, regionId, esc, plural, listWords, lowerFirst,
 } from '../core.js';
 
 function regionName(id) {
@@ -20,7 +20,7 @@ function regionName(id) {
 function neighborsText(id) {
   const known = REGIONS[id].neighbors.filter((n) => regionStatus(state, n) !== 'unknown');
   const unknown = REGIONS[id].neighbors.length - known.length;
-  const parts = known.map((n) => regionName(n).toLowerCase());
+  const parts = known.map((n) => lowerFirst(regionName(n)));
   if (unknown) parts.push(unknown === 1 ? 'somewhere not yet heard of' : `${unknown} places not yet heard of`);
   return `Borders ${listWords(parts)}.`;
 }
@@ -33,7 +33,7 @@ function travelText(id) {
 }
 
 function expeditionLine(exp) {
-  const where = regionName(exp.region).toLowerCase();
+  const where = lowerFirst(regionName(exp.region));
   const stage = exp.stage === 'out' ? `on the way to ${where}, ${plural(exp.left, 'more season', 'more seasons')} to go`
     : exp.stage === 'exploring' ? `exploring ${where}, for ${plural(exp.left, 'more season', 'more seasons')}`
       : `on the way home from ${where}${exp.left > 0 ? `, ${plural(exp.left, 'more season', 'more seasons')} to go` : ', home by the end of this season'}`;

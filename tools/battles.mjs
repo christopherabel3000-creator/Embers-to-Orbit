@@ -5,6 +5,9 @@ import { living } from '../js/engine/state.js';
 import { createBattle, autoBattle } from '../js/engine/battle.js';
 import { raidOdds } from '../js/engine/advisors.js';
 import { startNations } from '../js/engine/nations.js';
+import {
+  createField, autoField, SOLDIER, WALL_COVER,
+} from '../js/engine/field.js';
 
 function trial({ raiders, warned = true, palisade = false, wall = false, side = 'defend', fighters = 12, spears = false, nation = false, bows = false }) {
   let wins = 0; let deaths = 0; let wounded = 0; let rounds = 0;
@@ -49,3 +52,44 @@ for (const cfg of [
   { raiders: 13, nation: true }, { raiders: 13, nation: true, bows: true },
   { side: 'attack', raiders: 10 }, { side: 'attack', raiders: 14 }, { side: 'attack', raiders: 18 },
 ]) console.log(trial(cfg));
+
+// ----- Field battles between armies (field.js) -----
+// Companies of 10; ours worth 2.5 (drilled, with spears and bows), theirs 2.0
+// (the Skarn at their best), unless a trial says otherwise.
+console.log('\nField battles:');
+const unitOf = (ours, kind, n, worth, id) => ({
+  id, kind, name: `${kind} ${id}`, soldiers: n, start: n, power: SOLDIER * worth, ours, broken: false, zone: 'center',
+});
+function fieldTrial(label, ourKinds, theirKinds, {
+  region = 'valley', foe = 'skarn', attacker = 'them', walls = false, ourWorth = 2.5, theirWorth = 2,
+} = {}) {
+  const N = 400;
+  let wins = 0; let ourLoss = 0; let theirLoss = 0; let rounds = 0;
+  for (let i = 0; i < N; i++) {
+    const us = ourKinds.map((k, j) => unitOf(true, k, 10, ourWorth, j + 1));
+    const them = theirKinds.map((k, j) => unitOf(false, k, 10, theirWorth, `t${j}`));
+    const b = createField({
+      region, foe, foeName: foe, us, them, attacker, walls: walls ? { side: 'them', cover: WALL_COVER } : null,
+    });
+    if (autoField({ rng: (i * 7919 + 1) >>> 0 }, b) === 'won') wins++;
+    rounds += b.round;
+    ourLoss += us.reduce((sum, u) => sum + u.start - u.soldiers, 0) / us.reduce((sum, u) => sum + u.start, 0);
+    theirLoss += them.reduce((sum, u) => sum + u.start - u.soldiers, 0) / them.reduce((sum, u) => sum + u.start, 0);
+  }
+  console.log(`${label}: win ${Math.round(100 * wins / N)}% | rounds ${(rounds / N).toFixed(1)} | our losses ${Math.round(100 * ourLoss / N)}%, theirs ${Math.round(100 * theirLoss / N)}%`);
+}
+const line = ['spearmen', 'spearmen', 'archers'];
+const skarnBand = ['warriors', 'warriors', 'bowmen'];
+const riders = ['horseArchers', 'horseArchers', 'lancers', 'lancers'];
+fieldTrial('3 companies against 3 of the Skarn, they attack', line, skarnBand);
+fieldTrial('3 against 3, we attack', line, skarnBand, { attacker: 'us' });
+fieldTrial('3 against 3, of equal worth', line, skarnBand, { ourWorth: 2 });
+fieldTrial('4 against 3', [...line, 'spearmen'], skarnBand);
+fieldTrial('3 against 4', line, [...skarnBand, 'warriors']);
+fieldTrial('4 of infantry against 4 Orhai riders, on the plains', [...line, 'spearmen'], riders, { foe: 'orhai', region: 'plains' });
+fieldTrial('the same in the forest valley', [...line, 'spearmen'], riders, { foe: 'orhai', region: 'valley' });
+fieldTrial('2 spears, an archer, and cavalry against 4 riders, on the plains', ['spearmen', 'spearmen', 'archers', 'cavalry'], riders, { foe: 'orhai', region: 'plains' });
+fieldTrial('4 cavalry against 4 of the Skarn, on the plains', ['cavalry', 'cavalry', 'cavalry', 'cavalry'], [...skarnBand, 'warriors'], { region: 'plains' });
+fieldTrial('4 skirmishers against 4 of the Skarn, in the woods', ['skirmishers', 'skirmishers', 'skirmishers', 'skirmishers'], [...skarnBand, 'warriors'], { region: 'woods' });
+fieldTrial('storming walls: 6 against 3', [...line, ...line], skarnBand, { attacker: 'us', walls: true });
+fieldTrial('storming walls: 6 and 2 siege engines against 3', [...line, ...line, 'engines', 'engines'], skarnBand, { attacker: 'us', walls: true });

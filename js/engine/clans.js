@@ -7,6 +7,7 @@
 import { living, year } from './state.js';
 import { skarnAtPeace } from './neighbors.js';
 import { raidScale } from './difficulty.js';
+import { passHeld } from './warStatus.js';
 
 export const CLANS_FROM_PEOPLE = 30; // People beyond this many draw the clans.
 export const CLANS_PER_PERSON = 0.3; // Clansmen drawn by each person beyond that.
@@ -37,7 +38,7 @@ export function clansQuiet(state) {
 
 // Clansmen who would march with the Skarn now.
 export function clansMarching(state) {
-  if (!state.neighbors.skarn.nation || skarnAtPeace(state) || clansQuiet(state)) return 0;
+  if (!state.neighbors.skarn.nation || skarnAtPeace(state) || clansQuiet(state) || passHeld(state)) return 0;
   return clans(state).warriors;
 }
 
@@ -45,7 +46,7 @@ export function clansMarching(state) {
 // their own. Returns how many could come, or 0.
 export const CLAN_RAID_MIN = 5;
 export function clansRaidingAlone(state) {
-  if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known || !skarnAtPeace(state) || clansQuiet(state)) return 0;
+  if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known || !skarnAtPeace(state) || clansQuiet(state) || passHeld(state)) return 0;
   return clans(state).warriors >= CLAN_RAID_MIN ? clans(state).warriors : 0;
 }
 

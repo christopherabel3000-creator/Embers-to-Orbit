@@ -10,7 +10,9 @@ import {
 } from '../../engine/settlements.js';
 import { living, placeName } from '../../engine/state.js';
 import { villageBlocker } from '../../engine/village.js';
-import { state, esc, plural } from '../core.js';
+import {
+  state, esc, plural, lowerFirst,
+} from '../core.js';
 import { villagerRow } from '../screens/village.js';
 
 export function foundVillageScreen() {
@@ -59,7 +61,7 @@ export function foundSettlementScreen() {
       ${sources.length > 1 ? `<p><label for="foundingFrom">Where the settlers come from</label>
         <select id="foundingFrom">${sources.map((x) => `<option value="${x.from}"${x.from === foundingFrom ? ' selected' : ''}>${esc(x.name)}${x.from === 'capital' ? ', the capital' : ''}</option>`).join('')}</select></p>` : `<input type="hidden" id="foundingFrom" value="${foundingFrom}">`}
       <fieldset><legend>Where will it stand?</legend>
-        ${sites.map((id, i) => `<label class="choice"><input type="radio" name="settlementPlace" value="${id}"${i === 0 ? ' checked' : ''}> ${esc(placeName(state, id))}: best for a ${esc(ROLES[bestRole(id)].name.toLowerCase())}${WORLD_PLACES[id] ? `, in ${esc(REGIONS[WORLD_PLACES[id].region].name.toLowerCase())}` : ''}. ${esc(placeData(id).description)}</label>`).join('')}
+        ${sites.map((id, i) => `<label class="choice"><input type="radio" name="settlementPlace" value="${id}"${i === 0 ? ' checked' : ''}> ${esc(placeName(state, id))}: best for a ${esc(ROLES[bestRole(id)].name.toLowerCase())}${WORLD_PLACES[id] ? `, in ${esc(lowerFirst(REGIONS[WORLD_PLACES[id].region].name))}` : ''}. ${esc(placeData(id).description)}</label>`).join('')}
       </fieldset>
       <p><label for="settlementName">Name the settlement</label>
         <input type="text" id="settlementName" maxlength="30" autocomplete="off" value="${esc(`New ${placeName(state, sites[0])}`)}"></p>

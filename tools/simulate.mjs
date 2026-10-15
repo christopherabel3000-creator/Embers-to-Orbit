@@ -22,12 +22,17 @@ import {
 } from '../js/engine/world.js';
 import { REGION_ORDER, WORLD_PLACE_ORDER, WORLD_PLACES } from '../js/engine/worldData.js';
 import { GREAT_ORDER } from '../js/engine/greatData.js';
-import { greatActs } from '../js/engine/great.js';
+import { greatActs, great } from '../js/engine/great.js';
 import { BUILDINGS, PLACES } from '../js/engine/data.js';
 import { raidOdds } from '../js/engine/advisors.js';
 import { describePending } from '../js/engine/events.js';
 import { VILLAGE_EVENTS } from '../js/engine/villageEvents.js';
 import { DEFAULT_DIFFICULTY } from '../js/engine/difficulty.js';
+import { commanderChoices, raiseSources } from '../js/engine/armies.js';
+import {
+  warReason, warBlocker, foeForce, foeWorth, peaceOptions, stormOdds,
+} from '../js/engine/war.js';
+import { skarnAtPeace } from '../js/engine/neighbors.js';
 
 const VILLAGE_EVENT_IDS = new Set(Object.keys(VILLAGE_EVENTS));
 const GOODS_RESERVE = 40; // Kept for comforts and arms.
@@ -111,11 +116,123 @@ function chooseProject(state) {
 const STUDY_ORDER = ['stoneTools', 'smoking', 'farming', 'spears', 'clothing', 'pottery', 'medicine',
   'stonecutting', 'weaving', 'husbandry', 'oralLaw', 'elders', 'masonry', 'bows', 'kilns', 'markets', 'irrigation', 'drill',
   'writing', 'roads', 'riverBoats', 'mining', 'salting', 'mapmaking', 'coinage', 'diplomacy', 'measures', 'ironWorking',
-  'lawCodes', 'tradeRoutes', 'fineCrafts', 'freeMarkets', 'taxes', 'mathematics', 'schools', 'astronomy'];
+  'lawCodes', 'tradeRoutes', 'fineCrafts', 'freeMarkets', 'taxes', 'mathematics', 'siegeEngines', 'schools', 'astronomy',
+  'ironWeapons', 'signalBeacons', 'standingArmy', 'logistics', 'horseBreeding', 'horseRiding', 'cavalry', 'fortresses'];
 function chooseStudy(state) {
   if (state.knowledge.current) return state;
   const next = STUDY_ORDER.find((id) => !knowledgeBlocker(state, id));
   return next ? act(state, { type: 'setStudy', knowledgeId: next }) : state;
+}
+
+// Armies (NOARMY=1 raises none). The simulated nation keeps no army in
+// peace. When the Skarn have given it cause, and it can raise enough soldiers
+// to outmatch them by a fifth, it raises one army all at once (spearmen,
+// archers, and siege engines once it can build them), declares war, and
+// besieges Skarn hold. The commander fights every battle; the army storms
+// when the commander likes the odds, or starves them out. It makes peace on
+// the best terms the Skarn will take, or, if the war goes badly or drags on
+// three years, on even terms or bought, then marches home and disbands. At
+// most one war every eight years. ARMY=home instead keeps a home army of
+// four companies in the valley whenever the Skarn threaten, which meets
+// their raids on the road and fights only with good odds.
+function soldiersAvailable(state) {
+  return raiseSources(state).reduce((sum, src) => sum + Math.min(10, src.spare) * Math.floor(src.spare / 10) + (src.spare % 10 >= 5 ? src.spare % 10 : 0), 0);
+}
+
+function armyStrategy(state) {
+  const tryAct = (a) => { const r = applyAction(state, a); if (!r.error) { state = r.state; return true; } return false; };
+  const sk = state.neighbors.skarn;
+  if (!sk.known || !sk.nation) return state;
+  let army = state.armies[0];
+  const raiseOne = (kind) => {
+    const src = raiseSources(state).sort((a, b) => (a.from === 'capital') - (b.from === 'capital'))[0]; // Settlements first.
+    return src && tryAct({ type: 'raiseCompany', armyId: state.armies[0].id, kind, from: String(src.from) }) && ++tally.companies;
+  };
+  const nextKind = () => {
+    const kinds = state.armies[0].companies.map((c) => c.kind);
+    if (state.wars.skarn && hasKnowledge(state, 'siegeEngines') && kinds.filter((k) => k === 'engines').length < 2) return 'engines';
+    return kinds.filter((k) => k === 'archers').length * 3 < kinds.length ? 'archers' : 'spearmen';
+  };
+  const begin = (stance) => {
+    const cmd = commanderChoices(state)[0];
+    if (!cmd || !tryAct({ type: 'raiseArmy', commanderId: cmd.id, kind: 'spearmen', from: String((raiseSources(state).sort((a, b) => (a.from === 'capital') - (b.from === 'capital'))[0] || {}).from || 'capital') })) return false;
+    tally.armies++;
+    tryAct({ type: 'armyStance', armyId: state.armies[0].id, stance });
+    return true;
+  };
+  if (process.env.ARMY === 'home') {
+    const quiet = sk.vassal || skarnAtPeace(state);
+    if (!army && !quiet && living(state).length >= 50) begin('withdraw');
+    army = state.armies[0];
+    if (army && quiet && army.location === 'valley') { if (tryAct({ type: 'disbandArmy', armyId: army.id })) tally.disbanded++; return state; }
+    if (army && army.location === 'valley' && army.companies.length < 4) raiseOne(nextKind());
+    return state;
+  }
+  // WARON=orhai (or ostrani) makes war on a great nation instead, once met:
+  // the army marches to their homeland and besieges it.
+  const far = process.env.WARON;
+  if (far) {
+    if (!great(state, far).met) return state;
+    if (!army && !state.wars[far] && !warBlocker(state, far) && state.turn - (tally.lastWar ?? -99) >= 32 && soldiersAvailable(state) >= Number(process.env.WARMIN || 40) && begin('commander')) {
+      while (state.armies[0].companies.length < 8 && raiseOne(nextKind()));
+      if (tryAct({ type: 'declareWar', foe: far })) { tally.wars++; tally.lastWar = state.turn; }
+    }
+    army = state.armies[0];
+    if (!army) return state;
+    const home = far === 'orhai' ? 'steppe' : 'delta';
+    if (state.wars[far]) {
+      if (army.location !== home && !army.march) tryAct({ type: 'armyOrder', armyId: army.id, order: 'march', to: home });
+      if (army.location === home && !army.siege && !army.march) tryAct({ type: 'armyOrder', armyId: army.id, order: 'besiege' });
+      if (army.siege && (stormOdds(state, army) ?? 0) >= 0.75 && tryAct({ type: 'stormHome', armyId: army.id })) tally.storms++;
+      const terms = ['land', 'tribute'].find((t) => peaceOptions(state, far).some((o) => o.id === t && !o.why));
+      const w = state.wars[far];
+      if (terms && tryAct({ type: 'makePeace', foe: far, terms })) tally.peaceTerms[terms] = (tally.peaceTerms[terms] || 0) + 1;
+      else if (w && (w.score <= -20 || state.turn - w.since >= 16)) {
+        if (tryAct({ type: 'makePeace', foe: far, terms: 'white' })) tally.peaceTerms.white = (tally.peaceTerms.white || 0) + 1;
+        else if (tryAct({ type: 'makePeace', foe: far, terms: 'pay' })) tally.peaceTerms.pay = (tally.peaceTerms.pay || 0) + 1;
+      }
+      return state;
+    }
+    if (army.location !== 'valley' && !army.march) tryAct({ type: 'armyOrder', armyId: army.id, order: 'march', to: 'valley' });
+    if (army.location === 'valley' && !army.march && tryAct({ type: 'disbandArmy', armyId: army.id })) tally.disbanded++;
+    return state;
+  }
+  const war = state.wars.skarn;
+  if (!army && !war && !sk.vassal && warReason(state, 'skarn') && !warBlocker(state, 'skarn')
+      && state.turn - (tally.lastWar ?? -99) >= 32) {
+    // Enough soldiers to outmatch them by a fifth?
+    const worth = 2.5 * (hasKnowledge(state, 'standingArmy') ? 1.25 : hasKnowledge(state, 'levies') ? 0.85 : 1);
+    if (soldiersAvailable(state) * worth >= foeForce(state, 'skarn') * foeWorth(state, 'skarn') * 1.2 && begin('commander')) {
+      while (state.armies[0].companies.length < 8 && raiseOne(nextKind()));
+      if (process.env.DEBUGWAR) console.log(`war: avail ${soldiersAvailable(state)} sources ${JSON.stringify(raiseSources(state))} companies ${state.armies[0].companies.map((c) => `${c.kind}${c.soldiers}`).join(',')} skarn ${foeForce(state, 'skarn')}x${foeWorth(state, 'skarn').toFixed(2)} res wood ${state.resources.wood} stone ${state.resources.stone} goods ${state.resources.goods}`);
+      if (tryAct({ type: 'declareWar', foe: 'skarn' })) { tally.wars++; tally.lastWar = state.turn; }
+      if (state.armies[0]) tryAct({ type: 'armyOrder', armyId: state.armies[0].id, order: 'besiege' });
+    }
+    return state;
+  }
+  army = state.armies[0];
+  if (!army) return state;
+  if (state.wars.skarn) {
+    if (army.location === 'valley' && !army.siege && !army.march) {
+      while (army.companies.length < 8 && raiseOne(nextKind())) army = state.armies[0];
+      tryAct({ type: 'armyOrder', armyId: army.id, order: 'besiege' });
+      army = state.armies[0];
+    }
+    if (army && army.siege && (stormOdds(state, army) ?? 0) >= 0.75 && tryAct({ type: 'stormHome', armyId: army.id })) tally.storms++;
+    const terms = ['vassal', 'land', 'tribute'].find((t) => peaceOptions(state, 'skarn').some((o) => o.id === t && !o.why));
+    const w = state.wars.skarn;
+    if (terms && tryAct({ type: 'makePeace', foe: 'skarn', terms })) tally.peaceTerms[terms] = (tally.peaceTerms[terms] || 0) + 1;
+    else if (w && (w.score <= -20 || state.turn - w.since >= 12)) {
+      if (tryAct({ type: 'makePeace', foe: 'skarn', terms: 'white' })) tally.peaceTerms.white = (tally.peaceTerms.white || 0) + 1;
+      else if (tryAct({ type: 'makePeace', foe: 'skarn', terms: 'pay' })) tally.peaceTerms.pay = (tally.peaceTerms.pay || 0) + 1;
+    }
+    return state;
+  }
+  // The war is over: home, and disband.
+  army = state.armies[0];
+  if (army && army.location !== 'valley' && !army.march) tryAct({ type: 'armyOrder', armyId: army.id, order: 'march', to: 'valley' });
+  if (army && army.location === 'valley' && !army.march && tryAct({ type: 'disbandArmy', armyId: army.id })) tally.disbanded++;
+  return state;
 }
 
 let villages = 0;
@@ -144,6 +261,7 @@ function actCounting(state, action) {
 }
 function play(seed, strategy) {
   let state = newGame({ seed, difficulty: process.env.DIFFICULTY });
+  tally.lastWar = null; // The turn this game last went to war.
   if (strategy.startsWith('orders') || strategy === 'village') {
     for (const [id, value] of [['keepHealer', true], ['foodReserve', 2], ['winterForagers', true], ['raidPolicy', 'auto'], ['autoAssign', true], ['harvestFeast', strategy !== 'ordersNoFeast'], ['autoShelter', strategy === 'village'], ['armGuards', strategy === 'village']]) {
       state = act(state, { type: 'setOrder', id, value });
@@ -156,7 +274,8 @@ function play(seed, strategy) {
       state = act(state, { type: 'resolveEvent', choice: describePending(state).options[0].id });
       if (state.gameOver) break;
     }
-    if (state.pendingEvent) {
+    if (state.pendingEvent && state.pendingEvent.type === 'field') state = act(state, { type: 'fieldAuto' });
+    if (state.pendingEvent && state.pendingEvent.type === 'raid') {
       const fighters = living(state).filter((p) => p.health >= 40);
       const odds = raidOdds(state, fighters, state.pendingEvent.warned, state.pendingEvent.raiders);
       state = (strategy === 'sensible' || strategy === 'village') && odds.chance >= 0.5
@@ -251,6 +370,7 @@ function play(seed, strategy) {
         }
       }
     }
+    if (!process.env.NOARMY && strategy === 'village' && state.era === 'nation' && !state.pendingEvent) state = armyStrategy(state);
     if (process.env.CLANGIFT && strategy === 'village') {
       const r = applyAction(state, { type: 'giftClans' });
       if (!r.error) { state = r.state; tally.clanGifts++; }
@@ -356,6 +476,14 @@ function play(seed, strategy) {
       const killed = l.match(/Killed: ([^.]+)\./);
       if (killed) tally.killed += killed[1].split(/, | and /).length;
       if (/ was killed\.$/.test(l)) tally.killed++;
+      if (/army won\./.test(l)) tally.fieldWon++;
+      if (/army was beaten\./.test(l)) tally.fieldLost++;
+      if (/^On the road to /.test(l)) tally.roadBattles++;
+      const soldiers = l.match(/(\d+) soldiers? (?:was|were) killed/);
+      if (soldiers) tally.soldiersKilled += Number(soldiers[1]);
+      if (/has fallen: your army stormed it/.test(l)) tally.stormed++;
+      if (/has fallen: hunger/.test(l)) tally.starved++;
+      if (/ran out of food/.test(l)) tally.armyHungry++;
       if (/died peacefully|old age/.test(l)) tally.oldAge++;
     }
   }
@@ -381,10 +509,10 @@ for (const strategy of STRATEGIES) {
   let coinSum = 0; let metOstrani = 0; let metOrhai = 0; let embassies = 0; let routes = 0; let joinedPeoples = 0; let vassals = 0; let peaceOrhai = 0;
   const roleCount = {};
   const built = {};
-  tally = { envoys: 0, orhaiRaids: 0, orhaiRepelled: 0, expeditions: 0, travelDeaths: 0, towns: 0, aid: 0, defiance: 0, governorsDied: 0, peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, swords: 0, caravans: 0, masters: 0, lostFights: 0, fightsWon: 0, ambushes: 0, scattered: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
+  tally = { lastWar: null, armies: 0, companies: 0, disbanded: 0, wars: 0, storms: 0, peaceTerms: {}, fieldWon: 0, fieldLost: 0, roadBattles: 0, soldiersKilled: 0, stormed: 0, starved: 0, armyHungry: 0, envoys: 0, orhaiRaids: 0, orhaiRepelled: 0, expeditions: 0, travelDeaths: 0, towns: 0, aid: 0, defiance: 0, governorsDied: 0, peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, swords: 0, caravans: 0, masters: 0, lostFights: 0, fightsWon: 0, ambushes: 0, scattered: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
   for (let i = 0; i < GAMES; i++) {
     const end = play(1000 + i, strategy);
-    if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); }
+    if (end.gameOver) { wiped++; firstWipeYear.push(Math.ceil(end.turn / 4)); if (process.env.WIPED) console.log(`wiped: seed ${1000 + i}, year ${Math.ceil(end.turn / 4)}`); }
     pop += living(end).length;
     stoneSum += end.resources.stone || 0;
     clanSum += (end.clans && end.clans.warriors) || 0;
@@ -435,6 +563,7 @@ for (const strategy of STRATEGIES) {
     const ng = nationGames;
     console.log(`nation (${ng} games): capital ${(capitalPop / ng).toFixed(0)}, nation ${(nationPop / ng).toFixed(0)} | settlements ${(townCount / ng).toFixed(1)} of avg ${(townPop / Math.max(1, townCount)).toFixed(0)} people, loyalty ${(loyaltySum / Math.max(1, townCount)).toFixed(0)} | roles ${Object.entries(roleCount).map(([k, n]) => `${k} ${n}`).join(', ')} | roads ${(roads / ng).toFixed(1)} | founded ${(tally.towns / ng).toFixed(1)}, aid ${(tally.aid / ng).toFixed(1)}, defiance ${(tally.defiance / ng).toFixed(2)}, governors died ${(tally.governorsDied / ng).toFixed(2)} | capital counted by group ${counted}`);
     console.log(`world (${ng} games): expeditions ${(tally.expeditions / ng).toFixed(1)}, deaths on the road ${(tally.travelDeaths / ng).toFixed(2)} | regions explored ${(regionsExplored / ng).toFixed(1)} of ${REGION_ORDER.length - 1}, places found ${(placesFound / ng).toFixed(1)} of ${WORLD_PLACE_ORDER.length} | settlements beyond the valley ${(farTowns / ng).toFixed(1)} | iron ${(ironSum / ng).toFixed(0)}, salt ${(saltSum / ng).toFixed(0)}`);
+    console.log(`armies (${ng} games): raised ${(tally.armies / ng).toFixed(1)}, companies ${(tally.companies / ng).toFixed(1)}, disbanded ${(tally.disbanded / ng).toFixed(1)} | wars on the Skarn ${(tally.wars / ng).toFixed(2)}, stormed ${(tally.stormed / ng).toFixed(2)}, starved out ${(tally.starved / ng).toFixed(2)} | peace ${Object.entries(tally.peaceTerms).map(([k, n]) => `${k} ${(n / ng).toFixed(2)}`).join(', ') || 'none'} | field battles won ${(tally.fieldWon / ng).toFixed(1)}, lost ${(tally.fieldLost / ng).toFixed(1)}, on the road ${(tally.roadBattles / ng).toFixed(1)} | soldiers killed ${(tally.soldiersKilled / ng).toFixed(1)} | armies hungry ${(tally.armyHungry / ng).toFixed(2)}`);
     console.log(`great nations (${ng} games): met the Ostrani ${metOstrani}, the Orhai ${metOrhai} | embassies ${(embassies / ng).toFixed(1)}, routes ${(routes / ng).toFixed(1)}, Orhai peace ${peaceOrhai} | envoys ${(tally.envoys / ng).toFixed(1)} | Orhai raids ${(tally.orhaiRaids / ng).toFixed(1)} (driven off ${(tally.orhaiRepelled / ng).toFixed(1)}) | coin ${(coinSum / ng).toFixed(0)} | valley peoples joined ${joinedPeoples}, Skarn vassals ${vassals}`);
   }
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';

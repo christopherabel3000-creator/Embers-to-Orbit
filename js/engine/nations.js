@@ -22,6 +22,7 @@ import {
 import { skarnStrength, clanLosses, clansYear, clansMarching } from './clans.js';
 import { skarnApproach } from './siege.js';
 import { raidScale } from './difficulty.js';
+import { homeBesieged, armyHolding } from './warStatus.js';
 
 const WORK_TASKS = ['hunt', 'forage', 'wood', 'quarry'];
 
@@ -393,6 +394,7 @@ export function skarnLosses(state, fallen) {
 export function skarnRaidFactor(state) {
   const nat = nation(state, 'skarn');
   if (!nat) return 1;
+  if (homeBesieged(state, 'skarn')) return 0; // Penned in their hold.
   return Math.max(0.2, Math.min(1.5, skarnStrength(state) / 20));
 }
 
@@ -401,7 +403,7 @@ export function skarnRaidFactor(state) {
 // your people working out in the open. Guards on watch may drive them off.
 
 export function harryChance(state) {
-  if (!nationsActive(state) || skarnAtPeace(state) || !state.neighbors.skarn.known) return 0;
+  if (!nationsActive(state) || skarnAtPeace(state) || !state.neighbors.skarn.known || homeBesieged(state, 'skarn')) return 0;
   const guards = living(state).filter((p) => p.task === 'guard' && p.health >= 40).length;
   const watched = lawIs(state, 'strangers', 'closed') ? 0.5 : 1; // Closed gates: strangers are watched.
   return Math.min(0.5, nation(state, 'skarn').warriors / (40 + 10 * guards)) * watched * fortressWatch(state); // Fortresses watch the roads.
@@ -430,6 +432,8 @@ export function ambushBand(state, workers) {
 export function maybeHarry(state) {
   state.harried = null;
   if (state.pendingEvent || !chance(state, harryChance(state))) return [];
+  if (!state.lastHarm) state.lastHarm = {};
+  state.lastHarm.skarn = state.turn;
   const people = living(state);
   const exposed = WORK_TASKS
     .map((task) => ({ task, place: state.workSites[task], workers: people.filter((p) => p.task === task) }))
@@ -513,7 +517,7 @@ export function valleyYear(state) {
   // A strong Skarn gathers a great host against the village, giving warning.
   const strength = skarnStrength(state);
   // A host only gathers when it could storm the walls or hem the village in.
-  if (state.neighbors.skarn.known && !skarnAtPeace(state) && !state.skarnHost
+  if (state.neighbors.skarn.known && !skarnAtPeace(state) && !state.skarnHost && !homeBesieged(state, 'skarn')
       && skarnApproach(state, Math.round(strength * 0.9)) !== 'wait' && chance(state, 0.5)) {
     state.skarnHost = state.turn + 1;
     const withClans = clansMarching(state) ? ', hill clansmen among them' : '';
@@ -528,12 +532,19 @@ function skarnRaidsOthers(state) {
   const lines = [];
   const sk = nation(state, 'skarn');
   const targets = ['velari', 'tellani'].filter((id) => !state.neighbors[id].joined);
-  if (state.neighbors.skarn.vassal || !targets.length || sk.warriors < 8 || !chance(state, 0.35)) return lines;
+  if (state.neighbors.skarn.vassal || homeBesieged(state, 'skarn') || !targets.length || sk.warriors < 8 || !chance(state, 0.35)) return lines;
   // The Skarn fall on whoever is weaker and whom they hate more.
   const score = (id) => nation(state, id).warriors + between(state, 'skarn', id) / 10;
   const target = targets.sort((a, b) => score(a) - score(b))[0];
   shiftBetween(state, 'skarn', target, -10);
   const nat = nation(state, target);
+  // An army holding the valley relieves an ally without being asked.
+  if (nat.treaties.alliance && armyHolding(state, 'valley')) {
+    resolveSkarnRaid(state, target, true);
+    lines.push(`The Skarn attacked ${NEIGHBORS[target].name}, your allies, and your army in the valley marched to relieve them. The Skarn were driven off.`);
+    changeRelation(state, target, 5);
+    return lines;
+  }
   if (nat.treaties.alliance && !state.pendingEvent && living(state).filter(canFight).length >= 3) {
     state.pendingEvent = { type: 'story', id: 'allyCall', target };
     lines.push(`${capital(NEIGHBORS[target].name)} send word: the Skarn are attacking them, and they call on you as allies. A decision is waiting for you.`);

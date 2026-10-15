@@ -9,6 +9,9 @@ import { hasKnowledge, seasonIndex } from './state.js';
 import { hasTradition } from './legacy.js';
 import { lawIs, lawLoyalty } from './laws.js';
 import { listWords } from './util.js';
+import {
+  warWeariness, unjustWar, leviesFrom, warYears,
+} from './warStatus.js';
 
 // What each settlement can be. rate: what each worker at the role brings in
 // a season, beyond feeding the settlement. skill: the governor's skill that
@@ -228,6 +231,10 @@ export function loyaltyTarget(state, t) {
   for (const [text, n] of lawLoyalty(state)) add(text, n);
   if (wagesPaid(state)) add('its governor paid from the treasury', 5);
   if (t.federated) add('joining you as a free people', 5);
+  const away = leviesFrom(state, t.id);
+  add(`${away} of its people away with your armies`, -Math.min(8, Math.ceil(away / 5)));
+  add(`a war of ${warYears(state)} years`, -warWeariness(state).loyalty);
+  add('a war without just cause', unjustWar(state) ? -5 : 0);
   const target = Math.max(0, Math.min(100, LOYALTY_BASE + reasons.reduce((sum, [, n]) => sum + n, 0)));
   return { target, reasons };
 }
@@ -264,7 +271,8 @@ export function expectedShipment(state, t) {
   const kind = townKind(state, t);
   if (!kind || keepingAll(state, t)) return { kind, amount: 0, lost: 0 };
   const sent = townOutput(state, t) * (DEMANDS[t.demands] || DEMANDS.normal).share;
-  const loss = !hasRoad(state, t) && !byRiver(state, t) && far(t) ? UNROADED_LOSS : 0;
+  const carts = hasKnowledge(state, 'horseBreeding') && (state.resources.horses || 0) >= 10;
+  const loss = !hasRoad(state, t) && !byRiver(state, t) && far(t) ? UNROADED_LOSS * (carts ? 0.5 : 1) : 0;
   return { kind, amount: Math.round(sent * (1 - loss)), lost: Math.round(sent * loss) };
 }
 
@@ -291,7 +299,7 @@ export function fortresses(state) {
 // Soldiers a fortress sends to meet raiders on the road to the capital:
 // half its garrison, more with barracks.
 export function garrisonHelp(state, t) {
-  return t.role === 'fortress' ? Math.round(townGroups(state, t).guards * 0.5 * (1 + WORKS_BONUS * worksLevel(t))) : 0;
+  return t.role === 'fortress' ? Math.round(townGroups(state, t).guards * 0.5 * (1 + WORKS_BONUS * worksLevel(t)) * (t.buildings.keep ? 1.5 : 1)) : 0;
 }
 
 export function fortressHelp(state) {
@@ -307,6 +315,7 @@ export function fortressWatch(state) {
 // The whole nation's people: the capital, every settlement, and anyone
 // away on an expedition.
 export function nationPopulation(state, capitalCount) {
-  const away = state.world ? state.world.expeditions.reduce((sum, x) => sum + x.party.length, 0) : 0;
+  const away = (state.world ? state.world.expeditions.reduce((sum, x) => sum + x.party.length, 0) : 0)
+    + (state.armies || []).reduce((sum, a) => sum + (a.commander ? 1 : 0) + a.companies.reduce((n, c) => n + c.soldiers + c.wounded, 0), 0);
   return capitalCount + away + (state.settlements || []).reduce((sum, t) => sum + t.population, 0);
 }

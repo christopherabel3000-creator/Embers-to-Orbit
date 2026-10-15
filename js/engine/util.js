@@ -28,6 +28,11 @@ export function capital(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+// "The Ostran delta" to "the Ostran delta", for the middle of a sentence.
+export function lowerFirst(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
 export function plural(n, one, many) {
   return `${n} ${n === 1 ? one : many}`;
 }

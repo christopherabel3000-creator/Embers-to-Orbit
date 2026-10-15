@@ -14,6 +14,8 @@ import { placeRegion } from './data.js';
 import { hasKnowledge, year, seasonIndex } from './state.js';
 import { recordDeed, reputation } from './legacy.js';
 import { lawIs } from './laws.js';
+import { raidScale } from './difficulty.js';
+import { atWar, armyHolding, homeBesieged } from './warStatus.js';
 import { chance, randomInt, randomBetween } from './rng.js';
 import { clamp, capital, listWords } from './util.js';
 
@@ -93,6 +95,14 @@ export function greatTarget(state, id) {
 // each year a treaty is kept adds to their trust.
 export function greatSeason(state) {
   if (!state.great) return;
+  if (seasonIndex(state) === 0 && state.nationFounded != null) {
+    for (const id of GREAT_ORDER) {
+      const g = great(state, id);
+      const target = greatStrengthTarget(state, id);
+      const now = g.strength ?? target;
+      if (now < target) g.strength = Math.min(target, now + Math.max(4, Math.round((target - now) * 0.25)));
+    }
+  }
   for (const id of metGreat(state)) {
     const g = great(state, id);
     const target = greatTarget(state, id);
@@ -100,6 +110,14 @@ export function greatSeason(state) {
     else if (g.relation > target) g.relation = Math.max(target, g.relation - 2);
     if (seasonIndex(state) === 0 && Object.values(g.treaties).some(Boolean)) g.trust = clamp(g.trust + 2);
   }
+}
+
+// The riders or soldiers they keep under arms, which they make good each
+// spring: the Orhai grow in number, and the Ostrani hire more in a war.
+export function greatStrengthTarget(state, id) {
+  const years = Math.max(0, state.turn - (state.nationFounded ?? state.turn)) / 4;
+  if (id === 'orhai') return Math.round(Math.min(100, 50 + 4 * years) * raidScale(state));
+  return Math.round(Math.min(60, 30 + 2 * years) * (atWar(state, id) ? 1.5 : 1));
 }
 
 // ----- Trade -----
@@ -117,6 +135,7 @@ export function tradeFactor(state, id) {
   if (hasKnowledge(state, 'measures')) f *= 1.25;
   if (hasKnowledge(state, 'freeMarkets')) f *= (state.marketMood || 1);
   if (id === 'ostrani' && coastHarbor(state)) f *= 1.1;
+  if (g.quay) f *= 1.2;
   return f;
 }
 
@@ -133,7 +152,7 @@ export function tradeTerms(state, id, lotId) {
 
 export function tradesWith(state, id) {
   const g = great(state, id);
-  if (!g || !g.met) return [];
+  if (!g || !g.met || atWar(state, id)) return [];
   if (id === 'orhai' && !g.treaties.peace) return [];
   return TRADES_BY[id].filter((lotId) => !TRADE_LOTS[lotId].needs || hasKnowledge(state, TRADE_LOTS[lotId].needs))
     .filter((lotId) => !(lotId === 'sellGoods' && hasKnowledge(state, 'fineCrafts') && TRADES_BY[id].includes('sellFine')));
@@ -156,7 +175,7 @@ function costWords(cost) {
 // What an envoy to them could do now: [{ act, label, why }] with why null when possible.
 export function greatActs(state, id) {
   const g = great(state, id);
-  if (!g || !g.met) return [];
+  if (!g || !g.met || atWar(state, id)) return [];
   const acts = [];
   for (const lotId of tradesWith(state, id)) {
     const t = tradeTerms(state, id, lotId);
@@ -259,7 +278,7 @@ export function routeIncome(state, id) {
 
 export function routesIncome(state) {
   if (!state.great) return 0;
-  return GREAT_ORDER.filter((id) => state.great[id].route).reduce((sum, id) => sum + routeIncome(state, id), 0);
+  return GREAT_ORDER.filter((id) => state.great[id].route && !atWar(state, id)).reduce((sum, id) => sum + routeIncome(state, id), 0);
 }
 
 // ----- The Orhai -----
@@ -267,8 +286,9 @@ export function routesIncome(state) {
 // Settlements within reach of their riders: on the plains and the desert edge.
 export const ORHAI_REACH = ['plains', 'desert', 'steppe'];
 
-export function inOrhaiReach(t) {
-  return ORHAI_REACH.includes(placeRegion(t.place));
+export function inOrhaiReach(t, state = null) {
+  const reach = state && great(state, 'orhai') && great(state, 'orhai').pulledBack ? ['steppe'] : ORHAI_REACH;
+  return reach.includes(placeRegion(t.place));
 }
 
 export function tributeCost(state) {
@@ -286,7 +306,8 @@ export function payTribute(state) {
 // The chance their riders fall on a settlement within reach this season.
 export function orhaiRaidChance(state) {
   const g = great(state, 'orhai');
-  if (!g || g.treaties.peace || g.paidUntil > state.turn) return 0;
+  // At war, their hosts ride instead (war.js).
+  if (!g || g.treaties.peace || g.paidUntil > state.turn || atWar(state, 'orhai') || homeBesieged(state, 'orhai')) return 0;
   // Before they are met, their riders roam the plains only once the Nation
   // era is a few years old.
   if (!g.met && (state.turn - (state.nationFounded ?? state.turn)) < 16) return 0;
@@ -304,8 +325,9 @@ export function orhaiSeason(state, defense) {
   const out = { urgent: [], events: [] };
   const g = great(state, 'orhai');
   if (!g) return out;
-  for (const t of (state.settlements || []).filter(inOrhaiReach)) {
+  for (const t of (state.settlements || []).filter((x) => inOrhaiReach(x, state))) {
     if (!chance(state, orhaiRaidChance(state))) continue;
+    if (armyHolding(state, placeRegion(t.place))) continue; // Your army there keeps them off.
     const first = !g.met && !g.contactPending;
     if (first) meetGreat(state, 'orhai');
     const who = first ? 'Riders out of the west, strangers on fast horses,' : 'Orhai riders';
@@ -317,6 +339,8 @@ export function orhaiSeason(state, defense) {
     t.population = Math.max(3, t.population - lost);
     t.loyalty = clamp(t.loyalty - 8);
     t.harriedAt = state.turn;
+    if (!state.lastHarm) state.lastHarm = {};
+    state.lastHarm.orhai = state.turn;
     out.urgent.push(`${who} raided ${t.name}, killed ${lost === 1 ? 'one settler' : `${lost} settlers`}, and drove off its herds.${first ? ' They call themselves the Orhai, and they will be back.' : ''} More guards or a fortress on the plains would help, or a peace pact with them.`);
   }
   return out;

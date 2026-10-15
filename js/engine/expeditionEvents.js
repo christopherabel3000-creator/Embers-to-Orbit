@@ -8,14 +8,14 @@ import {
 } from './world.js';
 import { applyStudy } from './study.js';
 import { chance, pick, randomInt } from './rng.js';
-import { clamp } from './util.js';
+import { clamp, lowerFirst } from './util.js';
 
 function partyOf(state, ev) {
   return expeditionById(state, ev.exp);
 }
 
 function where(exp) {
-  return REGIONS[exp.region].name.toLowerCase();
+  return lowerFirst(REGIONS[exp.region].name);
 }
 
 function hurtOne(state, exp, amount) {

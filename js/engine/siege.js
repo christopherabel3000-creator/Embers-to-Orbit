@@ -10,6 +10,7 @@ import { changeRelation } from './neighbors.js';
 import { createBattle, fighterStrength, foeStrengthFor } from './battle.js';
 import { randomInt } from './rng.js';
 import { listWords } from './util.js';
+import { valleyArmyStrength, valleySoldiers } from './armies.js';
 
 // Work that cannot be done while the village is besieged.
 export const OUTSIDE_TASKS = ['hunt', 'forage', 'farm', 'wood', 'quarry', 'scout'];
@@ -30,8 +31,9 @@ export const COVER_WEIGHT = { none: 1, palisade: 1.5, wall: 1.9 };
 export const STORM_RATIO = 0.85; // Storm when the band is worth this much of the walled defense.
 export const SIEGE_RATIO = 0.9; // Besiege when it is worth this much of the fighters in the open.
 
+// The capital's fighters, and any army standing in the valley.
 export function villageDefense(state) {
-  return living(state).filter(canFight).reduce((sum, p) => sum + fighterStrength(state, p), 0);
+  return living(state).filter(canFight).reduce((sum, p) => sum + fighterStrength(state, p), 0) + valleyArmyStrength(state);
 }
 
 export function coverWeight(state) {
@@ -134,12 +136,14 @@ export function siegeSeason(state) {
   if (!s) return [];
   const lines = [];
   const hungry = Math.max(1, Math.ceil(s.raiders * 0.1));
-  const harassed = Math.round(alliedHelpers(state) * 0.4);
+  const army = Math.round(valleySoldiers(state) * 0.4);
+  const harassed = Math.round(alliedHelpers(state) * 0.4) + army;
   const lost = Math.min(s.raiders, hungry + harassed);
   s.raiders -= lost;
   skarnLosses(state, lost);
   s.supplies -= 1;
-  if (harassed > 0) lines.push(`${helpersText(state)} harried the besiegers' camp.`);
+  if (harassed > army) lines.push(`${helpersText(state)} harried the besiegers' camp.`);
+  if (army > 0) lines.push('Your army outside the walls harried the besiegers.');
   if (s.raiders < 4 || s.supplies <= 0) {
     state.siege = null;
     lines.push(`The Skarn ran short of food and lifted the siege. ${state.campName} is free.`);

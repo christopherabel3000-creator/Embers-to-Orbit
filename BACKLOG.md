@@ -62,10 +62,18 @@ Set aside: desktop keyboard shortcuts. Not needed for now; a screen reader's own
 - [ ] Battles, deeper: commanders, and ambushes on caravans and on shipments from other settlements.
 - [ ] The other four starting regions, each with its own local map.
 
-## Toward Phase 3 (Nation era)
+## Phase 3 (Nation era)
 
-- [ ] Plan the Nation era together first: what managing several settlements feels like, what governors decide, and what the player decides.
-- [ ] More settlements, each with its own governor, priorities, and buildings.
-- [ ] Armies as units on the zone battlefield, and campaigns away from home.
-- [ ] Laws and the shape of government.
-- [ ] The valley nations as full rivals with their own settlements and wars, and the first of the 7 great nations beyond the valley.
+The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The Nation era), and is built in five phases.
+
+### Done
+
+- Phase 1, the nation at home: more settlements (from the capital or a large settlement), each with a role (farming, timber, mining, market town, or fortress), demands, and defense and learning priorities; named governors with skills who grow, age, and are succeeded; loyalty with its reasons, aid, and defiance; settlements counted by groups, with buildings their governors raise; fortresses that meet raiders on the road; roads; the Learning branch (Writing, Mathematics, Astronomy, Schools); a capital that counts its people by group past 100; the Nation and Settlement screens.
+
+### Next
+
+- [ ] Phase 2, the wider world: the regional map of about eight regions, expeditions, river boats, mapmaking, iron and salt with Mining and Salting.
+- [ ] Phase 3, the first great nations: a river and coast people of traders and a riding people of the plains, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
+- [ ] Phase 4, armies: companies and commanders, campaigns and supply, sieges the player lays, six kinds of soldiers, horses and cavalry.
+- [ ] Phase 5, toward the sea: the rest of the tree, the remaining five great nations, harbors and ships, Navigation, and the voyage that ends the era.
+- [ ] Balance: goods pile up over a long campaign (about 1,500 by year 35); coin in phase 3 should give them a use. The capital is about 105 at year 35, short of the 150 the era's end asks for.

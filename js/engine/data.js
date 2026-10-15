@@ -143,9 +143,19 @@ export const BUILDINGS = {
     requires: 'farming',
     description: 'Cleared, dug ground with room for 6 plots of grain.',
   },
+  road: {
+    name: 'Road',
+    cost: 20,
+    stone: 30,
+    work: 20,
+    repeatable: true,
+    requires: 'roads',
+    era: 'nation',
+    description: 'A stone-laid road from the capital to the next settlement without one, in the order they were founded. Nothing it sends home is lost on the way, its people are 5 more loyal, and skirmishers trouble it less.',
+  },
 };
 
-export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'pasture', 'storehouse', 'granary', 'healersHut', 'workshop', 'market', 'meetingHall', 'shrine', 'watchtower', 'palisade', 'stoneWall'];
+export const BUILDING_ORDER = ['leanTo', 'hut', 'fields', 'pasture', 'storehouse', 'granary', 'healersHut', 'workshop', 'market', 'meetingHall', 'shrine', 'watchtower', 'palisade', 'stoneWall', 'road'];
 
 export const PLOTS_PER_FIELD = 6;
 
@@ -446,6 +456,44 @@ export const KNOWLEDGE = {
     excludes: ['elders'],
     effect: 'One strong leader speaks for all. Guards fight harder still, and raiders come less often. Choosing this closes off a council of elders.',
   },
+
+  // ----- The Nation era -----
+  writing: {
+    branch: 'learning', era: 'nation',
+    name: 'Writing',
+    cost: 70,
+    after: ['oralLaw'],
+    effect: 'Records and letters, kept and sent between settlements. Every scholar studies a quarter faster.',
+  },
+  mathematics: {
+    branch: 'learning', era: 'nation',
+    name: 'Mathematics',
+    cost: 90,
+    after: ['writing'],
+    effect: 'Measure, number, and plan. Builders do 1 more work each, in the capital and in every settlement.',
+  },
+  astronomy: {
+    branch: 'learning', era: 'nation',
+    name: 'Astronomy',
+    cost: 110,
+    after: ['mathematics'],
+    effect: 'A calendar read from the stars. Every field plot yields 1 more food, and farming towns send home a tenth more. One day, the stars will steer ships.',
+  },
+  schools: {
+    branch: 'learning', era: 'nation',
+    name: 'Schools',
+    cost: 80,
+    after: ['writing'],
+    needsBuilding: 'meetingHall',
+    effect: 'The young are taught together in the meeting hall. They learn twice as fast instead of half again, and the learning priority sets half again as many scholars, in the capital and in every settlement.',
+  },
+  roads: {
+    branch: 'building', era: 'nation',
+    name: 'Roads',
+    cost: 80,
+    after: ['stonecutting'],
+    effect: 'Cleared, stone-laid roads. Unlocks roads to your settlements: nothing is lost on the way home, their people feel closer to the capital, and skirmishers trouble them less.',
+  },
 };
 
 // The branches of the research tree.
@@ -455,6 +503,7 @@ export const BRANCHES = {
   crafts: 'Crafts and trade',
   war: 'War and defense',
   society: 'Society and healing',
+  learning: 'Learning',
 };
 
 export const KNOWLEDGE_ORDER = Object.keys(KNOWLEDGE);

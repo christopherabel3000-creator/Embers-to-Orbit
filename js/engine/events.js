@@ -16,6 +16,7 @@ import { remember, resolveSkarnRaid, nation } from './nations.js';
 import { lawIs } from './laws.js';
 import { VILLAGE_EVENTS } from './villageEvents.js';
 import { NATION_EVENTS } from './nationEvents.js';
+import { TOWN_EVENTS, townCrisis } from './townEvents.js';
 import { SKARN_CHIEF_EVENT } from './peace.js';
 import { recordDeed, hasTradition } from './legacy.js';
 
@@ -677,7 +678,7 @@ function allyCallFighters(state) {
 }
 
 // Village events join the rest.
-Object.assign(EVENTS, VILLAGE_EVENTS, NATION_EVENTS, SKARN_CHIEF_EVENT);
+Object.assign(EVENTS, VILLAGE_EVENTS, NATION_EVENTS, SKARN_CHIEF_EVENT, TOWN_EVENTS);
 
 function recruitSources(state) {
   return Object.keys(NEIGHBOR_RECRUITS).filter((id) => {
@@ -746,6 +747,14 @@ export function maybeStartEvent(state) {
   if (NEIGHBOR_ORDER.some((id) => state.neighbors[id].contactPending)) {
     const ev = EVENTS.firstContact;
     state.pendingEvent = { type: 'story', id: 'firstContact', ...ev.start(state) };
+    out.urgent.push(`${ev.view(state, state.pendingEvent).title}: a decision is waiting for you.`);
+    return out;
+  }
+  // So does a settlement that defies the capital.
+  const crisis = townCrisis(state);
+  if (crisis) {
+    const ev = EVENTS[crisis];
+    state.pendingEvent = { type: 'story', id: crisis, ...ev.start(state) };
     out.urgent.push(`${ev.view(state, state.pendingEvent).title}: a decision is waiting for you.`);
     return out;
   }

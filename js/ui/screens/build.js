@@ -53,8 +53,9 @@ export function buildScreen() {
     const owned = state.buildings[id];
     const status = b.repeatable ? `You have ${owned}.` : owned ? 'Built.' : 'Not built.';
     const why = queueBlocker(state, id);
+    const next = id === 'road' ? (state.settlements || [])[(state.buildings.road || 0) + queuedCount(state, 'road')] : null;
     html += `<li class="card"><h3>${esc(b.name)}</h3>
-      <p>${esc(b.description)}</p>
+      <p>${esc(b.description)}${next ? ` The next would reach ${esc(next.name)}.` : ''}</p>
       <p>${status} Costs ${costAndWork(id)}.</p>
       ${why ? (!b.max && (owned || queuedCount(state, id)) ? '' : `<p>${esc(why)}</p>`) : `<p><button type="button" data-action="queueBuilding" data-building="${id}">Add ${esc(b.name.toLowerCase())} to the queue</button></p>`}
       ${!b.repeatable && queuedCount(state, id) ? '<p>In the build queue.</p>' : ''}

@@ -18,7 +18,9 @@ import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
 import { hireMaster, hireSwords } from './goods.js';
 import { giftClans } from './clans.js';
-import { foundSettlement, setPolicy } from './settlements.js';
+import {
+  foundSettlement, setPolicy, setTownRole, setTownDemands, setTownPriority, sendAid, appointGovernor,
+} from './settlements.js';
 import { resolveSeason } from './season.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
@@ -117,6 +119,38 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return setPolicy(state, action);
+  },
+
+  // ----- The nation's settlements -----
+  setTownRole(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setTownRole(state, action);
+  },
+
+  setTownDemands(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setTownDemands(state, action);
+  },
+
+  setTownPriority(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setTownPriority(state, action);
+  },
+
+  sendAid(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return sendAid(state, action);
+  },
+
+  appointGovernor(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return appointGovernor(state, action);
   },
 
   sallyOut(state) {

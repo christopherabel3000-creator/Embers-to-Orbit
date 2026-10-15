@@ -6,15 +6,16 @@ import {
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
-  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage,
+  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage, capitalCounted,
 } from './state.js';
-import { maybeSettlers } from './village.js';
+import { maybeSettlers, isNotable, CAPITAL_COUNTED_FROM } from './village.js';
 import { lawSettle } from './laws.js';
 import { spendGoods } from './goods.js';
 import {
   besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege, ravage,
 } from './siege.js';
 import { settlementsSeason, harrySettlements } from './settlements.js';
+import { townStudy } from './realm.js';
 import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
 import { peaceYear } from './peace.js';
 import { raidGrowth } from './rules.js';
@@ -47,7 +48,9 @@ import { refreshAdvisors } from './advisors.js';
 import { drawWeather } from './weather.js';
 import { raidScale } from './difficulty.js';
 import { incomeLine, upkeepLine, skillLine } from './report.js';
-import { shuffle, listNames, clamp } from './util.js';
+import {
+  shuffle, listNames, clamp, plural,
+} from './util.js';
 
 function hurt(person, amount) {
   person.health = clamp(person.health - amount);
@@ -67,6 +70,7 @@ export function resolveSeason(state) {
   const finishedLabel = dateLabel(state);
   const people = living(state);
   const startCount = people.length;
+  const counted = capitalCounted(state);
 
   // 1. Work.
   let food = 0;
@@ -137,8 +141,16 @@ export function resolveSeason(state) {
   recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
   const income = incomeLine({ food, herds, wood, stone, goods, foodWorkers: hunters });
   if (sieged && people.some((p) => OUTSIDE_TASKS.includes(p.task))) urgent.push('The Skarn siege kept everyone inside the walls: no one could hunt, forage, farm, cut wood or stone, or scout.');
-  for (const p of injuredWhileHunting) {
-    urgent.push(`${p.name} was injured while ${p.task === 'scout' ? 'scouting' : 'hunting'}.`);
+  if (counted) {
+    // A large capital names only its notable people.
+    const named = injuredWhileHunting.filter((p) => isNotable(state, p));
+    for (const p of named) urgent.push(`${p.name} was injured while ${p.task === 'scout' ? 'scouting' : 'hunting'}.`);
+    const others = injuredWhileHunting.length - named.length;
+    if (others) events.push(`${plural(others, 'hunter or scout was', 'hunters and scouts were')} injured.`);
+  } else {
+    for (const p of injuredWhileHunting) {
+      urgent.push(`${p.name} was injured while ${p.task === 'scout' ? 'scouting' : 'hunting'}.`);
+    }
   }
 
   // 2. Warmth comes before building: the fires get their wood first, and
@@ -162,9 +174,12 @@ export function resolveSeason(state) {
     }
   }
 
-  // Other settlements send home what they can spare, unless the road is cut.
+  // The other settlements run themselves, and send home what they can spare,
+  // unless the road is cut.
   const shipments = [];
-  if (!sieged) events.push(...settlementsSeason(state, shipments));
+  const towns = settlementsSeason(state, { routine: shipments, cutOff: sieged });
+  urgent.push(...towns.urgent);
+  events.push(...towns.events);
 
   // 3. Building, with whatever wood the fires did not need.
   const buildProgress = [];
@@ -180,7 +195,7 @@ export function resolveSeason(state) {
     const skill = TASKS[p.task] && TASKS[p.task].skill;
     if (!skill || (p.task === 'farm' && s === 3) || (p.task === 'forage' && s === 3)) continue;
     let amount = p.health < 40 || p.sick ? 0.5 : 1;
-    if (p.age < 16) amount *= 1.5;
+    if (p.age < 16) amount *= hasKnowledge(state, 'schools') ? 2 : 1.5; // Schools teach the young.
     const mentor = people.some((m) => m !== p && m.task === p.task && m.skills[skill] >= 4 && m.skills[skill] > p.skills[skill]);
     if (mentor) amount += 0.5;
     const level = gainExperience(p, skill, amount);
@@ -188,7 +203,9 @@ export function resolveSeason(state) {
   }
   const skills = skillLine(state, improved);
 
-  // Study: points flow into the current discovery, then the next in the queue.
+  // Study: points flow into the current discovery, then the next in the
+  // queue. Scholars in every settlement add to it.
+  studyPool += townStudy(state);
   if (studyPool > 0) {
     const studied = applyStudy(state, studyPool);
     urgent.push(...studied.urgent);
@@ -296,7 +313,9 @@ export function resolveSeason(state) {
     healPool -= amount;
     if (amount >= 10) healed.push(p);
   }
-  if (healed.length) events.push(`${listNames(healed)} ${healed.length === 1 ? 'was' : 'were'} treated for injuries.`);
+  if (healed.length) {
+    events.push(counted ? `${plural(healed.length, 'person was', 'people were')} treated for injuries.` : `${listNames(healed)} ${healed.length === 1 ? 'was' : 'were'} treated for injuries.`);
+  }
 
   // 6. Eating.
   const need = foodNeeded(people);
@@ -370,11 +389,13 @@ export function resolveSeason(state) {
 
   // 10. Deaths.
   const dead = people.filter((p) => p.health <= 0);
-  for (const p of dead) {
-    p.alive = false;
+  const namedDead = counted ? dead.filter((p) => isNotable(state, p)) : dead;
+  for (const p of namedDead) {
     const hero = (state.heroes || []).find((h) => h.id === p.id);
     urgent.unshift(hero ? `${p.name}, a hero of the village, has died. Everyone remembers how ${p.name} ${hero.deed}.` : `${p.name} has died.`);
   }
+  if (dead.length > namedDead.length) urgent.unshift(`${plural(dead.length - namedDead.length, 'person', 'people')} of ${state.campName} died this season.`);
+  for (const p of dead) p.alive = false;
   if (dead.length) {
     const grief = state.buildings.shrine > 0 ? 6 : 12; // A shrine eases grief.
     for (const p of living(state)) p.morale = clamp(p.morale - grief * dead.length);
@@ -443,7 +464,12 @@ export function resolveSeason(state) {
     }
   }
   if (survivors.length !== startCount && survivors.length > 0) {
-    events.push(`${state.campName} now has ${survivors.length} people.`);
+    events.push(`${state.campName} now has ${living(state).length} people.`);
+  }
+  // Past 100 people, the capital counts its ordinary people for good.
+  if (!state.capitalCounted && state.era === 'nation' && living(state).length > CAPITAL_COUNTED_FROM) {
+    state.capitalCounted = true;
+    events.push(`${state.campName} has passed ${CAPITAL_COUNTED_FROM} people. From now on, the capital counts its people by group, as the settlements do: the Village screen lists its groups and notable people, and the season's report counts ordinary people rather than naming each one.`);
   }
 
   state.feastThisSeason = false;

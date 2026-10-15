@@ -24,6 +24,9 @@ import { skarnAtPeace } from './neighbors.js';
 import { skarnStrength, clansMarching, clansRaidingAlone } from './clans.js';
 import { crowdingSettle } from './village.js';
 import { estimateBattle } from './battle.js';
+import {
+  loyaltyWord, loyaltyReasonsText, nextUnroaded, far,
+} from './realm.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -320,6 +323,21 @@ export function getAdvice(state) {
   const velari = state.neighbors.velari;
   if (velari.known && velari.relation >= 40 && !hasKnowledge(state, 'farming')) {
     add('speaker', 'note', 'The Velari would teach us farming now. Ask them on the Neighbors screen.');
+  }
+
+  // Speaker: the nation's own settlements.
+  for (const t of state.settlements || []) {
+    const word = loyaltyWord(t.loyalty);
+    const why = loyaltyReasonsText(state, t, { against: true });
+    if (t.loyalty < 40) {
+      add('speaker', 'warning', `${t.name} is ${word} (loyalty ${t.loyalty}), because of ${why}. It sends home less, and below 20 it will defy us. Lighter demands, aid, or a wiser governor would help; see its screen.`);
+    } else if (t.loyalty < 55) {
+      add('speaker', 'note', `${t.name} is restless (loyalty ${t.loyalty}), because of ${why}. It sends home a little less.`);
+    }
+  }
+  const unroaded = nextUnroaded(state);
+  if (unroaded && hasKnowledge(state, 'roads') && !state.buildQueue.some((item) => item.id === 'road')) {
+    add('steward', 'note', `A road to ${unroaded.name} would ${far(unroaded) ? 'bring home all it sends, and ' : ''}make its people feel closer to us, and keep skirmishers off it. Add one on the Build screen.`);
   }
 
   // War chief: raids.

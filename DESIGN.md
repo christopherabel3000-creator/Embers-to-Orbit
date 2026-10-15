@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and a campaign can now reach the start of the Nation era. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first of which is playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -35,7 +35,8 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Village events:** eleven events of the village's own, mostly choices, including heroes the Chronicle remembers.
 - **Laws:** four laws a village can make once it knows Oral law, each with two options that trade one benefit for a cost and shift how the neighbors see you.
 - **Four difficulty levels**, chosen at the start and changeable at any time from the Menu screen.
-- **A second settlement** under a governor, which sends home food, wood, or stone, and whose founding begins the Nation era.
+- **A second settlement** under a governor, whose founding begins the Nation era.
+- **The nation at home** (the Nation era, phase 1): more settlements, each with a role, demands, and priorities set by the player and a named governor who runs it; loyalty, aid, and defiance; settlements counted by groups, and a capital that counts its people once it passes 100; the Nation and Settlement screens; roads; and a Learning branch of four discoveries.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -53,7 +54,7 @@ Every screen must be usable by swiping through it with VoiceOver, with no visual
 
 **Built so far**
 
-- Nine screens reached from a navigation list: Report, People, Map, Build, Knowledge, Neighbors, Advisors, Chronicle, and Menu, plus an End season button. Each screen has one h1, which takes focus when the screen opens.
+- Nine screens reached from a navigation list: Report, People, Map, Build, Knowledge, Neighbors, Advisors, Chronicle, and Menu, plus an End season button; in the Nation era a tenth, Nation, from which each settlement's own screen opens. Each screen has one h1, which takes focus when the screen opens.
 - Decisions that stop the game (choice events, raids, battle deployment, each battle round) get their own screen with the advisors' views and one button per choice.
 - Short confirmations are spoken through a live region; after a screen redraws, focus returns to the control the player was using.
 - **A quieter season report** (October 2026). The news comes first: Urgent, Your decision, and What happened. Then the season's routine work sits under its own heading, "The season's work," in a few short lines: what work brought in, what upkeep used (fires, comforts, arms, spoilage), farm and building progress, what other settlements sent home, and skills grown, grouped by skill (a village names only those who reach 4 or 5 and counts the rest). The heading lets the player skip past it. The Chronicle keeps the news, not the routine.
@@ -119,11 +120,14 @@ The game unfolds in eras. Each era layers new systems on top of the old ones, so
 
 1. **Survival.** About a dozen named survivors. Food, shelter, warmth, and threats like raiders, wildlife, and winter.
 2. **Settlement.** Population becomes groups by profession. Buildings, first trade, first contact with rival nations.
-3. **Nation.** Multiple cities, armies, diplomacy, laws, industry. Governors can manage cities.
-4. **Modern.** Advanced industry, mechanized warfare, intelligence agencies, rocketry research.
-5. **Space.** Satellites, orbital mining, colonization, fleets (see Space age).
+3. **Nation.** Several settlements under governors, the wider world and its seven great nations, armies on campaign, iron, horses, coin, and salt (see The Nation era).
+4. **Age of Discovery.** Voyages and the lands beyond the sea, printing, gunpowder, early science, and colonies. It could end with the first steam engine.
+5. **Modern.** Advanced industry, mechanized warfare, intelligence agencies, rocketry research.
+6. **Space.** Satellites, orbital mining, colonization, fleets (see Space age).
 
-Era advancement is driven by research and growth, not a fixed timer, and the player chooses when to take each step. The Settlement era begins when the player chooses to become a village, any time after the camp has 16 people, a storehouse, a palisade, and farming. It ends, and the Nation era begins, when the village founds a second settlement.
+The Age of Discovery was added in October 2026, between the Nation and Modern eras: going from iron and coin to engines in one era would pile too many new systems into it to learn by ear.
+
+Era advancement is driven by research and growth, not a fixed timer, and the player chooses when to take each step. The Settlement era begins when the player chooses to become a village, any time after the camp has 16 people, a storehouse, a palisade, and farming. It ends, and the Nation era begins, when the village founds a second settlement. The Nation era ends, and the Age of Discovery begins, when the player sends the first ship across the open sea.
 
 ## The Settlement era (built)
 
@@ -279,7 +283,165 @@ The neighbors' reactions show on the Neighbors screen with their other reasons.
 - **When.** A village of at least 40 people that holds a place beyond its camp, and has 80 food, 60 wood, and 30 stone, can found a second settlement. The Report screen says when it is ready, or what is missing.
 - **The founding screen** asks where (any place the village holds), its name, how many settlers go (10 to 20, keeping at least 30 at home), who governs (one of the notable people), and its first policy. It cannot be undone. The council picks a fair mix of able adults aged 16 to 50 and stays at home itself; if a council member governs, a successor takes their post.
 - **The settlement runs itself.** It sends home what its land is best for: stone from a quarry place, wood from a wood place, otherwise food. Under the supply policy that is 1 food, 0.8 wood, or 0.6 stone per settler each season (food is halved in winter), and it grows 3 percent each spring; under grow it sends 40 percent of that and grows 8 percent. Skarn skirmishers may fall on it, killing a settler or two, unless it is large enough to drive them off. Each settlement lets the village hold 2 more places, and its land counts for claiming what borders it.
-- **The Nation era begins** the moment the settlement is founded. Its own systems (more cities, governors, armies, laws) come later; until then, everything from the Settlement era goes on, and the Chronicle names the era.
+- **The Nation era begins** the moment the settlement is founded. Everything from the Settlement era goes on, and the Chronicle names the era. The Nation era's own systems are below.
+
+## The Nation era
+
+Decided with Christopher on October 14, 2026, from the Nation era brief, where he accepted every recommendation. The era is built in five phases; each is playable on its own and checked in the simulator before the next begins.
+
+### The decisions
+
+1. **What the player controls in each settlement:** a role and priorities. Each settlement's governor builds and assigns work to match. The player rules the nation as a whole: its laws, armies, diplomacy, study, and where new settlements go.
+2. **Governors** are named people with skills, answerable for their settlement's loyalty. A skilled governor gets more from a settlement. Loyalty falls under heavy demands and neglect (and, in later phases, heavy taxes and long wars); a disloyal settlement sends home less, and in time defies the player.
+3. **People as groups.** Every new settlement counts its people by work. Only notable people keep names: governors, commanders, heroes, and masters. The capital switches over when it passes 100 people.
+4. **Turns stay seasons.** Standing orders and a nation-wide report keep each season short.
+5. **The world** at first: about eight hand-crafted regions around the forest valley. The sea and what lies past it wait for the Age of Discovery.
+6. **Expeditions: send and wait.** The player chooses where, who, and how much food; the party reports back, with a choice or two on the way.
+7. **The great nations are met by exploring.** Rumors of them come at the start of the era, and each is met when an expedition, caravan, or envoy reaches its land.
+8. **The first two great nations:** a river and coast people of traders (the natural partner) and a riding people of the plains (the natural rival). The other five come in phase 5.
+9. **The valley peoples can join the nation.** After a long alliance, the Velari or Tellani can become a federated part of it; a beaten Skarn can become a vassal paying tribute.
+10. **New resources:** iron, horses, coin, and salt.
+11. **The knowledge tree:** all 36 discoveries and three either-or choices below, built in slices, each phase adding the discoveries its systems need.
+12. **Armies** are units raised from the settlements and led by named commanders, which march on the regional map, live on what they carry, and fight on the zone battlefield.
+13. **Six kinds of soldiers:** spearmen, shield infantry, archers, cavalry, skirmishers, and siege engines.
+14. **The era ends with the first ocean voyage** (see The end of the era).
+15. **The next era is the Age of Discovery.**
+
+### The five phases
+
+1. **The nation at home (built):** the Nation and Settlement screens, roles and priorities, governors and loyalty, people as groups, the Learning branch with Writing, and Roads.
+2. **The wider world:** the regional map and its regions, expeditions, river boats, mapmaking, and iron and salt with Mining and Salting.
+3. **The first great nations:** the two designed first, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
+4. **Armies:** companies and commanders, campaigns and supply, sieges the player lays, the six kinds of soldiers, and horses with cavalry.
+5. **Toward the sea:** the rest of the tree, the remaining great nations, harbors and ships, Navigation, and the voyage that ends the era.
+
+### Phase 1: the nation at home (built)
+
+**Settlements.** Every settlement beyond the capital is run by its governor and counted by groups. Only its governor and its notable people (masters of a skill and heroes) have names.
+
+- **Founding more.** Any time in the Nation era, the capital (with at least 40 people, keeping 30 at home) or a settlement of at least 30 (keeping 20) can send 10 or more settlers to found another on a place the nation holds, for 80 food, 60 wood, and 30 stone from the capital's stores. The governor comes from the capital's notable people or the sending settlement's. The founding form also sets the new settlement's role. Each settlement lets the nation hold 2 more places.
+- **Roles.** The player sets each settlement's role, and can change it any season:
+
+| Role | What it does | Its works (built by the governor, up to 3 levels) |
+| --- | --- | --- |
+| Farming town | Sends home food: 1.8 a season for each worker at the role, half that in winter | Fields and granaries |
+| Timber town | Sends home wood: 1.45 for each worker at the role | Sawpits |
+| Mining town | Sends home stone: 1.1 for each worker at the role | Quarry works |
+| Market town (needs Weaving) | Sends home goods: 0.55 for each worker at the role | Market hall |
+| Fortress | Sends home nothing. At least 4 in 10 of its workers are soldiers, who meet raiders on the road to the capital, and the Skarn skirmish your people less often | Barracks |
+
+  Each level of works adds 15 percent to what the role brings in (for a fortress, to what its soldiers are worth). A port comes in phase 5.
+- **The land.** A role suits some places better: a farming town does a tenth better for each point of the place's best hunting or foraging bonus, a timber town for each point of wood bonus, and a mining town for each point of quarry bonus. A timber or mining town where there is no wood or stone to work brings in half, and a farming town on land with no game or wild food four fifths. The founding form and the Settlement screen say which role the land suits best.
+- **Demands** (light, normal, or heavy) set how much of what the settlement brings in is sent home: 40, 70, or all of it. What it keeps helps it grow, with its own children and newcomers drawn to it: each spring it grows by 12, 9, or 5 percent, half that while its loyalty is below 40, and only as far as its homes allow. Light demands raise loyalty by 10; heavy demands lower it by 10. Settlements from older saves keep their policy: grow became light demands, and supply became heavy.
+- **Priorities,** as in the capital: Defense (low, normal, or high: 5, 10, or 20 percent of its workers stand guard) and Learning (low, normal, or high: none, 4, or 8 percent study, half again as many with Schools). Scholars everywhere add to the one shared study queue: about 3.5 points a season each, more with Writing.
+- **Groups.** About 72 percent of a settlement's people are workers; the rest are children and elders. Of the workers, the governor puts the guards and scholars the priorities ask for on watch and at study, one or two healers once it has a dozen people, a tenth on building while there is something to build, and everyone else at the role. The Settlement screen lists the groups.
+- **What it sends home** each season: the workers at the role, times the role's rate, the land, the governor's skill, its loyalty, and its works, times the share its demands ask for. Without a road, a settlement two or more places from the capital loses 15 percent on the way. Nothing comes home while the capital is under siege.
+- **Buildings.** The governor builds, in order: homes when the settlement is nearly full (each shelters 8, and takes 14 work), a palisade once it has 15 people (20 work; a fortress builds it first), its works (16, 32, then 48 work, once it has 10, 20, then 30 people), a hall once it knows Oral law and has 25 people (24 work; loyalty 5 higher), and a stone wall once it knows Masonry and has 30 people (30 work). Each builder does 4 work a season (5 with Mathematics).
+- **Skirmishes.** Skarn skirmishers fall on each settlement half as often as they come at the capital's workers (seven tenths of that with a road). It drives them off 10 percent of the time, plus 1 percent for each of its people and 10 for each guard (half again behind a palisade, twice behind a stone wall), up to 90 percent. Otherwise a settler is killed (one or two in a settlement of 20 or more), and its loyalty falls by 5 and stays 5 lower for a year: they feel unprotected.
+- **Fortresses.** When raiders march on the capital, each fortress sends half its soldiers (more with barracks), who turn back that many raiders on the road and harry besiegers, as allies do. Each fortress also makes Skarn skirmishes on the capital's workers and on the settlements 15 percent less likely (down to 55 percent).
+
+**Governors.** The governor is a named person, chosen when the settlement is founded.
+
+- **Skill.** A governor makes the settlement bring in 85 percent, plus 6 percent for each point of the skill that matches its role (foraging for a farming town, building for timber, mining, and market towns, hunting for a fortress), plus 3 percent for each point of learning: from 85 percent for a novice to 130 percent for a master of both. Governors practice their skills every season, so they grow better at it.
+- **Changing governors.** On the Settlement screen the player can make any notable person from the capital, or one of the settlement's own notable people, its governor. The old governor comes home to the capital. A settlement whose loyalty is 50 or more misses the old governor (loyalty falls by 5); one below 40 welcomes the change (loyalty rises by 10).
+- **Age and succession.** Governors and notable people in the settlements age and die like everyone else. When a governor dies, the settlement's most skilled notable person takes over, or its people choose one of their own; the report says who.
+- **Masters rise.** Each year, a settlement of 30 or more has a one in ten chance that someone there masters a skill and becomes a notable person, and a possible governor.
+
+**Loyalty.** Each settlement has a loyalty from 0 to 100, starting at 70. Each season it moves a quarter of the way toward a target, which the Settlement screen explains line by line. With nothing to move it, a settlement settles at 55, just loyal, so a settlement left to itself needs some attention: a road, a hall, aid, or a wise governor.
+
+| Reason | Change |
+| --- | --- |
+| Base | 55 |
+| Demands | Light 10 more; heavy 10 less |
+| The governor's learning | 2 for each point above 2 (from 4 less to 6 more) |
+| A hall | 5 more |
+| A road to the capital | 5 more |
+| Far from the capital (3 or more places away) | 3 less |
+| Neglect: no aid for more than two years | 3 less, and 3 more for each year after, up to 15 |
+| A deadly Skarn skirmish within the last year | 5 less |
+
+| Loyalty | Word | What it sends home |
+| --- | --- | --- |
+| 75 or more | Devoted | 10 percent more |
+| 55 to 74 | Loyal | As it should |
+| 40 to 54 | Restless | 15 percent less |
+| 20 to 39 | Discontent | 40 percent less, and it grows half as fast |
+| Below 20 | Defiant | It defies you (a choice) |
+
+- **Aid.** Once a year for each settlement, the player can send it a season of food (2 for each person) or goods (1 for every 2 people). Its loyalty rises by 10, and the neglect starts over.
+- **Defiance.** When a settlement's loyalty falls below 20, its governor defies the capital (a choice): send gifts to win them back (as much as aid; loyalty rises by 30), send a new governor (the best notable person in the capital who could go; loyalty rises by 20), or let them keep everything for a year (demands become light, it sends nothing for four seasons, and its loyalty climbs 3 more each season). Force comes with armies in phase 4.
+
+**The capital.** In the Nation era the village is the capital, and everything from the Settlement era goes on there. When it first passes 100 people, it counts its people by group for good: the Village screen lists groups and notable people only, and the season report counts the ordinary people who are born, come of age, are hurt, die, or arrive, rather than naming each of them. Notable people are still named. (The engine still follows everyone one by one; a capital of a few hundred is cheap to simulate.)
+
+**Screens.** A Nation screen lists the capital and every settlement on one line each (role, people, loyalty, governor, what it sends home), with a button to open each, and the founding of new settlements. A Settlement screen drills into one: its role, demands and priorities, governor, loyalty and the reasons for it, aid, groups, buildings, and notable people.
+
+**The Learning branch and Roads.** Five discoveries, possible only in the Nation era:
+
+| Discovery | Cost | Needs | Effect |
+| --- | --- | --- | --- |
+| Writing | 70 | Oral law | Records and letters: every scholar studies a quarter faster |
+| Mathematics | 90 | Writing | Builders do 1 more work each, in the capital and the settlements |
+| Astronomy | 110 | Mathematics | A calendar of the stars: every field plot yields 1 more food, and farming towns send a tenth more (later, stars to steer ships by) |
+| Schools | 80 | Writing; a meeting hall | The young learn twice as fast instead of half again; the learning priority sets half again as many scholars, in the capital and the settlements |
+| Roads (Building and stone) | 80 | Stonecutting | Unlocks roads |
+
+A **road** (20 wood, 30 stone, 20 work) is built in the capital's build queue and joins the next settlement without one to the capital, in the order they were founded. A settlement with a road sends home everything it ships (no 15 percent lost on the way, for one two or more places away), is 5 more loyal, and is skirmished seven tenths as often. Later, armies march faster on roads.
+
+### Phase 2: the wider world (planned)
+
+A hand-crafted regional map of about eight regions around the forest valley, drilled into region by region (the region list, then a region's places, then a settlement). The valley is the home region.
+
+- **Regions:** the coast (fishing, salt flats, sea traders, and the only place a harbor can stand); the iron hills (ore, high passes closed in winter, isolated hill clans); the great plains (wild horses, open battlefields, riders who live by raiding); the lake country (fish, reeds, river routes, easy to reach by boat); the northern woods (furs, timber, the hardest winters); the desert edge (salt, trade routes to distant peoples); the old ruins (lore and lost knowledge); and the homelands of the great nations at the edges. The coast, iron hills, desert edge, and northern woods echo the four starting regions still to be built.
+- **Ways to explore:** scouts, as today; expeditions (a party of 3 to 8 with a leader and food, sent to a neighboring region for 1 to 4 seasons, which can meet a choice event on the way and be lost to winter, hunger, or ambush); riders, once there are horses (twice as far); river boats (down to the lake country and the coast); mapmaking (mapped routes are safer and quicker); caravans and envoys (a road to another people reveals the places along it); and guides, hired for goods or coin, to cross mountains or desert safely.
+- **Finds:** places to settle, sources of the new resources, ruins that give study points or reveal a discovery, natural wonders that lift spirits or grow a tradition, dangers such as beasts and bandits, small peoples to trade with or take in, and the great nations.
+- **Iron and salt.** Iron comes from mines at ore places: iron tools (builders, quarriers, and woodcutters work more) and iron arms. Salt comes from salt flats on the coast and the desert edge, and from salt springs: food keeps far longer, including what expeditions and armies carry, and it is a prized trade good.
+
+### Phase 3: the first great nations (planned)
+
+- **Seven great nations,** with rumors at the start of the era; each is met when an expedition, caravan, or envoy reaches its land. Each has a name, a homeland region, values and a temperament (warlike, mercantile, scholarly, or expansionist), what it wants from the player, and one signature of its own: a unit, a building, or a tradition. Phase 3 designs two: a river and coast people of traders (rich, mercantile, wary of war, eager for goods, so goods are worth something again) and a riding people of the plains (expansionist and proud, with cavalry, growing toward the player's land).
+- **Coin** comes from gold and silver mines, markets, taxes, and selling goods to other nations. It pays soldiers, hires help, buys from other nations, and keeps a large nation running, which gives goods a lasting use.
+- **Taxes** bring coin from every settlement, at a cost in loyalty. **Trade routes** are standing caravans that bring in coin every season. **Embassies** and treaties with the great nations come with Diplomacy.
+- **The valley peoples join the nation.** After a long alliance, the Velari or Tellani can become a federated part of it; a beaten Skarn can become a vassal paying tribute.
+
+### Phase 4: armies (planned)
+
+- **Raising an army:** each settlement provides companies, levies or paid soldiers depending on the choice in the tree. An army is a few companies, each of one kind, under one commander.
+- **Six kinds of soldiers:** spearmen brace against charges and hold a line; shield infantry form shield walls against arrows; archers; cavalry are fast, strong on the flanks, and run down a breaking enemy; skirmishers are light, quick, and good scouts; siege engines break walls.
+- **Commanders** are named people whose skill grows with every battle, each with one trait such as bold, careful, or beloved. A commander sets the army's stance and can fight a battle for the player. The war chief still commands at home.
+- **Campaigns** are orders on the regional map: march to a region, raid it, besiege a settlement, relieve an ally, or hold a pass. Winter stops most marching, mud slows spring, and roads speed everything.
+- **Supply:** an army carries a set number of seasons of food. Salt and Logistics carry it further, foraging in enemy land stretches it, and an army cut off from home starves.
+- **Sieges the player lays:** surround an enemy settlement, build siege engines, then storm it or starve it out.
+- **A bigger battlefield:** terrain by region (hills, fords, forests, open plains), cavalry on the flanks, a choice of formation and stance before battle, and morale that breaks a line long before it is destroyed.
+- **War and peace:** declare war with a reason, and make peace on terms (tribute, land, or a vassal). A long war wears down loyalty at home.
+- **By ear:** one army on screen at a time; standing orders for armies (hold the region, defend, or fall back if outnumbered); and the commander can always fight the battle, with honest odds first.
+- **Horses** come from wild herds on the plains, then are bred in pastures: riders who scout far, cavalry, ploughs, and carts that speed shipments and supply.
+
+### Phase 5: toward the sea (planned)
+
+The rest of the tree, the five remaining great nations, harbors and ships, Navigation, and the voyage that ends the era (see below).
+
+### The Nation era's knowledge tree
+
+36 discoveries in seven branches, plus three either-or choices, taking the tree from 19 discoveries to about 55. Writing is the gate to most of them. Each costs about 60 to 160 study points; scholars in every settlement add to one shared study queue, and ruins can give study points or reveal a discovery. Each phase adds the ones its systems need; phase 1's are marked.
+
+- **Learning (new branch):** Writing (Oral law; phase 1), Mathematics (Writing; phase 1), Astronomy (Mathematics; phase 1), Schools (Writing, a meeting hall; phase 1).
+- **Food and farming:** Crop rotation (Irrigation: plots yield 2 more, and drought hurts less), The plough (Iron working, horses: each farmer plants and tends half again as many plots), Mills (Masonry: every harvest a fifth more), Salting (salt in hand: stored food spoils far less; expeditions and armies carry food twice as long), Fishing boats (River boats: fishing, a food task that works in winter too), Horse breeding (Animal husbandry, the plains found: pastures raise horses).
+- **Building and stone:** Mining (Stonecutting, ore found: mines for iron, and gold or silver where they lie), Roads (Stonecutting; phase 1), Bridges (Roads, Mathematics: crossings that shorten routes and open new ones), Wells and cisterns (Masonry: settlements grow larger and hold out longer under siege), Fortresses (Masonry, Shields and drill: a stone keep; a garrison holds far longer), Harbors (Shipbuilding, the coast found: a port settlement).
+- **Crafts and trade:** Iron working (Mining: iron tools and iron arms), Coinage (Mining, Markets: coin, a treasury, and wages), Weights and measures (Writing, Markets: every trade a quarter better), Fine crafts (Kilns: glass, dyed cloth, and jewelry, which the great nations prize), Trade routes (Roads, Coinage: standing caravans that bring in coin every season), and a choice: Guild charters (crafters more productive at fixed prices) or Free markets (more trade and better prices, which rise and fall).
+- **War and defense:** Iron weapons (Iron working: every soldier strikes harder and is harder to bring down), Cavalry (Horse breeding), Siege engines (Mathematics), Logistics (Roads, Salting: armies carry supply longer), Signal beacons (Writing: a raid on any settlement is seen coming), and a choice: Levies (many fighters from every settlement when war comes; weaker, and missed at their work) or a Standing army (fewer, stronger, always ready, paid in coin).
+- **Society and law:** Law codes (Writing, Oral law: laws for the whole nation, including inheritance, worship, and taxes), Taxes (Coinage, Law codes: coin from every settlement, at a cost in loyalty), Temples (a shrine: spirits and loyalty rise; festivals bring settlements together), Medicine (Herbal medicine, Writing: wounds heal faster, fewer die of fever or in battle), Diplomacy (Writing: embassies, treaties, and marriages between ruling families), and a choice: a Crown (swift decisions and loyal armies, but loyalty rests on the ruler) or an Assembly (loyalty stays higher, but change comes slower). A Chieftain village leans toward the crown and a Council of elders toward the assembly, but either may choose.
+- **Exploration (new branch):** River boats (Weaving), Horse riding (Horse breeding: riders scout twice as far), Mapmaking (Writing), Shipbuilding (River boats, Iron working: ships that sail along the coast), Navigation (Shipbuilding, Astronomy: crossing open water by the stars, the key to the era's end).
+
+### The end of the era
+
+As with becoming a village, the step is the player's to take once the nation is ready, and it cannot be undone. The Report screen offers it, or says what is missing:
+
+- a capital of at least 150 people
+- at least four other settlements
+- Navigation known, and a harbor built on the coast
+- contact made with at least three great nations
+
+Then the player can send the first ship across the open sea, which begins the Age of Discovery. These numbers are starting points for the simulator to test; the aim is an era of about 20 to 25 years for a steady player, closing around year 40.
 
 ## Population and resources
 
@@ -502,17 +664,19 @@ The game is built in layers, and each phase should be playable and fun on its ow
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, and audio cues (see BACKLOG.md).
 2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still open: late-game challenge, the other four starting regions, and unit types in battle (see BACKLOG.md).
-3. **Phase 3: Nation era.** Multiple cities, governors, diplomacy, traditions and reputation at nation scale, defenses and sieges, all 7 nations.
-4. **Phase 4: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
-5. **Phase 5: Space age.** Satellites, mining, colonization, space combat.
-6. **Later:** multiplayer modes, challenge mode with 16 to 20 nations, endgame.
+3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world, the first great nations, armies, and toward the sea.
+4. **Phase 4: Age of Discovery.** Voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies.
+5. **Phase 5: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
+6. **Phase 6: Space age.** Satellites, mining, colonization, space combat.
+7. **Later:** multiplayer modes, challenge mode with 16 to 20 nations, endgame.
 
 ## Open questions
 
 - [x] Game title: Embers to Orbit
 - [ ] How the game ends: victory conditions, or endless play
-- [ ] Names, cultures, and homelands of the 7 core nations
-- [ ] Exact resource list per era
+- [ ] Names, cultures, and homelands of the 7 core nations. Partly answered: the first two are a river and coast people of traders and a riding people of the plains (see The Nation era); their names and the other five are still to come
+- [ ] Exact resource list per era. Answered for the Nation era: iron, horses, coin, and salt
+- [x] What comes between the Nation and Modern eras: the Age of Discovery, which the Nation era's first ocean voyage begins
 - [x] Shape of the research tree: five branches, with occasional choices that close off an alternative (built through the Settlement era)
 - [ ] Audio: which sound cues, if any, in Phase 1
 - [x] Phase 1 starting region: forest valley

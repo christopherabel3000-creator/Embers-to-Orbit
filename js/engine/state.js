@@ -2,7 +2,7 @@
 // about the game state.
 
 import {
-  FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, SHELTER_PER_HUT, BUILDING_ORDER, ERAS,
+  FOUNDERS, SEASONS, STARTING_SHELTER, SHELTER_PER_LEAN_TO, SHELTER_PER_HUT, BUILDING_ORDER, ERAS, BUILDINGS,
   PLACES, PLACE_ORDER, STARTING_PLACES, V1_DISCOVERY_TO_PLACE, LEARNING_BY_NAME,
   KNOWLEDGE, TASKS, TASK_ORDER, PLOTS_PER_FIELD, AGE_BY_NAME, AGES, CHILD_TASKS,
   NEIGHBORS, NEIGHBOR_ORDER, BASE_STORAGE, STORAGE_PER_STOREHOUSE, STORAGE_PER_GRANARY, LEAN_TIMES,
@@ -11,7 +11,7 @@ import {
 import { emptyDeeds } from './legacy.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 28;
+export const SAVE_VERSION = 29;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -116,6 +116,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     settlersMet: 0,
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
     settlements: [], // Other settlements the village has founded.
+    capitalCounted: false, // Past 100 people, the capital counts its ordinary people instead of naming them.
     laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
@@ -327,7 +328,39 @@ export function migrate(data) {
     data.difficulty = 'easy'; // Games begun before difficulty play on as they did.
     data.version = 28;
   }
+  if (data.version === 28) {
+    // Settlements gain roles, governors with skills, and loyalty.
+    for (const t of data.settlements || []) upgradeSettlement(data, t);
+    data.capitalCounted = false;
+    data.buildings.road = 0;
+    data.version = 29;
+  }
   return data.version === SAVE_VERSION ? data : null;
+}
+
+// A settlement from before roles: its policy becomes demands, its land's
+// best work its role, and only its governor and masters keep their names.
+function upgradeSettlement(data, t) {
+  const b = PLACES[t.place].bonus || {};
+  const best = [['mining', b.quarry || 0], ['timber', b.wood || 0], ['farming', Math.max(b.hunt || 0, b.forage || 0)]]
+    .sort((x, y) => y[1] - x[1])[0];
+  t.role = best[1] > 0 ? best[0] : 'farming';
+  t.demands = { grow: 'light', supply: 'heavy' }[t.policy] || 'normal';
+  delete t.policy;
+  t.priorities = { defense: 'normal', learning: 'normal' };
+  t.loyalty = 70;
+  const people = t.people || [];
+  const gov = people.find((p) => t.governor && p.id === t.governor.id)
+    || { ...makePerson({ name: (t.governor && t.governor.name) || 'Governor', note: '', age: 40, skills: { hunting: 1, foraging: 2, building: 2, healing: 0, scouting: 1, learning: 2 } }, (t.governor && t.governor.id) || data.nextPersonId++) };
+  t.governor = { ...gov, task: 'govern' };
+  t.governorSince = t.founded;
+  t.notables = people.filter((p) => p.id !== gov.id && Object.values(p.skills).some((v) => v >= 5)).map((p) => ({ ...p, task: 'settler' }));
+  delete t.people;
+  t.buildings = { homes: Math.ceil((t.population + 4) / 8), palisade: 0, stoneWall: 0, hall: 0, works: {} };
+  t.project = null;
+  t.lastAid = data.turn;
+  t.harriedAt = null;
+  t.keepUntil = null;
 }
 
 export function seasonIndex(state) {
@@ -419,11 +452,21 @@ export function knowledgeBlocker(state, id) {
   if (hasKnowledge(state, id)) return 'Already known.';
   const closed = knowledgeClosed(state, id);
   if (closed) return closed;
-  if (k.era && !eraAtLeast(state, k.era)) return 'Becomes possible once your camp is a village.';
+  if (k.era && !eraAtLeast(state, k.era)) {
+    return k.era === 'nation'
+      ? 'Becomes possible in the Nation era, once your village founds a second settlement.'
+      : 'Becomes possible once your camp is a village.';
+  }
   const missing = (k.after || []).filter((a) => !hasKnowledge(state, a));
   if (missing.length) return `Needs ${missing.map((a) => KNOWLEDGE[a].name).join(' and ')} first.`;
   if (k.place && !isKnown(state, k.place)) return `Your people must find ${PLACES[k.place].name} first.`;
+  if (k.needsBuilding && !(state.buildings[k.needsBuilding] > 0)) return `Needs a ${BUILDINGS[k.needsBuilding].name.toLowerCase()} first.`;
   return null;
+}
+
+// Whether the capital now counts its ordinary people instead of naming them.
+export function capitalCounted(state) {
+  return Boolean(state.capitalCounted);
 }
 
 export function taskAvailable(state, task) {

@@ -111,13 +111,21 @@ export function groups(state) {
     .sort((a, b) => b.count - a.count);
 }
 
-// Named people the village keeps track of: the council, and masters of a skill.
-// The council, masters of a skill, and the village's heroes.
-export function notablePeople(state) {
-  const council = new Set(Object.values(state.advisors));
-  const heroes = new Set((state.heroes || []).map((h) => h.id));
-  return living(state).filter((p) => council.has(p.id) || heroes.has(p.id) || SKILLS.some((k) => p.skills[k] >= 5));
+// Named people the village keeps track of: the council, masters of a
+// skill, and the village's heroes.
+export function isNotable(state, p) {
+  return Object.values(state.advisors).includes(p.id)
+    || (state.heroes || []).some((h) => h.id === p.id)
+    || SKILLS.some((k) => p.skills[k] >= 5);
 }
+
+export function notablePeople(state) {
+  return living(state).filter((p) => isNotable(state, p));
+}
+
+// In the Nation era, a capital past this many people counts its ordinary
+// people by group instead of naming each one.
+export const CAPITAL_COUNTED_FROM = 100;
 
 // ----- Settlers -----
 
@@ -135,8 +143,10 @@ export function settlerChance(state) {
   return p;
 }
 
-function settlerName(state) {
+// A name no one in the nation has yet, for a newcomer.
+export function newName(state) {
   const taken = new Set(state.people.map((p) => p.name));
+  for (const t of state.settlements || []) for (const p of [t.governor, ...(t.notables || [])]) if (p) taken.add(p.name);
   const open = SETTLER_NAMES.filter((n) => !taken.has(n));
   if (open.length) return pick(state, open);
   return `${pick(state, SETTLER_NAMES)} the ${['Younger', 'Elder', 'Second'][randomInt(state, 0, 2)]}`;
@@ -148,7 +158,7 @@ export function newcomer(state, note = null) {
   const skills = {};
   for (const k of SKILLS) skills[k] = k === main ? randomInt(state, 2, 4) : randomInt(state, 0, 2);
   const person = makePerson({
-    name: settlerName(state), note: note || pick(state, SETTLER_NOTES), age: randomInt(state, 16, 34), skills,
+    name: newName(state), note: note || pick(state, SETTLER_NOTES), age: randomInt(state, 16, 34), skills,
   }, state.nextPersonId++, 'rest');
   person.morale = 60;
   person.isNew = true;
@@ -171,6 +181,10 @@ export function maybeSettlers(state) {
   const arrived = [];
   for (let i = 0; i < count; i++) arrived.push(makeSettler(state));
   const names = arrived.map((p) => p.name).join(' and ');
+  if (state.capitalCounted) {
+    events.push(`Word of ${state.campName} has spread. ${count === 1 ? 'A settler has' : `${count} settlers have`} come to settle.`);
+    return events;
+  }
   events.push(`Word of the village has spread. ${names} ${count === 1 ? 'has' : 'have'} come to settle: ${arrived.map((p) => p.note.charAt(0).toLowerCase() + p.note.slice(1).replace(/\.$/, '')).join('; ')}.`);
   return events;
 }

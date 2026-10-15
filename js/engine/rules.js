@@ -116,14 +116,16 @@ export function expectedWork(person, state = null) {
   const tools = state && hasKnowledge(state, 'stoneTools') ? 1 : 0;
   const masters = state && hasTradition(state, 'builders') ? 1 : 0;
   const guild = lawGuilds(state) ? 1 : 0;
-  return (2 + person.skills.building + tools + masters + guild) * workFactor(person) * lawWork(state);
+  const measure = state && hasKnowledge(state, 'mathematics') ? 1 : 0;
+  return (2 + person.skills.building + tools + masters + guild + measure) * workFactor(person) * lawWork(state);
 }
 
 // Study points a person adds toward the current discovery each season.
 export function studyPoints(person, state = null) {
   const love = state && hasTradition(state, 'learning') ? 1 : 0;
   const elders = state && hasKnowledge(state, 'elders') ? 1 : 0;
-  return (2 + person.skills.learning + love + elders) * workFactor(person) * lawWork(state);
+  const writing = state && hasKnowledge(state, 'writing') ? 1.25 : 1;
+  return (2 + person.skills.learning + love + elders) * writing * workFactor(person) * lawWork(state);
 }
 
 // ----- Farming -----
@@ -150,7 +152,8 @@ export function farmersNeeded(state) {
 
 export function foodPerPlot(tendedFraction, state = null) {
   const base = 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0)
-    + (state && hasKnowledge(state, 'irrigation') ? 2 : 0);
+    + (state && hasKnowledge(state, 'irrigation') ? 2 : 0)
+    + (state && hasKnowledge(state, 'astronomy') ? 1 : 0);
   if (!state || !hasCondition(state, 'drought')) return base;
   return base * (hasKnowledge(state, 'irrigation') ? 0.8 : 0.6); // Ditches soften a drought.
 }

@@ -5,9 +5,9 @@ What the simulator says about the game's balance. [DESIGN.md](DESIGN.md) says ho
 ## Running the checks
 
 - `npm run simulate` plays 200 five-year campaigns with each of three strategies. `node tools/simulate.mjs [games] [years] [strategies]` changes the count, the length, and the strategies (comma-separated).
-- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds a second settlement when ready, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
+- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds settlements when ready (up to 4: the first with heavy demands, the rest normal, each taking the role its land suits and the most learned governor it can), sends aid to any settlement whose loyalty falls below 55, builds roads once it knows how, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
 - `DIFFICULTY=easy` (or normal, hard, insane) sets the difficulty; runs use Normal, the default for a new game, unless told otherwise. Notes before October 14, 2026 were measured on what is now Easy.
-- Settings for the village strategy, as environment variables: `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
+- Settings for the village strategy, as environment variables: `MAXTOWNS=1` caps how many settlements it founds (4 by default); `NOAID=1` never sends aid to its settlements; `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
 - `npm run battles` fights hundreds of battles to check combat odds.
 - Each run counts fights won and not won (raids, sallies, ambushes, and attacks on Skarn hold) and ambushes scattered from. Before October 14, 2026, the count missed sallies and raids the simulated player answered itself, so older notes undercount lost fights.
 
@@ -62,6 +62,22 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 ## Notes by system
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
+
+### The Nation era, phase 1: the nation at home (October 14, 2026)
+
+Measured on Normal with the village strategy. The Settlement era is unchanged: with one settlement (`MAXTOWNS=1`), twenty-year villages end with 56 people in the capital and 11 in the settlement (58 in the village before, which kept no record of the settlement), 2 of 200 wiped out, 0.7 seasons of hunger, 6 percent of fights not won, and 176 reaching the Nation era in about year 16.
+
+Thirty-five-year campaigns, founding up to four settlements:
+
+| | Capital | Whole nation | Settlements | People in each | Loyalty | Aid sent | Defiance |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Sends aid below 55 | 106 | 172 | 3.1 | 21 | 59 | 21 a campaign | none |
+| Never sends aid | 104 | 166 | 3.1 | 20 | 46 | none | 6 in 200 campaigns |
+
+- **Growth.** The valley has room for only three or four settlements, on the places a village can claim; the regions of phase 2 will add more. Settlements founded with 10 settlers reach about 20 in a decade. The capital passes 100 people, and starts counting its people by group, in about 112 of 194 Nation-era campaigns by year 35.
+- **Skirmishes.** At first settlements lost about as many settlers to Skarn skirmishers as they grew, and stayed near 15 people. Skirmishers now come at each settlement half as often as at the capital's workers, and a settlement's size helps drive them off; together with faster growth (9 percent a year on normal demands, not 5.5), settlements grow.
+- **Loyalty.** A settlement on normal demands settles at 55, just loyal; neglect, heavy demands, and skirmishes pull it down. A nation that never sends aid keeps its settlements restless (46), and about one campaign in thirty sees a settlement defy it. Taxes (phase 3) and long wars (phase 4) will add to the pressure.
+- **Still open.** Goods pile up even faster over 35 years (about 1,500), since the Nation era has nothing yet that costs goods in bulk; coin and the great nations (phase 3) are the answer. The capital is about 105 at year 35, short of the 150 the end of the era is meant to need; phase 5 will tune that.
 
 ### Battles that can be lost (October 14, 2026)
 

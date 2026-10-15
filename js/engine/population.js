@@ -17,7 +17,10 @@ export function birthOutlook(state) {
   const possibleParents = parents(state).length;
   const reasons = [];
   if (possibleParents < 2) return { chance: 0, reasons: ['too few young adults'] };
-  let p = Math.min(0.5, 0.04 * (possibleParents / 2));
+  // Up to one birth a season, until the Nation era, when a large capital
+  // can have several.
+  let p = 0.04 * (possibleParents / 2);
+  if (state.era !== 'nation') p = Math.min(0.5, p);
   if (state.resources.food < foodNeeded(people) * 2) {
     p *= 0.3;
     reasons.push('food is short');

@@ -2,15 +2,21 @@
 
 import { KNOWLEDGE, KNOWLEDGE_ORDER, BRANCHES } from '../../engine/data.js';
 import { studyPoints } from '../../engine/rules.js';
+import { townStudy } from '../../engine/realm.js';
 import { living, hasKnowledge, knowledgeBlocker, inVillage, knowledgeClosed } from '../../engine/state.js';
 import { state, esc, plural } from '../core.js';
 
 export function knowledgeScreen() {
   const k = state.knowledge;
   const studiers = living(state).filter((p) => p.task === 'study');
-  const rate = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p, state), 0));
+  const home = Math.round(studiers.reduce((sum, p) => sum + studyPoints(p, state), 0));
+  const towns = Math.round(townStudy(state));
+  const rate = home + towns;
+  const townWords = (state.settlements || []).length
+    ? ` Scholars in your other settlements add about ${towns} more, for ${rate} in all; each settlement's learning priority is on its screen.`
+    : '';
   let html = `<h1>Knowledge</h1>
-    <p>${inVillage(state) ? 'Scholars make discoveries; the learning priority on the Village screen sets how many study.' : 'People set to Study on the People screen make discoveries.'} ${plural(studiers.length, 'person is', 'people are')} studying, for about ${rate} points a season. Points left over from one discovery go straight into the next one in the queue.</p>
+    <p>${inVillage(state) ? 'Scholars make discoveries; the learning priority on the Village screen sets how many study.' : 'People set to Study on the People screen make discoveries.'} ${plural(studiers.length, 'person is', 'people are')} studying in ${esc(state.campName)}, for about ${home} points a season.${townWords} Points left over from one discovery go straight into the next one in the queue.</p>
     <h2>Current study</h2>`;
   if (k.current) {
     const item = KNOWLEDGE[k.current];

@@ -5,18 +5,20 @@
 
 import { formationPlan } from '../engine/battle.js';
 import { newGame } from '../engine/game.js';
-import { POLICIES } from '../engine/settlements.js';
 import { dateLabel, personById, inVillage } from '../engine/state.js';
 import { storage } from '../storage.js';
-import { $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens } from './core.js';
+import {
+  $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens, setTown,
+} from './core.js';
 import { advisorsScreen } from './screens/advisors.js';
 import { raidScreen, positionSummary, readPositions } from './screens/battle.js';
 import { buildScreen } from './screens/build.js';
 import { chronicleScreen } from './screens/chronicle.js';
-import { foundVillageScreen, foundSettlementScreen } from './screens/founding.js';
+import { foundVillageScreen, foundSettlementScreen, setFoundingFrom } from './screens/founding.js';
 import { knowledgeScreen } from './screens/knowledge.js';
 import { mapScreen } from './screens/map.js';
 import { menuScreen } from './screens/menu.js';
+import { nationScreen, settlementScreen } from './screens/nation.js';
 import { neighborsScreen } from './screens/neighbors.js';
 import { taskCounts, peopleScreen } from './screens/people.js';
 import { reportScreen } from './screens/report.js';
@@ -31,6 +33,8 @@ registerScreens({
   foundSettlement: foundSettlementScreen,
   report: reportScreen,
   people: () => (inVillage(state) ? villageScreen() : peopleScreen()),
+  nation: nationScreen,
+  settlement: settlementScreen,
   map: mapScreen,
   build: buildScreen,
   knowledge: knowledgeScreen,
@@ -160,6 +164,28 @@ function handleAction(action, btn) {
       if (msg) {
         show('map', { focus: false });
         refocus(`#place-${btn.dataset.place}`, '#landsHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'openTown':
+      setTown(Number(btn.dataset.town));
+      show('settlement');
+      break;
+    case 'sendAid': {
+      const msg = act({ type: 'sendAid', settlementId: Number(btn.dataset.town), kind: btn.dataset.kind });
+      if (msg) {
+        show('settlement', { focus: false });
+        refocus('#loyaltyHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'appointGovernor': {
+      const msg = act({ type: 'appointGovernor', settlementId: Number(btn.dataset.town), personId: Number(document.getElementById('newGovernor').value) });
+      if (msg) {
+        show('settlement', { focus: false });
+        refocus('#governorHeading');
         announce(msg);
       }
       break;
@@ -299,14 +325,24 @@ $main.addEventListener('change', (e) => {
     if (msg) announce(msg);
     return;
   }
-  const policySel = e.target.closest('select[data-settlement-policy]');
-  if (policySel) {
-    const msg = act({ type: 'setSettlementPolicy', settlementId: Number(policySel.dataset.settlementPolicy), policy: policySel.value });
-    if (msg) {
-      const about = document.getElementById(`policy-${policySel.dataset.settlementPolicy}-about`);
-      if (about) about.textContent = ` ${POLICIES[policySel.value].about}`;
-      announce(msg);
-    }
+  // A settlement's role, demands, and priorities: redraw, since what it
+  // sends home and its groups change with them.
+  const townSel = e.target.closest('select[data-town-role], select[data-town-demands], select[data-town-priority]');
+  if (townSel) {
+    const d = townSel.dataset;
+    const action = d.townRole ? { type: 'setTownRole', settlementId: Number(d.townRole), role: townSel.value }
+      : d.townDemands ? { type: 'setTownDemands', settlementId: Number(d.townDemands), demands: townSel.value }
+        : { type: 'setTownPriority', settlementId: Number(d.town), area: d.townPriority, level: townSel.value };
+    const msg = act(action);
+    show('settlement', { focus: false });
+    refocus(`#${townSel.id}`);
+    if (msg) announce(msg);
+    return;
+  }
+  if (e.target.id === 'foundingFrom') {
+    setFoundingFrom(e.target.value);
+    show('foundSettlement', { focus: false });
+    refocus('#foundingFrom');
     return;
   }
   const lawSel = e.target.closest('select[data-law]');
@@ -380,17 +416,22 @@ $main.addEventListener('submit', (e) => {
   }
   if (e.target.id === 'settlementForm') {
     const place = e.target.querySelector('input[name="settlementPlace"]:checked');
-    const policy = e.target.querySelector('input[name="settlementPolicy"]:checked');
+    const demands = e.target.querySelector('input[name="settlementDemands"]:checked');
+    const role = e.target.querySelector('input[name="settlementRole"]:checked');
+    const from = document.getElementById('foundingFrom');
     const msg = act({
       type: 'foundSettlement',
       placeId: place ? place.value : null,
       name: document.getElementById('settlementName').value,
       settlers: Number(document.getElementById('settlementCount').value),
       governorId: Number(document.getElementById('settlementGovernor').value),
-      policy: policy ? policy.value : 'grow',
+      demands: demands ? demands.value : 'normal',
+      role: role && role.value ? role.value : null,
+      from: from ? from.value : 'capital',
     });
     if (msg) {
-      show('people');
+      setFoundingFrom('capital');
+      show('nation');
       announce(msg);
     }
     return;

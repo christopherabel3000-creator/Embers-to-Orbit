@@ -8,26 +8,21 @@ import {
   hireBlocker, swordsBlocker, swordsActive, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT,
 } from '../../engine/goods.js';
 import { lawsAvailable, seasonsUntilChange } from '../../engine/laws.js';
-import { expectedShipment, POLICIES } from '../../engine/settlements.js';
 import {
-  living, shelterCapacity, foodNeeded, placeName, hasKnowledge, lifeStage, taskAvailable, foodStoreTarget, foodStocked,
+  living, shelterCapacity, foodNeeded, hasKnowledge, lifeStage, taskAvailable, foodStoreTarget, foodStocked,
 } from '../../engine/state.js';
 import { groups, notablePeople, GROUP_NAMES } from '../../engine/village.js';
-import { state, esc, capitalize, plural } from '../core.js';
+import {
+  state, esc, capitalize, plural, listWords,
+} from '../core.js';
 import { advisorTitleFor, workSitesSentence, farmSentence, personStatus } from '../screens/people.js';
 
 function settlementLines() {
   const list = state.settlements || [];
   if (!list.length) return '';
-  return `<h2 id="settlementsHeading">Other settlements (${list.length})</h2>${list.map((t) => {
-    const ship = expectedShipment(state, t);
-    const options = Object.entries(POLICIES).map(([key, pol]) => `<option value="${key}"${t.policy === key ? ' selected' : ''}>${esc(pol.name)}</option>`).join('');
-    return `<h3>${esc(t.name)}</h3>
-      <p>At ${esc(placeName(state, t.place))}: ${plural(t.population, 'person', 'people')}, governed by ${esc(t.governor.name)}. It sends home about ${ship.amount} ${ship.kind} a season.</p>
-      <p><label for="policy-${t.id}">Policy for ${esc(t.name)}</label>
-        <select id="policy-${t.id}" data-settlement-policy="${t.id}" aria-describedby="policy-${t.id}-about">${options}</select>
-        <span id="policy-${t.id}-about" class="muted"> ${esc(POLICIES[t.policy].about)}</span></p>`;
-  }).join('')}`;
+  return `<h2 id="settlementsHeading">Other settlements (${list.length})</h2>
+    <p>${esc(listWords(list.map((t) => t.name)))} ${list.length === 1 ? 'runs itself' : 'run themselves'} under ${list.length === 1 ? 'its governor' : 'their governors'}. Set their roles and priorities on the Nation screen.</p>
+    <div class="actions"><button type="button" data-nav="nation">Nation</button></div>`;
 }
 
 function priorityControl(area) {
@@ -138,11 +133,11 @@ export function villageScreen() {
     <h2>Groups (${g.length})</h2>
     <ul>${g.map((x) => `<li>${esc(groupLine(x))}</li>`).join('')}</ul>
     <h2>Notable people (${notable.length})</h2>
-    <p class="muted">The council, and anyone who has mastered a skill.</p>
+    <p class="muted">The council, the village's heroes, and anyone who has mastered a skill.</p>
     <ul>${notable.map((p) => `<li>${esc(villagerRow(p))}</li>`).join('')}</ul>
-    <details>
+    ${state.capitalCounted ? `<p class="muted">${esc(state.campName)} counts its people by group now, as your settlements do; only its notable people are named.</p>` : `<details>
       <summary>Everyone in the village (${people.length})</summary>
       <ul>${[...people].sort((a, b) => TASK_ORDER.indexOf(a.task) - TASK_ORDER.indexOf(b.task) || a.name.localeCompare(b.name)).map((p) => `<li>${esc(villagerRow(p))}</li>`).join('')}</ul>
-    </details>`;
+    </details>`}`;
   return html;
 }

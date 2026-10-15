@@ -36,7 +36,8 @@ test('every instant event applies cleanly', () => {
 test('every choice event offers options and resolves each one', () => {
   // The ally's call and a new Skarn chief are only started by the year;
   // they have their own tests. Village events have their own tests, with a village.
-  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && key !== 'skarnChief' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS))) {
+  // A settlement's defiance comes with the Nation era, and has its own tests too.
+  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && key !== 'skarnChief' && key !== 'defiance' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS))) {
     const base = richState();
     if (id === 'firstContact') base.neighbors.skarn.contactPending = true;
     else assert.ok(ev.weight(base) > 0, `${id} should be possible`);

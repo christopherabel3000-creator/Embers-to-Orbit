@@ -62,13 +62,17 @@ export function reportScreen() {
     html += `<h2>A second settlement</h2>
       <p>Founding a second settlement on land your village holds will end the Settlement era and begin the Nation era.${why ? ` ${esc(why)}` : ' Your village is ready.'}</p>
       ${why ? '' : '<div class="actions"><button type="button" data-nav="foundSettlement">Plan a new settlement</button></div>'}`;
+  } else if ((state.settlements || []).length && !settlementBlocker(state)) {
+    html += `<h2>A new settlement</h2>
+      <p>Your nation could found another settlement. The Nation screen shows every settlement.</p>
+      <div class="actions"><button type="button" data-nav="foundSettlement">Plan a new settlement</button></div>`;
   }
   if (!villageBlocker(state)) {
     html += `<h2>Become a village</h2>
       <p>${esc(state.campName)} has grown into a true settlement. Your people could become a village whenever you choose. It is a big change, and it cannot be undone.</p>
       <div class="actions"><button type="button" data-nav="foundVillage">Consider becoming a village</button></div>`;
   }
-  html += `<div class="actions"><button type="button" data-nav="people">${inVillage(state) ? 'Village and priorities' : 'Assign people'}</button><button type="button" data-nav="build">Build</button></div>`;
+  html += `<div class="actions"><button type="button" data-nav="people">${inVillage(state) ? 'Village and priorities' : 'Assign people'}</button>${(state.settlements || []).length ? '<button type="button" data-nav="nation">Nation</button>' : ''}<button type="button" data-nav="build">Build</button></div>`;
   return html;
 }
 

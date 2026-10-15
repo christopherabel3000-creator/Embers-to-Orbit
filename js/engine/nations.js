@@ -16,6 +16,9 @@ import { fighterStrength, foeStrengthFor } from './battle.js';
 import { clamp, listWords, capital } from './util.js';
 import { lawIs } from './laws.js';
 import { swordsHelp } from './goods.js';
+import {
+  fortresses, fortressHelp, fortressWatch, garrisonHelp,
+} from './realm.js';
 import { skarnStrength, clanLosses, clansYear, clansMarching } from './clans.js';
 import { skarnApproach } from './siege.js';
 import { raidScale } from './difficulty.js';
@@ -350,7 +353,7 @@ export function skarnArmsWord(state) {
 
 // Allies send warriors when raiders come. Returns the number who come.
 export function alliedHelpers(state) {
-  return allies(state).reduce((sum, id) => sum + Math.round(nation(state, id).warriors * 0.3), 0) + swordsHelp(state);
+  return allies(state).reduce((sum, id) => sum + Math.round(nation(state, id).warriors * 0.3), 0) + swordsHelp(state) + fortressHelp(state);
 }
 
 // "Your allies, the Velari, and your sell-swords": who comes to help.
@@ -359,6 +362,8 @@ export function helpersText(state) {
   const al = allies(state);
   if (al.length) parts.push(`your allies, ${al.map((id) => NEIGHBORS[id].name).join(' and ')}`);
   if (swordsHelp(state)) parts.push('your sell-swords');
+  const forts = fortresses(state).filter((t) => garrisonHelp(state, t) > 0);
+  if (forts.length) parts.push(`the garrison${forts.length === 1 ? '' : 's'} of ${listWords(forts.map((t) => t.name))}`);
   return capital(parts.join(', and '));
 }
 
@@ -389,7 +394,7 @@ export function harryChance(state) {
   if (!nationsActive(state) || skarnAtPeace(state) || !state.neighbors.skarn.known) return 0;
   const guards = living(state).filter((p) => p.task === 'guard' && p.health >= 40).length;
   const watched = lawIs(state, 'strangers', 'closed') ? 0.5 : 1; // Closed gates: strangers are watched.
-  return Math.min(0.5, nation(state, 'skarn').warriors / (40 + 10 * guards)) * watched;
+  return Math.min(0.5, nation(state, 'skarn').warriors / (40 + 10 * guards)) * watched * fortressWatch(state); // Fortresses watch the roads.
 }
 
 // Once the Skarn can spare a real band, some skirmishes become ambushes: a

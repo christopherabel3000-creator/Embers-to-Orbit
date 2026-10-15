@@ -6,7 +6,7 @@ import { TASKS, WANDERERS } from './data.js';
 import { remainingQueueWork, shortfall } from './building.js';
 import {
   living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces, fieldPlots,
-  inVillage, woodNeededForWarmth, hasCondition, taskAvailable, foodNeeded, foodStoreTarget, foodStocked,
+  inVillage, woodNeededForWarmth, hasCondition, taskAvailable, foodNeeded, foodStoreTarget, foodStocked, hasKnowledge,
 } from './state.js';
 import { BUILDINGS } from './data.js';
 import {
@@ -116,10 +116,12 @@ export function councilTargets(state, workers) {
   const share = (lvl, normal, high) => (lvl === 0 ? 0 : lvl === 1 ? normal : high);
   const queueLeft = remainingQueueWork(state);
   const baseBuilders = state.buildQueue.length ? Math.max(1, Math.ceil(queueLeft / 12)) : 0;
+  const schools = hasKnowledge(state, 'schools') ? 1.5 : 1;
   return {
     build: !baseBuilders ? 0 : [Math.min(2, baseBuilders), Math.min(6, baseBuilders), Math.min(10, Math.max(2, baseBuilders * 2))][level('building')],
     guard: share(level('defense'), Math.max(1, Math.round(n * 0.08)), Math.max(2, Math.round(n * 0.16))),
-    study: !state.knowledge.current ? 0 : [1, Math.max(1, Math.round(n * 0.08)), Math.max(2, Math.round(n * 0.16))][level('learning')],
+    // Schools let half again as many study.
+    study: !state.knowledge.current ? 0 : [1, Math.max(1, Math.round(n * 0.08 * schools)), Math.max(2, Math.round(n * 0.16 * schools))][level('learning')],
     scout: !scoutingLeft(state) ? 0 : share(level('exploration'), 1, 2),
     craft: !taskAvailable(state, 'craft') ? 0 : share(level('crafts'), Math.max(1, Math.round(n * 0.06)), Math.max(2, Math.round(n * 0.12))),
   };

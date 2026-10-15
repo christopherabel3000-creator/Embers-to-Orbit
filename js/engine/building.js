@@ -40,12 +40,16 @@ export function remainingQueueWork(state) {
 export function queueBlocker(state, id) {
   const b = BUILDINGS[id];
   if (!b) return 'Unknown building.';
-  if (b.era && !eraAtLeast(state, b.era)) return `${b.name}s can be built once your camp becomes a village.`;
+  if (b.era && !eraAtLeast(state, b.era)) {
+    return b.era === 'nation' ? `${b.name}s can be built in the Nation era.` : `${b.name}s can be built once your camp becomes a village.`;
+  }
   if (b.needsBuilding && !state.buildings[b.needsBuilding]) return `A ${b.name.toLowerCase()} needs a ${BUILDINGS[b.needsBuilding].name.toLowerCase()} first.`;
   if (b.requires && !hasKnowledge(state, b.requires)) return `Building a ${b.name.toLowerCase()} needs ${KNOWLEDGE[b.requires].name}.`;
   if (!b.repeatable && state.buildings[id] > 0) return `You already have a ${b.name.toLowerCase()}.`;
   if (!b.repeatable && queuedCount(state, id) > 0) return `A ${b.name.toLowerCase()} is already in the queue.`;
-  if (b.max && state.buildings[id] + queuedCount(state, id) >= b.max) return `Your camp has room for ${b.max} at most${queuedCount(state, id) ? ', counting those in the queue' : ''}.`;
+  const have = (state.buildings[id] || 0) + queuedCount(state, id);
+  if (id === 'road' && have >= (state.settlements || []).length) return `Every settlement has a road${queuedCount(state, id) ? ', counting those in the queue' : ''}.`;
+  if (b.max && have >= b.max) return `Your camp has room for ${b.max} at most${queuedCount(state, id) ? ', counting those in the queue' : ''}.`;
   return null;
 }
 
@@ -90,13 +94,15 @@ export function applyBuildWork(state, work, { afterFires = false, routine = null
     item.progress += used;
     left -= used;
     if (item.progress >= b.work - 1e-9) {
-      state.buildings[item.id] += 1;
+      state.buildings[item.id] = (state.buildings[item.id] || 0) + 1;
       state.buildQueue.shift();
       recordDeed(state, 'built');
-      finished.push(b);
+      // A road reaches the next settlement without one.
+      const town = item.id === 'road' && (state.settlements || [])[state.buildings.road - 1];
+      finished.push(town ? `Finished: the road to ${town.name}. Nothing it sends home is lost on the way now, and its people feel closer to the capital.` : `Finished: ${b.name.toLowerCase()}. ${b.description}`);
     }
   }
-  for (const b of finished) events.push(`Finished: ${b.name.toLowerCase()}. ${b.description}`);
+  events.push(...finished);
   const current = state.buildQueue[0];
   if (current && current.progress > 0 && !blocked) {
     const b = BUILDINGS[current.id];

@@ -16,6 +16,7 @@ import { gainExperience } from './skills.js';
 import { applyStudy, learnNow } from './study.js';
 import { chance, pick, randomInt } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
+import { meetGreat } from './great.js';
 import { listWords, clamp } from './util.js';
 
 export const PARTY_SIZE = [3, 8];
@@ -164,10 +165,16 @@ export function sendExpedition(state, {
 }
 
 // The party reaches its region: it is explored, and its neighbors heard of.
+// In a great nation's homeland, they meet that nation at once.
 function arrive(state, exp) {
   const r = state.world.regions[exp.region];
   const first = r.status !== 'explored';
   r.status = 'explored';
+  const nation = REGIONS[exp.region].nation;
+  if (nation) {
+    const home = WORLD_PLACE_ORDER.find((id) => WORLD_PLACES[id].nation === nation);
+    if (!placeFound(state, home)) findPlace(state, exp, home);
+  }
   const heard = [];
   for (const n of REGIONS[exp.region].neighbors) {
     if (regionStatus(state, n) === 'unknown') {
@@ -250,6 +257,7 @@ export function findPlace(state, exp, placeId) {
     }
   }
   if (place.kind === 'people') exp.pendingChoice = { id: 'smallPeople', place: placeId };
+  if (place.kind === 'nation') meetGreat(state, place.nation);
   return `${place.name}: ${place.description}${bits.length ? ` ${bits.join(' ')}` : ''}`;
 }
 

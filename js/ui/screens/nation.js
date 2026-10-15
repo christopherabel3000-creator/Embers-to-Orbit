@@ -2,11 +2,13 @@
 // screen, which drills into one of them.
 
 import { ADVISOR_ROLES } from '../../engine/advisors.js';
-import { SKILLS, placeData } from '../../engine/data.js';
+import { SKILLS, placeData, NEIGHBORS } from '../../engine/data.js';
+import { taxRate } from '../../engine/laws.js';
 import {
   ROLES, ROLE_ORDER, DEMANDS, DEMAND_ORDER, TOWN_PRIORITIES, MAKER_NAMES, HOME_ROOM,
   settlementById, townGroups, expectedShipment, governorFactor, governorSkill, loyaltyWord, loyaltyTarget,
   landFit, bestRole, roleAvailable, hasRoad, far, keepingAll, worksLevel, garrisonHelp, nationPopulation, UNROADED_LOSS, LOYALTY_BASE,
+  wagesDue, wagesPaid,
 } from '../../engine/realm.js';
 import {
   settlementBlocker, governorCandidates, aidCost, aidBlocker, projectName, projectWork,
@@ -47,6 +49,10 @@ export function nationScreen() {
     <h2 id="newTownHeading">A new settlement</h2>
     <p>${why ? esc(why) : 'Your nation is ready to found another settlement, on a place it holds.'}</p>
     ${why ? '' : '<div class="actions"><button type="button" data-nav="foundSettlement">Plan a new settlement</button></div>'}`;
+  if (towns.length && (hasKnowledge(state, 'coinage') || taxRate(state))) {
+    const due = wagesDue(state);
+    html += `<h2>The treasury</h2><p>Coin: ${state.resources.coin || 0}.${due ? ` Paying the governors costs ${due} coin a season, 1 each; paid governors' settlements are 5 more loyal.${wagesPaid(state) ? ' They were paid last season.' : ' They went unpaid last season.'}` : ''} ${taxRate(state) ? `Taxes bring in 1 coin a season for every ${taxRate(state)} people, at a cost in loyalty and spirits.` : hasKnowledge(state, 'taxes') ? 'There are no taxes; a law on taxes can be made on the Village screen.' : ''}</p>`;
+  }
   if (towns.length) {
     html += `<h2>Roads</h2><p>${roads >= towns.length ? 'Every settlement has a road to the capital.' : `${roads ? `${roads} of ${towns.length} settlements ${roads === 1 ? 'has' : 'have'}` : 'No settlement has'} a road to the capital. ${hasKnowledge(state, 'roads') ? 'Roads are built on the Build screen, in the order the settlements were founded.' : 'Your people could learn to build them: see Roads on the Knowledge screen.'} Without one, a settlement two or more places away loses ${Math.round(UNROADED_LOSS * 100)} percent of what it sends home on the way.`}</p>`;
   }
@@ -87,19 +93,20 @@ export function settlementScreen() {
   let html = `<h1>${esc(t.name)}</h1>
     <p>A ${esc(ROLES[t.role].name.toLowerCase())} at ${esc(placeName(state, t.place))}, founded in Year ${year(state, t.founded - state.turn)}: ${plural(t.population, 'person', 'people')}, ${loyaltyWord(t.loyalty)} (loyalty ${t.loyalty}).</p>
     <p>${esc(sendsText(t))} ${esc(landText(t))}</p>
+    ${t.federated ? `<p>Home of ${esc(NEIGHBORS[t.federated].name)}, who joined your nation as a free people. They will not bear heavy demands.</p>` : ''}
     <h2>Role and demands</h2>
     <p><label for="townRole">Role</label>
       ${select('townRole', `data-town-role="${t.id}"`, roleOptions, t.role, 'townRole-about')}
       <span id="townRole-about" class="muted"> ${esc(ROLES[t.role].about)}</span></p>
     <p><label for="townDemands">Demands</label>
-      ${select('townDemands', `data-town-demands="${t.id}"`, DEMAND_ORDER.map((d) => [d, DEMANDS[d].name]), t.demands, 'townDemands-about')}
+      ${select('townDemands', `data-town-demands="${t.id}"`, DEMAND_ORDER.filter((d) => !(t.federated && d === 'heavy')).map((d) => [d, DEMANDS[d].name]), t.demands, 'townDemands-about')}
       <span id="townDemands-about" class="muted"> ${esc(DEMANDS[t.demands].about)}</span></p>
     <h2>Priorities</h2>
     ${Object.entries(TOWN_PRIORITIES).map(([area, info]) => `<p><label for="townPriority-${area}">${esc(info.name)}</label>
       ${select(`townPriority-${area}`, `data-town-priority="${area}" data-town="${t.id}"`, ['low', 'normal', 'high'].map((l) => [l, capitalize(l)]), t.priorities[area], `townPriority-${area}-about`)}
       <span id="townPriority-${area}-about" class="muted"> ${esc(info.about)}</span></p>`).join('')}
     <h2 id="governorHeading">Governor</h2>
-    <p>${esc(gov.name)}, ${gov.age}: ${skill} ${gov.skills[skill]}, learning ${gov.skills.learning}. Governing since Year ${year(state, t.governorSince - state.turn)}. A ${esc(ROLES[t.role].name.toLowerCase())} needs a governor skilled in ${skill} and learning: under ${esc(gov.name)} it brings in ${Math.round(governorFactor(t) * 100)} percent, where a novice would get 85 and a master of both 130. Governors grow more skilled with every season.</p>`;
+    <p>${esc(gov.name)}, ${gov.age}: ${skill} ${gov.skills[skill]}, learning ${gov.skills.learning}. Governing since Year ${year(state, t.governorSince - state.turn)}. A ${esc(ROLES[t.role].name.toLowerCase())} needs a governor skilled in ${skill} and learning: under ${esc(gov.name)} it brings in ${Math.round(governorFactor(t, state) * 100)} percent, where a novice would get 85 and a master of both 130. Governors grow more skilled with every season.</p>`;
   if (candidates.length) {
     html += `<p><label for="newGovernor">Another governor</label>
       <select id="newGovernor">${candidates.map((p) => `<option value="${p.id}">${esc(notableRow(p))}${t.notables.includes(p) ? ` Lives in ${esc(t.name)}.` : ` Lives in ${esc(state.campName)}${councilPost(p)}.`}</option>`).join('')}</select></p>

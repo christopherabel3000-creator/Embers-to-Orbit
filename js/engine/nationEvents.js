@@ -6,7 +6,7 @@ import {
   NEIGHBORS, NATIONS, TREATIES, TREATY_ORDER,
 } from './data.js';
 import {
-  living, year, placeName, canFight,
+  living, year, placeName, canFight, independent,
 } from './state.js';
 import { advisorPerson } from './advisors.js';
 import { changeRelation, skarnAtPeace } from './neighbors.js';
@@ -26,7 +26,7 @@ function offers(state) {
   if (!nationsActive(state)) return [];
   const out = [];
   for (const id of FRIENDS) {
-    if (!state.neighbors[id].known) continue;
+    if (!independent(state, id)) continue;
     for (const key of TREATY_ORDER) {
       if (!TREATIES[key].with.includes(id)) continue;
       if (!treatyBlocker(state, id, key) && state.neighbors[id].relation >= TREATIES[key].relation + 10) out.push({ nation: id, key });
@@ -40,7 +40,7 @@ function demands(state) {
   if (!nationsActive(state)) return [];
   const out = [];
   for (const id of FRIENDS) {
-    if (!state.neighbors[id].known || state.neighbors[id].relation >= 0) continue;
+    if (!independent(state, id) || state.neighbors[id].relation >= 0) continue;
     for (const place of NATIONS[id].expansion) {
       if (owner(state, place) === 'player') out.push({ nation: id, place });
     }
@@ -132,7 +132,7 @@ export const NATION_EVENTS = {
 
   takeSides: {
     choice: true,
-    weight: (state) => (nationsActive(state) && FRIENDS.every((id) => state.neighbors[id].known) && between(state, 'velari', 'tellani') < 0 ? 0.5 : 0),
+    weight: (state) => (nationsActive(state) && FRIENDS.every((id) => independent(state, id)) && between(state, 'velari', 'tellani') < 0 ? 0.5 : 0),
     start(state) {
       return { over: pick(state, ['fishing rights on the river', 'a stolen herd', 'a killing at the ford', 'where one people\'s land ends and the other\'s begins']) };
     },
@@ -178,7 +178,7 @@ export const NATION_EVENTS = {
   caravanEscort: {
     choice: true,
     weight: (state) => {
-      if (!nationsActive(state) || !state.neighbors.tellani.known || state.neighbors.tellani.relation < 0) return 0;
+      if (!nationsActive(state) || !independent(state, 'tellani') || state.neighbors.tellani.relation < 0) return 0;
       const sk = nation(state, 'skarn');
       return sk && sk.warriors >= 8 && escorts(state).length >= 3 && !skarnAtPeace(state) ? 0.35 : 0;
     },
@@ -218,7 +218,7 @@ export const NATION_EVENTS = {
 
   skarnEnvoy: {
     choice: true,
-    weight: (state) => (nationsActive(state) && state.neighbors.skarn.known && state.neighbors.velari.known && !skarnAtPeace(state) && state.neighbors.skarn.relation > -60 ? 0.35 : 0),
+    weight: (state) => (nationsActive(state) && state.neighbors.skarn.known && independent(state, 'velari') && !skarnAtPeace(state) && state.neighbors.skarn.relation > -60 ? 0.35 : 0),
     start: () => ({}),
     view() {
       return {

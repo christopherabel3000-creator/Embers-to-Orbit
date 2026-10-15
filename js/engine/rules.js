@@ -121,6 +121,7 @@ export function expectedGoods(state, person) {
   if (hasKnowledge(state, 'kilns')) amount += 1;
   if (state.buildings.workshop > 0) amount += 1;
   if (lawGuilds(state)) amount += 1;
+  if (hasKnowledge(state, 'guildCharters')) amount += 1;
   return amount * workFactor(person) * lawWork(state);
 }
 

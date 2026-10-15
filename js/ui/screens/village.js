@@ -5,9 +5,9 @@ import {
   TASK_ORDER, SKILLS, PRIORITY_AREAS, PRIORITY_LEVELS, LAWS, LAW_ORDER, FOOD_STORE_CHOICES,
 } from '../../engine/data.js';
 import {
-  hireBlocker, swordsBlocker, swordsActive, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT,
+  hireBlocker, swordsBlocker, swordsActive, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT, HIRE_MASTER_COIN, SWORDS_COIN,
 } from '../../engine/goods.js';
-import { lawsAvailable, seasonsUntilChange } from '../../engine/laws.js';
+import { lawsAvailable, lawAvailable, seasonsUntilChange } from '../../engine/laws.js';
 import {
   living, shelterCapacity, foodNeeded, hasKnowledge, lifeStage, taskAvailable, foodStoreTarget, foodStocked,
 } from '../../engine/state.js';
@@ -73,28 +73,36 @@ const MASTER_NAMES = {
 function hireSection() {
   const goods = state.resources.goods || 0;
   if (!taskAvailable(state, 'craft') && !goods) return '';
-  const masterWhy = hireBlocker(state);
-  const swordWhy = swordsBlocker(state);
+  const coin = hasKnowledge(state, 'coinage');
+  // Hire buttons, in goods and, with Coinage, in coin.
+  const buttons = (action, blocker, label, goodsCost, coinCost) => {
+    const ways = [['goods', goodsCost], ...(coin ? [['coin', coinCost]] : [])];
+    const ready = ways.filter(([pay]) => !blocker(state, pay));
+    if (!ready.length) return `<p>${esc(blocker(state, 'goods'))}</p>`;
+    return `<div class="actions">${ready.map(([pay, n]) => `<button type="button" data-action="${action}" data-pay="${pay}">${esc(label)} for ${n} ${pay}</button>`).join('')}</div>`;
+  };
   return `<h2 id="hireHeading">Hire</h2>
-    <p>You have ${goods} goods. Goods buy help from beyond the hills.</p>
-    <p><label for="hireSkill">Hire a master, for ${HIRE_MASTER_COST} goods, once a year</label>
+    <p>You have ${goods} goods${coin ? ` and ${state.resources.coin || 0} coin` : ''}. ${coin ? 'Goods or coin buy' : 'Goods buy'} help from beyond the hills.</p>
+    <p><label for="hireSkill">Hire a master, once a year</label>
       <select id="hireSkill">${SKILLS.map((k) => `<option value="${k}">${esc(MASTER_NAMES[k])}</option>`).join('')}</select></p>
-    ${masterWhy ? `<p>${esc(masterWhy)}</p>` : '<p><button type="button" data-action="hireMaster">Hire this master</button></p>'}
-    <p>${SWORDS_COUNT} sell-swords will guard the roads for a year for ${SWORDS_COST} goods, meeting raiders before they reach the village and harrying besiegers.</p>
-    ${swordsActive(state) ? `<p>${esc(swordWhy)}</p>` : swordWhy ? `<p>${esc(swordWhy)}</p>` : '<p><button type="button" data-action="hireSwords">Hire the sell-swords</button></p>'}`;
+    ${buttons('hireMaster', hireBlocker, 'Hire this master', HIRE_MASTER_COST, HIRE_MASTER_COIN)}
+    <p>${SWORDS_COUNT} sell-swords will guard the roads for a year, meeting raiders before they reach the village and harrying besiegers.</p>
+    ${swordsActive(state) ? `<p>${esc(swordsBlocker(state))}</p>` : buttons('hireSwords', swordsBlocker, 'Hire the sell-swords', SWORDS_COST, SWORDS_COIN)}`;
 }
 
 function lawsSection() {
   if (!lawsAvailable(state)) {
     return '<h2>Laws</h2><p>Once your people learn Oral law, the village can make laws here.</p>';
   }
-  const choices = LAW_ORDER.map((law) => {
+  const available = LAW_ORDER.filter((law) => lawAvailable(state, law));
+  const choices = available.map((law) => {
     const opts = Object.values(LAWS[law].options);
     return `<li><strong>${esc(LAWS[law].name)}.</strong> ${opts.map((o) => `${esc(o.name)}: ${esc(o.effect)}`).join(' ')}</li>`;
   }).join('');
   return `<h2 id="lawsHeading">Laws</h2>
     <p>Each law can change once a year.${state.buildings.meetingHall > 0 ? ' Your meeting hall lets the village talk changes through, so no one grumbles.' : ' Without a meeting hall, every change makes people grumble, and spirits dip.'}</p>
-    ${LAW_ORDER.map(lawControl).join('')}
+    ${available.map(lawControl).join('')}
+    ${available.length < LAW_ORDER.length ? `<p class="muted">More laws come with Law codes and Taxes, in the Nation era.</p>` : ''}
     <details><summary>What each law does</summary><ul>${choices}</ul></details>`;
 }
 

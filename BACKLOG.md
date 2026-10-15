@@ -72,9 +72,10 @@ The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The 
 
 - Phase 2, the wider world: seven regions around the valley with 25 hand-crafted places; expeditions (send and wait) with finds, dangers, and choices on the road; small peoples, wonders, and ruins, and a Far horizons tradition; iron and salt from mining towns, iron tools and salting; settlements beyond the valley; River boats, Mapmaking, Mining, Iron working, and Salting; the World and Region screens.
 
+- Phase 3, the first great nations: the Ostrani of the Ostran delta and the Orhai of the far steppe, with homelands, rumors, and first contact; envoys, trade in lots for coin, embassies, trade and peace pacts, marriages, and trade routes; Orhai raids on settlements within their reach and demands for tribute; an Ostrani merchant fleet; coin from trade, routes, taxes, and silver, governors' wages, and hiring for coin; laws on inheritance, worship, and taxes; the Velari and Tellani joining the nation, and the Skarn as vassals; Coinage, Weights and measures, Fine crafts, Trade routes, Guild charters or Free markets, Law codes, Taxes, and Diplomacy.
+
 ### Next
 
-- [ ] Phase 3, the first great nations: a river and coast people of traders and a riding people of the plains, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
 - [ ] Phase 4, armies: companies and commanders, campaigns and supply, sieges the player lays, six kinds of soldiers, horses and cavalry.
 - [ ] Phase 5, toward the sea: the rest of the tree, the remaining five great nations, harbors and ships, Navigation, and the voyage that ends the era.
-- [ ] Balance: goods pile up over a long campaign (about 1,500 by year 35); coin in phase 3 should give them a use. The capital is about 105 at year 35, short of the 150 the era's end asks for.
+- [ ] Balance: coin piles up over a long campaign (about 600 by year 35); paid soldiers in phase 4 should be its large, steady use. The capital is about 60 at year 35 for a nation that founds five settlements, far short of the 150 the era's end asks for; phase 5 should weigh that.

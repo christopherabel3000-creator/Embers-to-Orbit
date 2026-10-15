@@ -2,12 +2,19 @@
 // with real trade-offs; until one is chosen, the village keeps to custom.
 // The rest of the engine asks this module how the laws shift its rules.
 
-import { LAWS, LAW_CHANGE_GAP, NEIGHBORS } from './data.js';
+import {
+  LAWS, LAW_CHANGE_GAP, NEIGHBORS, KNOWLEDGE,
+} from './data.js';
 import { inVillage, hasKnowledge, living } from './state.js';
 import { clamp } from './util.js';
 
 export function lawsAvailable(state) {
   return inVillage(state) && hasKnowledge(state, 'oralLaw');
+}
+
+// Whether this law can be made yet: some need a later discovery.
+export function lawAvailable(state, law) {
+  return lawsAvailable(state) && Boolean(LAWS[law]) && (!LAWS[law].requires || hasKnowledge(state, LAWS[law].requires));
 }
 
 // The chosen option for a law, or null for custom.
@@ -24,6 +31,7 @@ export function seasonsUntilChange(state, law) {
 export function lawBlocker(state, law, option) {
   if (!lawsAvailable(state)) return 'A village must know Oral law before it can make laws.';
   if (!LAWS[law]) return 'Unknown law.';
+  if (!lawAvailable(state, law)) return `A law on ${LAWS[law].name.toLowerCase()} needs ${KNOWLEDGE[LAWS[law].requires].name} first.`;
   if (option !== null && !LAWS[law].options[option]) return 'Unknown choice for that law.';
   if ((state.laws[law] || null) === option) return 'That is already the law.';
   const wait = seasonsUntilChange(state, law);
@@ -49,7 +57,27 @@ export function setLaw(state, law, option) {
 // Where spirits settle, relative to usual.
 export function lawSettle(state) {
   return (lawIs(state, 'food', 'equal') ? 5 : 0) - (lawIs(state, 'food', 'byWork') ? 5 : 0) - (lawIs(state, 'justice', 'harsh') ? 3 : 0)
-    + (lawIs(state, 'strangers', 'closed') ? 3 : 0);
+    + (lawIs(state, 'strangers', 'closed') ? 3 : 0)
+    - (lawIs(state, 'inheritance', 'eldest') ? 2 : 0) + (lawIs(state, 'inheritance', 'shared') ? 3 : 0)
+    + (lawIs(state, 'worship', 'oneFaith') ? 2 : 0)
+    - (lawIs(state, 'taxes', 'light') ? 2 : 0) - (lawIs(state, 'taxes', 'heavy') ? 5 : 0);
+}
+
+// What the laws do to a settlement's loyalty: [text, change] pairs.
+export function lawLoyalty(state) {
+  const out = [];
+  if (lawIs(state, 'taxes', 'light')) out.push(['light taxes', -5]);
+  if (lawIs(state, 'taxes', 'heavy')) out.push(['heavy taxes', -12]);
+  if (lawIs(state, 'worship', 'oneFaith')) out.push(['one faith for the whole nation', 5]);
+  if (lawIs(state, 'inheritance', 'shared')) out.push(['inheritance shared among all', 3]);
+  return out;
+}
+
+// People for each coin of tax a season: 20 under light taxes, 10 under heavy.
+export function taxRate(state) {
+  if (lawIs(state, 'taxes', 'heavy')) return 10;
+  if (lawIs(state, 'taxes', 'light')) return 20;
+  return 0;
 }
 
 // A multiplier on everyone's work.

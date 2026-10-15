@@ -55,7 +55,7 @@ function giftValue(state, id) {
 
 export function skarnAtPeace(state) {
   const sk = state.neighbors.skarn;
-  return sk.peace || sk.truceUntil > state.turn;
+  return sk.peace || Boolean(sk.vassal) || sk.truceUntil > state.turn;
 }
 
 // How much more or less likely raids are, given relations with the Skarn.
@@ -80,6 +80,7 @@ function tradeAmount(state, id, kind) {
   let amount = Math.max(8, Math.round(base + state.neighbors[id].relation / 10)) + ways;
   if (state.buildings.market > 0) amount *= 1.5; // A market day draws better deals.
   if (state.neighbors[id].nation && state.neighbors[id].nation.treaties.trade) amount *= 1.25;
+  if (hasKnowledge(state, 'measures')) amount *= 1.25; // Weights and measures.
   return Math.round(amount);
 }
 
@@ -173,6 +174,7 @@ export function applyDiplomacy(state, id, key) {
   const def = NEIGHBORS[id];
   const n = state.neighbors[id];
   if (!def || !n || !n.known) return { error: 'You have not met that people.' };
+  if (n.joined) return { error: `The ${def.title} are part of your nation now.` };
   if (key.startsWith('treaty-') || key.startsWith('end-')) {
     const option = diplomacyOptions(state, id).find((o) => o.key === key);
     if (!option) return { error: 'That is not possible with them.' };

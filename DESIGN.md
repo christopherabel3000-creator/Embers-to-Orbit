@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first two of which are playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first three of which are playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -38,6 +38,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **A second settlement** under a governor, whose founding begins the Nation era.
 - **The nation at home** (the Nation era, phase 1): more settlements, each with a role, demands, and priorities set by the player and a named governor who runs it; loyalty, aid, and defiance; settlements counted by groups, and a capital that counts its people once it passes 100; the Nation and Settlement screens; roads; and a Learning branch of four discoveries.
 - **The wider world** (the Nation era, phase 2): seven regions around the valley with 25 places, expeditions with choices on the road, small peoples, wonders, and ruins; iron and salt; settlements beyond the valley; and five more discoveries, including River boats and Mapmaking.
+- **The first great nations** (the Nation era, phase 3): the Ostrani and the Orhai, met in their homelands at the edge of the map; envoys, trade for coin, embassies, treaties, marriages, and trade routes; Orhai raids and demands; coin, governors' wages, and taxes; laws on inheritance and worship; the Velari and Tellani joining the nation, and the Skarn as vassals; and nine more discoveries.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -312,7 +313,7 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 
 1. **The nation at home (built):** the Nation and Settlement screens, roles and priorities, governors and loyalty, people as groups, the Learning branch with Writing, and Roads.
 2. **The wider world (built):** the regional map and its regions, expeditions, river boats, mapmaking, and iron and salt with Mining and Salting.
-3. **The first great nations:** the two designed first, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
+3. **The first great nations (built):** the two designed first, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
 4. **Armies:** companies and commanders, campaigns and supply, sieges the player lays, the six kinds of soldiers, and horses with cavalry.
 5. **Toward the sea:** the rest of the tree, the remaining great nations, harbors and ships, Navigation, and the voyage that ends the era.
 
@@ -444,12 +445,73 @@ When the Nation era begins, travelers bring word of the four regions around the 
 | Iron working | Crafts and trade | 100 | Mining | Iron tools, while there is iron |
 | Salting | Food and farming | 70 | Smoking and drying; salt in store | Salted food, while there is salt |
 
-### Phase 3: the first great nations (planned)
+### Phase 3: the first great nations (built)
 
-- **Seven great nations,** with rumors at the start of the era; each is met when an expedition, caravan, or envoy reaches its land. Each has a name, a homeland region, values and a temperament (warlike, mercantile, scholarly, or expansionist), what it wants from the player, and one signature of its own: a unit, a building, or a tradition. Phase 3 designs two: a river and coast people of traders (rich, mercantile, wary of war, eager for goods, so goods are worth something again) and a riding people of the plains (expansionist and proud, with cavalry, growing toward the player's land).
-- **Coin** comes from gold and silver mines, markets, taxes, and selling goods to other nations. It pays soldiers, hires help, buys from other nations, and keeps a large nation running, which gives goods a lasting use.
-- **Taxes** bring coin from every settlement, at a cost in loyalty. **Trade routes** are standing caravans that bring in coin every season. **Embassies** and treaties with the great nations come with Diplomacy.
-- **The valley peoples join the nation.** After a long alliance, the Velari or Tellani can become a federated part of it; a beaten Skarn can become a vassal paying tribute.
+**The first two great nations.** Word of both reaches the capital when the Nation era begins. Each has a homeland region at the edge of the map, beyond the regions around the valley, which becomes known by name once an expedition reaches a region next to it.
+
+| | The Ostrani | The Orhai |
+| --- | --- | --- |
+| Who they are | Merchant princes of the Ostran delta, who build their city on islands and send galleys along every coast | Riders of the far steppe, who live on horseback and follow their herds and their khans |
+| Homeland | The Ostran delta, far south along the coast (beyond the coast and the desert edge) | The far steppe, far west (beyond the great plains and the desert edge) |
+| Temperament | Mercantile: wary of war, which is bad for trade | Expansionist and proud: growing, and moving east toward your land |
+| Values | Honest trade and kept treaties; they think little of a people who live by the sword | Strength and courage; they despise a people who pay to be left alone |
+| Their nature (where relations settle) | 10, plus a third of your name as honest traders, less a sixth of your name as fierce fighters | -10, plus a third of your name as fierce fighters, less a sixth of your name for generosity |
+| Want | Goods, salt, and iron | Grazing land, tribute, and respect |
+| Offer | Coin; iron, salt, and food for coin | Peace, at a price (horses come with phase 4) |
+| Signature | Their galleys: with a settlement of yours on the coast, every trade with them brings a tenth more | Their riders: they strike far and fast |
+
+- **Meeting them.** An expedition that reaches a homeland meets its people at once; the Orhai also find you on their own, once the Nation era is four years old, by raiding a settlement on the plains or the desert edge. First contact is a choice: gifts of 10 goods (the Ostrani like it, plus 10; the Orhai think it soft, plus 2), greeting them as equals (plus 3 with the Ostrani, plus 8 with the Orhai), or keeping your distance (minus 5).
+- **Relations and trust** work as with the valley peoples: relations drift 2 a season toward their nature, shifted by your reputation, an embassy (plus 10), a trade pact (plus 5), a peace pact (plus 5), a marriage (plus 10), a trade route (plus 5), a law welcoming all gods (plus 5), and their trust (a fifth of how far it is from 50). Trust grows 2 a year while a treaty holds. They remember what you did.
+
+**Envoys.** From the Neighbors screen, under "Beyond the valley," one envoy a season to each great nation met:
+
+- **Trade, in lots:** sell 20 goods (8 coin), or 20 fine goods with Fine crafts (13 coin, instead of ordinary goods); sell 10 salt (6 coin) or 10 iron (7 coin); buy 10 iron (10 coin), 10 salt (8 coin), or 40 food (6 coin). The Ostrani trade in all of these; the Orhai buy goods and iron and sell food, and only under a peace pact. What you get is better by half their relations in percent (a quarter more at relations of 50), a quarter more with a trade pact, a quarter more with Weights and measures, a tenth more from the Ostrani with a settlement on the coast, and, with Free markets, from a tenth less to half again as much, changing each season.
+- **A gift** of 10 goods: plus 6 with the Ostrani, plus 3 with the Orhai.
+- **Tribute to the Orhai:** 15 coin, a quarter more each year in a row (up to about twice that), keeps their riders away for a year.
+- **An embassy** (needs Diplomacy; 20 goods and 10 coin): plus 5 at once and 10 to where relations settle, and treaties become possible.
+- **Treaties** (need an embassy): a trade pact with either (relations 20, trust 40: trades a quarter better, and a trade route 2 more coin a season) and a peace pact with the Orhai (relations 10, trust 40: their riders leave your settlements alone, and they will trade).
+- **A marriage between your ruling families** (needs an embassy and relations 40), once with each: relations plus 15 at once and 10 to where they settle, and trust plus 15.
+- **A trade route** (needs Trade routes, relations 10, and with the Orhai a peace pact; 20 goods and 10 coin): 3 coin a season from the Ostrani, 2 from the Orhai, 2 more with a trade pact, and a quarter more with Weights and measures.
+
+**The Orhai.** Their riders fall on your settlements within their reach (on the great plains, the desert edge, and the steppe) with a chance of 6 percent each season, half again as much while relations are below -20, half as much at 20 or more, and twice as much for a year after you refuse them tribute. A settlement drives them off as it would skirmishers, but seven tenths as well; otherwise they kill 1 to 3 settlers and drive off its herds, and its loyalty falls by 8. A peace pact or a year's tribute keeps them away. Every two years while relations are below 30 and there is no peace pact, their envoys **demand tribute** (a choice): pay it, refuse (relations minus 10, and more raids for a year), or, with a fortress on the plains or the desert edge or a name as fierce fighters of 15 or more, show them your strength and send them home with nothing (relations plus 8).
+
+**An Ostrani merchant fleet** (a choice, while relations are 0 or more and you have 40 goods): a fleet going home offers 20 coin, improved like any trade, for 40 goods.
+
+**Coin.** A new resource, shown in the status line and the stores. It comes from trade with the great nations, trade routes, taxes, and silver (a mining town at Silver beck in the iron hills sends 0.25 coin for each worker at its role once your people know Coinage). It pays:
+
+- **Governors' wages** (with Coinage): 1 coin a season for each governor, paid from the treasury if there is coin; a settlement whose governor was paid last season is 5 more loyal. The report says when the treasury could not pay.
+- **Hiring:** masters for 10 coin and sell-swords for 8, as well as for goods.
+- **Tribute, embassies, and trade routes.**
+
+**Laws for the whole nation.** Law codes unlocks two new laws, and Taxes a third; they work like the village's laws, changeable once a year:
+
+| Law | Option | Effect |
+| --- | --- | --- |
+| Inheritance | Eldest inherits | Governors serve with a firmer hand: settlements bring in 5 percent more; spirits in the capital settle 2 lower |
+| | Shared among all | Spirits in the capital settle 3 higher; the settlements are 3 more loyal |
+| Worship | One faith | The settlements are 5 more loyal; spirits in the capital settle 2 higher |
+| | All gods welcome | Settlers come 10 percent more often; the great nations think better of you (plus 5) |
+| Taxes | Light taxes | The capital and every settlement pay 1 coin each season for every 20 people; the settlements are 5 less loyal; spirits in the capital settle 2 lower |
+| | Heavy taxes | 1 coin for every 10 people; the settlements are 12 less loyal; spirits in the capital settle 5 lower |
+
+**The valley peoples join your nation.**
+
+- **The Velari or the Tellani** ask to join (a choice) once your people know Law codes, after six years of alliance, with relations of 60 and trust of 75. If welcomed, they become a settlement of yours at their home, with all their people, under their chief as governor: a farming town for the Velari, a market town for the Tellani (once your people can weave), with light demands, a palisade, a hall, and the first level of its works. Their land becomes yours. They joined as a free people: they will not bear heavy demands, and are 5 more loyal for it. They leave the valley's own round of growth, quarrels, raids, and events. Asked to wait, they ask again in two years.
+- **The Skarn** sue to become your vassals (a choice) once they are beaten: in the Nation era, when their warriors number fewer than two fifths of your fighters. As vassals they keep the peace (the hill clans are not bound by it), pay tribute each spring (20 food and 10 goods), and a fifth of their warriors stand with you when raiders come. Each spring, if their warriors number more than four fifths of your fighters, they throw off your rule.
+
+**The discoveries of phase 3:**
+
+| Discovery | Branch | Cost | Needs | Effect |
+| --- | --- | --- | --- | --- |
+| Coinage | Crafts and trade | 90 | Mining, Markets | Coin from silver, governors' wages, hiring for coin |
+| Weights and measures | Crafts and trade | 70 | Writing, Markets | Every trade, with the valley peoples and the great nations, and every trade route, a quarter better |
+| Fine crafts | Crafts and trade | 80 | Kilns | Goods sell to the great nations as fine work |
+| Trade routes | Crafts and trade | 100 | Roads, Coinage | Trade routes to the great nations |
+| Guild charters | Crafts and trade | 60 | Markets; closes off Free markets | Every crafter makes 1 more goods |
+| Free markets | Crafts and trade | 60 | Markets; closes off Guild charters | What the great nations pay changes each season, from 0.9 to 1.5 times |
+| Law codes | Society and law | 80 | Writing, Oral law | The inheritance and worship laws |
+| Taxes | Society and law | 90 | Coinage, Law codes | The tax law |
+| Diplomacy | Society and law | 80 | Writing | Embassies, treaties, and marriages with the great nations |
 
 ### Phase 4: armies (planned)
 
@@ -712,7 +774,7 @@ The game is built in layers, and each phase should be playable and fun on its ow
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, and audio cues (see BACKLOG.md).
 2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still open: late-game challenge, the other four starting regions, and unit types in battle (see BACKLOG.md).
-3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world (built), the first great nations, armies, and toward the sea.
+3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world (built), the first great nations (built), armies, and toward the sea.
 4. **Phase 4: Age of Discovery.** Voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies.
 5. **Phase 5: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 6. **Phase 6: Space age.** Satellites, mining, colonization, space combat.

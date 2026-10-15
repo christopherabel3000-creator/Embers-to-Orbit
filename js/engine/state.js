@@ -10,9 +10,10 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
+import { initialGreat } from './greatData.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 30;
+export const SAVE_VERSION = 31;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -95,7 +96,9 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     rng: seed >>> 0,
     campName: campName.trim() || 'Emberhold',
     turn: 0,
-    resources: { food: 50, wood: 30, stone: 0, goods: 0, iron: 0, salt: 0 },
+    resources: {
+      food: 50, wood: 30, stone: 0, goods: 0, iron: 0, salt: 0, coin: 0,
+    },
     people,
     nextPersonId: people.length + 1,
     wanderersMet: 0,
@@ -119,6 +122,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     settlements: [], // Other settlements the village has founded.
     capitalCounted: false, // Past 100 people, the capital counts its ordinary people instead of naming them.
     world: initialWorld(), // The regions beyond the valley, and expeditions to them.
+    great: initialGreat(), // The great nations beyond the valley.
+    nationFounded: null, // The turn the Nation era began.
     laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
@@ -345,6 +350,22 @@ export function migrate(data) {
     data.resources.salt = 0;
     data.version = 30;
   }
+  if (data.version === 30) {
+    // Coin, the great nations, and their homelands at the edge of the world.
+    data.resources.coin = 0;
+    data.great = initialGreat();
+    const nation = data.era === 'nation';
+    for (const id of Object.keys(data.great)) data.great[id].heard = nation;
+    const fresh = initialWorld();
+    for (const [id, r] of Object.entries(fresh.regions)) if (!data.world.regions[id]) data.world.regions[id] = r;
+    for (const [id, p] of Object.entries(fresh.places)) if (!data.world.places[id]) data.world.places[id] = p;
+    for (const [id, r] of Object.entries(REGIONS)) {
+      if (data.world.regions[id].status !== 'explored') continue;
+      for (const n of r.neighbors) if (data.world.regions[n].status === 'unknown') data.world.regions[n].status = 'heard';
+    }
+    data.nationFounded = nation ? Math.min(...(data.settlements || []).map((t) => t.founded), data.turn) : null;
+    data.version = 31;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -443,6 +464,13 @@ export function unexploredNeighbors(state, placeId) {
 
 export function metNeighbors(state) {
   return NEIGHBOR_ORDER.filter((id) => state.neighbors && state.neighbors[id].known);
+}
+
+// Whether a valley people is met and still a people of its own: not yet
+// joined to your nation.
+export function independent(state, id) {
+  const n = state.neighbors && state.neighbors[id];
+  return Boolean(n && n.known && !n.joined);
 }
 
 export function relationWord(value) {

@@ -534,6 +534,71 @@ export const KNOWLEDGE = {
     after: ['mining'],
     effect: 'Smelting and forging. While there is iron in store, the capital\'s builders, quarriers, and woodcutters use iron tools and do 1 more each; the tools wear out, using 1 iron a season for every 4 who use them.',
   },
+  coinage: {
+    branch: 'crafts', era: 'nation',
+    name: 'Coinage',
+    cost: 90,
+    after: ['mining', 'markets'],
+    effect: 'Silver struck into coins, and a treasury to keep them. A mining town at a silver place sends home coin; governors are paid from the treasury, and their settlements are 5 more loyal for it; and masters and sell-swords can be hired for coin.',
+  },
+  measures: {
+    branch: 'crafts', era: 'nation',
+    name: 'Weights and measures',
+    cost: 70,
+    after: ['writing', 'markets'],
+    effect: 'Standard weights, measures, and written accounts. Every trade, with the valley peoples and the great nations, brings a quarter more, and so does every trade route.',
+  },
+  fineCrafts: {
+    branch: 'crafts', era: 'nation',
+    name: 'Fine crafts',
+    cost: 80,
+    after: ['kilns'],
+    effect: 'Glass, dyed cloth, and jewelry. The great nations pay far more for your goods as fine work.',
+  },
+  tradeRoutes: {
+    branch: 'crafts', era: 'nation',
+    name: 'Trade routes',
+    cost: 100,
+    after: ['roads', 'coinage'],
+    effect: 'Standing caravans. You can set up a trade route to a great nation you are on good terms with, which brings in coin every season.',
+  },
+  guildCharters: {
+    branch: 'crafts', era: 'nation',
+    name: 'Guild charters',
+    cost: 60,
+    after: ['markets'],
+    excludes: ['freeMarkets'],
+    effect: 'Crafts governed by chartered guilds, at fixed prices. Every crafter makes 1 more goods. Choosing this closes off free markets.',
+  },
+  freeMarkets: {
+    branch: 'crafts', era: 'nation',
+    name: 'Free markets',
+    cost: 60,
+    after: ['markets'],
+    excludes: ['guildCharters'],
+    effect: 'Anyone may buy and sell. What the great nations pay rises and falls each season, from a tenth less to half again as much: a fifth more on average. Choosing this closes off guild charters.',
+  },
+  lawCodes: {
+    branch: 'society', era: 'nation',
+    name: 'Law codes',
+    cost: 80,
+    after: ['writing', 'oralLaw'],
+    effect: 'Laws written down, the same in every settlement. Unlocks laws on inheritance and worship, and, with Taxes, a law on taxes.',
+  },
+  taxes: {
+    branch: 'society', era: 'nation',
+    name: 'Taxes',
+    cost: 90,
+    after: ['coinage', 'lawCodes'],
+    effect: 'A law on taxes: coin from the capital and every settlement, at a cost in loyalty and spirits.',
+  },
+  diplomacy: {
+    branch: 'society', era: 'nation',
+    name: 'Diplomacy',
+    cost: 80,
+    after: ['writing'],
+    effect: 'Envoys who speak for the whole nation. You can open embassies with the great nations, make treaties with them, and marry into their ruling families.',
+  },
   salting: {
     branch: 'food', era: 'nation',
     name: 'Salting',
@@ -647,6 +712,31 @@ export const LAWS = {
     options: {
       mercy: { name: 'Mercy', effect: 'Wrongs are forgiven where they can be. The Velari approve; the Skarn see softness.' },
       harsh: { name: 'Harsh law', effect: 'Wrongs are punished hard. Quarrels are far rarer and the Skarn respect you, but spirits settle 3 lower and the Velari disapprove.' },
+    },
+  },
+  // ----- With Law codes, in the Nation era -----
+  inheritance: {
+    name: 'Inheritance',
+    requires: 'lawCodes',
+    options: {
+      eldest: { name: 'Eldest inherits', effect: 'Lands and posts pass whole to the eldest. Governors serve with a firmer hand: their settlements bring in 5 percent more. Younger children resent it: spirits in the capital settle 2 lower.' },
+      shared: { name: 'Shared among all', effect: 'Everything is shared among the children. Spirits in the capital settle 3 higher, and the settlements are 3 more loyal.' },
+    },
+  },
+  worship: {
+    name: 'Worship',
+    requires: 'lawCodes',
+    options: {
+      oneFaith: { name: 'One faith', effect: 'One faith for the whole nation, kept at the shrines. The settlements are 5 more loyal, and spirits in the capital settle 2 higher.' },
+      manyGods: { name: 'All gods welcome', effect: 'Every people may keep its own gods. Settlers come more often, and the great nations think better of you (plus 5).' },
+    },
+  },
+  taxes: {
+    name: 'Taxes',
+    requires: 'taxes',
+    options: {
+      light: { name: 'Light taxes', effect: 'The capital and every settlement pay 1 coin each season for every 20 people. The settlements are 5 less loyal, and spirits in the capital settle 2 lower.' },
+      heavy: { name: 'Heavy taxes', effect: 'The capital and every settlement pay 1 coin each season for every 10 people. The settlements are 12 less loyal, and spirits in the capital settle 5 lower.' },
     },
   },
 };

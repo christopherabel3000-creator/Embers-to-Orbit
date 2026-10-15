@@ -332,7 +332,7 @@ test('settlements with guards drive off skirmishers; without them, settlers die 
   }
   assert.ok(killed > 0);
   assert.ok(t.harriedAt != null);
-  assert.ok(loyaltyTarget(s, t).reasons.some(([text]) => /skirmishers/.test(text)));
+  assert.ok(loyaltyTarget(s, t).reasons.some(([text]) => /killed by raiders/.test(text)));
 });
 
 test('a capital past 100 people counts its people by group', () => {

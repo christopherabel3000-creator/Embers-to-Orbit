@@ -8,13 +8,17 @@ import { listWords, capital } from './util.js';
 
 // "Brought in: 38 food from hunting and foraging, 18 food from the herds,
 // 12 wood, 18 stone, and 8 goods."
-export function incomeLine({ food = 0, herds = 0, wood = 0, stone = 0, goods = 0, foodWorkers = 0 }) {
+export function incomeLine({
+  food = 0, herds = 0, wood = 0, stone = 0, goods = 0, foodWorkers = 0, taxes = 0, routes = 0,
+}) {
   const parts = [];
   if (food > 0) parts.push(`${food} food from hunting and foraging`);
   if (herds > 0) parts.push(`${herds} food from the herds`);
   if (wood > 0) parts.push(`${wood} wood`);
   if (stone > 0) parts.push(`${stone} stone`);
   if (goods > 0) parts.push(`${goods} goods`);
+  if (taxes > 0) parts.push(`${taxes} coin in taxes`);
+  if (routes > 0) parts.push(`${routes} coin from trade routes`);
   const lines = [];
   if (parts.length) lines.push(`Brought in: ${listWords(parts)}.`);
   if (food <= 0 && foodWorkers > 0) lines.push('Hunters and foragers found nothing.');
@@ -24,7 +28,7 @@ export function incomeLine({ food = 0, herds = 0, wood = 0, stone = 0, goods = 0
 // "Used: 18 wood for the fires, 6 goods for comforts, and 3 goods to arm
 // the guards. 5 food spoiled in storage."
 export function upkeepLine({
-  fires = 0, comforts = 0, arms = 0, spoiled = 0, tools = 0, salt = 0,
+  fires = 0, comforts = 0, arms = 0, spoiled = 0, tools = 0, salt = 0, wages = 0,
 }) {
   const parts = [];
   if (fires > 0) parts.push(`${fires} wood for the fires`);
@@ -32,6 +36,7 @@ export function upkeepLine({
   if (arms > 0) parts.push(`${arms} goods to arm the guards`);
   if (tools > 0) parts.push(`${tools} iron for worn tools`);
   if (salt > 0) parts.push(`${salt} salt to keep the food`);
+  if (wages > 0) parts.push(`${wages} coin to pay the governors`);
   const lines = [];
   if (parts.length) lines.push(`Used: ${listWords(parts)}.`);
   if (spoiled > 0) lines.push(`${spoiled} food spoiled in storage.`);

@@ -7,6 +7,7 @@
 import { placeData, placeRegion } from './data.js';
 import { hasKnowledge, seasonIndex } from './state.js';
 import { hasTradition } from './legacy.js';
+import { lawIs, lawLoyalty } from './laws.js';
 import { listWords } from './util.js';
 
 // What each settlement can be. rate: what each worker at the role brings in
@@ -123,17 +124,18 @@ export function byRiver(state, t) {
 }
 
 // What a settlement sends home: its role's kind, except that a mining town
-// rakes salt where there is salt, and sends iron from ore once your people
-// know Mining.
+// rakes salt where there is salt, sends iron from ore once your people know
+// Mining, and mines silver for coin once they know Coinage.
 export function townKind(state, t) {
   const role = ROLES[t.role];
   if (t.role !== 'mining') return role.kind;
   const p = placeData(t.place);
   if (p.salt) return 'salt';
   if (p.ore && hasKnowledge(state, 'mining')) return 'iron';
+  if (p.silver && hasKnowledge(state, 'coinage')) return 'coin';
   return 'stone';
 }
-const KIND_RATE = { iron: 0.5, salt: 1 }; // For each mining town worker, instead of stone.
+const KIND_RATE = { iron: 0.5, salt: 1, coin: 0.25 }; // For each mining town worker, instead of stone.
 
 // ----- Groups -----
 
@@ -167,11 +169,23 @@ export function governorSkill(t) {
 }
 
 // A novice governor gets 85 percent from a settlement; a master of both the
-// role's skill and learning gets 130.
-export function governorFactor(t) {
+// role's skill and learning gets 130. Under the eldest-inherits law,
+// governors serve with a firmer hand: 5 percent more.
+export function governorFactor(t, state = null) {
   const g = t.governor;
-  if (!g) return 0.85;
-  return 0.85 + 0.06 * (g.skills[governorSkill(t)] || 0) + 0.03 * (g.skills.learning || 0);
+  const firm = state && lawIs(state, 'inheritance', 'eldest') ? 0.05 : 0;
+  if (!g) return 0.85 + firm;
+  return 0.85 + firm + 0.06 * (g.skills[governorSkill(t)] || 0) + 0.03 * (g.skills.learning || 0);
+}
+
+// Whether the governors were paid from the treasury last season.
+export function wagesPaid(state) {
+  return hasKnowledge(state, 'coinage') && state.wagesPaid != null && state.turn - state.wagesPaid <= 1;
+}
+
+// What paying the governors costs each season: 1 coin each.
+export function wagesDue(state) {
+  return hasKnowledge(state, 'coinage') ? (state.settlements || []).length : 0;
 }
 
 // ----- Loyalty -----
@@ -210,7 +224,10 @@ export function loyaltyTarget(state, t) {
   add(distance >= 4 ? 'being in another region' : 'being far from the capital', distance >= 4 ? -5 : distance >= 3 ? -3 : 0);
   const without = state.turn - (t.lastAid ?? t.founded);
   if (without > NEGLECT_AFTER) add(`no aid from the capital in ${Math.floor(without / 4)} years`, -Math.min(15, 3 * Math.floor((without - NEGLECT_AFTER) / 4) + 3));
-  if (t.harriedAt != null && state.turn - t.harriedAt < 4) add('settlers killed by Skarn skirmishers this past year', -5);
+  if (t.harriedAt != null && state.turn - t.harriedAt < 4) add('settlers killed by raiders this past year', -5);
+  for (const [text, n] of lawLoyalty(state)) add(text, n);
+  if (wagesPaid(state)) add('its governor paid from the treasury', 5);
+  if (t.federated) add('joining you as a free people', 5);
   const target = Math.max(0, Math.min(100, LOYALTY_BASE + reasons.reduce((sum, [, n]) => sum + n, 0)));
   return { target, reasons };
 }
@@ -235,7 +252,7 @@ export function townOutput(state, t) {
   if (!role.kind) return 0;
   const g = townGroups(state, t);
   const rate = KIND_RATE[townKind(state, t)] || role.rate;
-  let amount = g.makers * rate * landFit(t.role, t.place) * governorFactor(t)
+  let amount = g.makers * rate * landFit(t.role, t.place) * governorFactor(t, state)
     * loyaltyFactor(t.loyalty) * (1 + WORKS_BONUS * worksLevel(t));
   if (role.kind === 'food' && seasonIndex(state) === 3) amount *= 0.5; // Lean winters there too.
   if (t.role === 'farming' && hasKnowledge(state, 'astronomy')) amount *= 1.1;

@@ -3,7 +3,7 @@
 
 import { SKILLS } from './data.js';
 import {
-  living, inVillage, taskAvailable,
+  living, inVillage, taskAvailable, hasKnowledge,
 } from './state.js';
 import { newcomer } from './village.js';
 import { randomInt } from './rng.js';
@@ -65,48 +65,63 @@ export function seasonsUntilHire(state) {
   return Math.max(0, (state.lastHire ?? -99) + HIRE_GAP - state.turn);
 }
 
-export function hireBlocker(state) {
+// With Coinage, masters and sell-swords can be paid in coin instead.
+export const HIRE_MASTER_COIN = 10;
+export const SWORDS_COIN = 8;
+
+function cannotPay(state, pay, goods, coin, what) {
+  if (pay === 'coin') {
+    if (!hasKnowledge(state, 'coinage')) return 'Paying in coin needs Coinage.';
+    if ((state.resources.coin || 0) < coin) return `${what} ${coin} coin; you have ${state.resources.coin || 0}.`;
+    return null;
+  }
+  if ((state.resources.goods || 0) < goods) return `${what} ${goods} goods; you have ${state.resources.goods || 0}.`;
+  return null;
+}
+
+export function hireBlocker(state, pay = 'goods') {
   if (!inVillage(state)) return 'Only a village can hire from beyond the hills.';
   const wait = seasonsUntilHire(state);
   if (wait > 0) return `Word of your offer is still traveling. You can hire another master in ${wait} ${wait === 1 ? 'season' : 'seasons'}.`;
-  if ((state.resources.goods || 0) < HIRE_MASTER_COST) return `Hiring a master takes ${HIRE_MASTER_COST} goods; you have ${state.resources.goods || 0}.`;
-  return null;
+  return cannotPay(state, pay, HIRE_MASTER_COST, HIRE_MASTER_COIN, 'Hiring a master takes');
 }
 
 const MASTER_WORDS = {
   hunting: 'hunter', foraging: 'forager', building: 'builder', healing: 'healer', scouting: 'scout', learning: 'scholar',
 };
 
-export function hireMaster(state, skill) {
-  const why = hireBlocker(state);
+export function hireMaster(state, skill, pay = 'goods') {
+  const why = hireBlocker(state, pay);
   if (why) return { error: why };
   if (!SKILLS.includes(skill)) return { error: 'Choose a skill.' };
-  state.resources.goods -= HIRE_MASTER_COST;
+  const price = pay === 'coin' ? `${HIRE_MASTER_COIN} coin` : `${HIRE_MASTER_COST} goods`;
+  if (pay === 'coin') state.resources.coin -= HIRE_MASTER_COIN;
+  else state.resources.goods -= HIRE_MASTER_COST;
   state.lastHire = state.turn;
   const p = newcomer(state, `A master ${MASTER_WORDS[skill]}, hired from beyond the hills.`);
   for (const k of SKILLS) p.skills[k] = Math.min(p.skills[k], 2);
   p.skills[skill] = 4;
   p.age = randomInt(state, 25, 38);
-  return { message: `${p.name}, a master ${MASTER_WORDS[skill]}, has come to the village for ${HIRE_MASTER_COST} goods.` };
+  return { message: `${p.name}, a master ${MASTER_WORDS[skill]}, has come to the village for ${price}.` };
 }
 
 export function swordsActive(state) {
   return (state.swordsUntil ?? -1) > state.turn;
 }
 
-export function swordsBlocker(state) {
+export function swordsBlocker(state, pay = 'goods') {
   if (!inVillage(state)) return 'Only a village can hire sell-swords.';
   if (swordsActive(state)) return `Your sell-swords are already hired, for ${state.swordsUntil - state.turn} more ${state.swordsUntil - state.turn === 1 ? 'season' : 'seasons'}.`;
-  if ((state.resources.goods || 0) < SWORDS_COST) return `Sell-swords want ${SWORDS_COST} goods; you have ${state.resources.goods || 0}.`;
-  return null;
+  return cannotPay(state, pay, SWORDS_COST, SWORDS_COIN, 'Sell-swords want');
 }
 
-export function hireSwords(state) {
-  const why = swordsBlocker(state);
+export function hireSwords(state, pay = 'goods') {
+  const why = swordsBlocker(state, pay);
   if (why) return { error: why };
-  state.resources.goods -= SWORDS_COST;
+  if (pay === 'coin') state.resources.coin -= SWORDS_COIN;
+  else state.resources.goods -= SWORDS_COST;
   state.swordsUntil = state.turn + SWORDS_SEASONS;
-  return { message: `${SWORDS_COUNT} sell-swords from the hills have taken your goods and will guard the roads for a year. They meet raiders before they reach the village, and harry any besiegers.` };
+  return { message: `${SWORDS_COUNT} sell-swords from the hills have taken your ${pay === 'coin' ? 'coin' : 'goods'} and will guard the roads for a year. They meet raiders before they reach the village, and harry any besiegers.` };
 }
 
 // Sell-swords fight alongside allies against raiders and besiegers.

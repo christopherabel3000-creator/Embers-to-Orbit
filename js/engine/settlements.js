@@ -9,6 +9,7 @@
 import { SKILLS, placeRegion } from './data.js';
 import { REGIONS, WORLD_PLACES, WORLD_PLACE_ORDER } from './worldData.js';
 import { openWorld } from './world.js';
+import { hearOfGreat } from './great.js';
 import {
   living, inVillage, eraAtLeast, placeName, seasonIndex, isKnown, makePerson, hasKnowledge,
 } from './state.js';
@@ -207,11 +208,13 @@ export function foundSettlement(state, {
   const firstSettlement = state.era !== 'nation';
   state.era = 'nation';
   const heard = firstSettlement ? openWorld(state) : [];
+  const rumors = firstSettlement ? hearOfGreat(state) : [];
+  if (firstSettlement) state.nationFounded = state.turn;
   const whence = fromTown ? fromTown.name : state.campName;
   const names = fromTown ? `${count} settlers from ${whence}` : count > 3 ? `${going.slice(0, 3).map((p) => p.name).join(', ')}, and ${count - 3} more` : listNames(going);
   const leaving = roles.length ? `, leaving the post of ${roles.join(' and ')} to another` : '';
   const line = firstSettlement
-    ? `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your people now live in two settlements: the Nation era has begun. ${state.campName} is your capital, and the Nation screen shows every settlement.${heard.length ? ` Travelers speak of lands beyond the valley: ${listWords(heard.map((id) => REGIONS[id].name.toLowerCase()))}. Expeditions can set out for them from the World screen.` : ''}`
+    ? `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your people now live in two settlements: the Nation era has begun. ${state.campName} is your capital, and the Nation screen shows every settlement.${heard.length ? ` Travelers speak of lands beyond the valley: ${listWords(heard.map((id) => REGIONS[id].name.toLowerCase()))}. Expeditions can set out for them from the World screen.` : ''}${rumors.length ? ` ${rumors.join(' ')}` : ''}`
     : `${names} set out for ${placeName(state, placeId)} to found ${title}, a ${ROLES[chosenRole].name.toLowerCase()}, with ${governor.name} as governor${leaving}. Your nation now has ${state.settlements.length + 1} settlements.`;
   state.log.push({ turn: state.turn, date: state.report.title, text: line });
   state.report.decisions = [...(state.report.decisions || []), line];
@@ -242,6 +245,7 @@ export function setTownDemands(state, { settlementId, demands }) {
   if (error) return { error };
   if (!DEMANDS[demands]) return { error: 'Choose light, normal, or heavy demands.' };
   if (keepingAll(state, t)) return { error: `${t.name} is keeping all it makes until next year, as you allowed.` };
+  if (t.federated && demands === 'heavy') return { error: `${t.name} joined your nation as a free people, and will not bear heavy demands.` };
   t.demands = demands;
   return { message: `${DEMANDS[demands].name} demands on ${t.name}. ${DEMANDS[demands].about}` };
 }

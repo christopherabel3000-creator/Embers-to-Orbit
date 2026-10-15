@@ -155,7 +155,8 @@ function handleAction(action, btn) {
     }
     case 'hireMaster':
     case 'hireSwords': {
-      const msg = act(action === 'hireMaster' ? { type: 'hireMaster', skill: document.getElementById('hireSkill').value } : { type: 'hireSwords' });
+      const pay = btn.dataset.pay || 'goods';
+      const msg = act(action === 'hireMaster' ? { type: 'hireMaster', skill: document.getElementById('hireSkill').value, pay } : { type: 'hireSwords', pay });
       if (msg) {
         show('people', { focus: false });
         refocus('#hireHeading');
@@ -229,6 +230,16 @@ function handleAction(action, btn) {
       if (msg) {
         show('neighbors', { focus: false });
         refocus('#clansHeading', '#neighbor-skarn');
+        announce(msg);
+      }
+      break;
+    }
+    case 'greatDiplomacy': {
+      const id = btn.dataset.nation;
+      const msg = act({ type: 'greatDiplomacy', nationId: id, act: btn.dataset.act });
+      if (msg) {
+        show('neighbors', { focus: false });
+        refocus(`#great-${id}`);
         announce(msg);
       }
       break;

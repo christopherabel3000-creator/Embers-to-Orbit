@@ -23,6 +23,7 @@ import {
 } from './settlements.js';
 import { resolveSeason } from './season.js';
 import { sendExpedition, recallExpedition } from './world.js';
+import { greatDiplomacy } from './great.js';
 import { resolveRaidPlan } from './raid.js';
 import { bestWorkPlan } from './assign.js';
 import { queueBlocker, refundFor, refundWords } from './building.js';
@@ -179,10 +180,10 @@ const handlers = {
     return payBesiegers(state, { goods });
   },
 
-  hireMaster(state, { skill }) {
+  hireMaster(state, { skill, pay = 'goods' }) {
     const stop = blocked(state);
     if (stop) return stop;
-    return hireMaster(state, skill);
+    return hireMaster(state, skill, pay);
   },
 
   giftClans(state) {
@@ -191,10 +192,17 @@ const handlers = {
     return giftClans(state);
   },
 
-  hireSwords(state) {
+  hireSwords(state, { pay = 'goods' } = {}) {
     const stop = blocked(state);
     if (stop) return stop;
-    return hireSwords(state);
+    return hireSwords(state, pay);
+  },
+
+  greatDiplomacy(state, { nationId, act }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return greatDiplomacy(state, nationId, act);
   },
 
   setLaw(state, { law, option = null }) {

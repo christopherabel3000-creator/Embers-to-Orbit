@@ -7,7 +7,14 @@ import { reputationSummary, attitudeLines } from '../../engine/legacy.js';
 import { nationSummary, trustWord, valleyLines, skarnArmsWord } from '../../engine/nations.js';
 import { diplomacyOptions } from '../../engine/neighbors.js';
 import { peaceStatus } from '../../engine/peace.js';
-import { placeName, isKnown, metNeighbors, relationWord } from '../../engine/state.js';
+import {
+  placeName, isKnown, metNeighbors, relationWord, year,
+} from '../../engine/state.js';
+import { GREAT_NATIONS, GREAT_ORDER, GREAT_TREATIES } from '../../engine/greatData.js';
+import {
+  greatActs, greatRegard, greatTarget, routeIncome, tributeCost, orhaiRaidChance, inOrhaiReach,
+} from '../../engine/great.js';
+import { REGIONS } from '../../engine/worldData.js';
 import { state, esc, capitalize, listWords, plural } from '../core.js';
 
 function nationSection(id) {
@@ -48,11 +55,19 @@ export function neighborsScreen() {
   for (const id of met) {
     const def = NEIGHBORS[id];
     const n = state.neighbors[id];
+    if (n.joined) {
+      const town = (state.settlements || []).find((t) => t.federated === id);
+      html += `<h2 id="neighbor-${id}">${esc(def.title)}</h2>
+        <p>Part of your nation since Year ${year(state, n.joinedTurn - state.turn)}.${town ? ` They live at ${esc(town.name)}, a settlement of yours, governed by their chief, ${esc(town.governor.name)}.` : ''}</p>
+        ${town ? `<p><button type="button" data-action="openTown" data-town="${town.id}">${esc(town.name)}</button></p>` : ''}`;
+      continue;
+    }
     const opts = diplomacyOptions(state, id);
     const ready = opts.filter((o) => o.ok);
     const blocked = opts.filter((o) => !o.ok);
     let status = '';
-    if (id === 'skarn' && n.peace) status = ` You are at peace with them. ${peaceStatus(state)}`;
+    if (id === 'skarn' && n.vassal) status = ` They are your vassals: they pay you tribute each spring and keep the peace, for as long as they think you stronger.`;
+    else if (id === 'skarn' && n.peace) status = ` You are at peace with them. ${peaceStatus(state)}`;
     else if (id === 'skarn' && n.truceUntil > state.turn) status = ` A truce holds for ${plural(n.truceUntil - state.turn, 'more season', 'more seasons')}.`;
     html += `<h2 id="neighbor-${id}">${esc(def.title)}</h2>
       <p>Relations: ${relationWord(n.relation)} (${n.relation}).${status}</p>
@@ -78,5 +93,49 @@ export function neighborsScreen() {
       <p>How the nations feel about each other. Skarn raids embitter their victims; quarrels can bring the Velari and Tellani to blows.</p>
       <ul>${valley.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`;
   }
+  html += greatSection();
   return html;
+}
+
+// The great nations beyond the valley: rumors, then envoys once met.
+function greatSection() {
+  const heard = GREAT_ORDER.filter((id) => state.great && state.great[id].heard);
+  if (!heard.length) return '';
+  let html = `<h2 id="greatHeading">Beyond the valley</h2>
+    <p>The great nations beyond the valley. Each season you can send one envoy to each nation you have met.</p>`;
+  for (const id of heard) {
+    const def = GREAT_NATIONS[id];
+    const g = state.great[id];
+    if (!g.met) {
+      html += `<h3 id="great-${id}">${esc(def.title)}</h3><p>Known only by rumor: ${esc(def.rumor)} An expedition to ${esc(REGIONS[def.homeland].name.toLowerCase())} would find them.</p>`;
+      continue;
+    }
+    const regard = greatRegard(state, id);
+    const ties = [g.embassy ? 'an embassy' : null, ...Object.entries(GREAT_TREATIES).filter(([k]) => g.treaties[k]).map(([, t]) => t.phrase), g.married ? 'a marriage between your ruling families' : null, g.route ? `a trade route bringing ${routeIncome(state, id)} coin a season` : null].filter(Boolean);
+    const acts = greatActs(state, id);
+    const ready = acts.filter((a) => !a.why);
+    const notNow = acts.filter((a) => a.why);
+    html += `<h3 id="great-${id}">${esc(def.title)}</h3>
+      <p>Relations: ${relationWord(g.relation)} (${g.relation}), drifting toward ${greatTarget(state, id)}. Trust: ${esc(trustWord(g.trust))} (${g.trust}).</p>
+      ${regard.length ? `<p>What moves them: ${esc(listWords(regard.map(([text, n]) => `${text} (${n > 0 ? 'plus' : 'minus'} ${Math.abs(n)})`)))}.</p>` : ''}
+      <p>${esc(def.description)} ${esc(def.values)}</p>
+      <p>They want ${esc(def.wants)}, and offer ${esc(def.offers)}. ${esc(def.signature)}</p>
+      <p>${ties.length ? `Between you: ${esc(listWords(ties))}.` : 'Nothing binds you yet.'}</p>
+      ${id === 'orhai' ? `<p>${esc(orhaiStatus())}</p>` : ''}
+      ${g.memory.length ? `<p>They remember that you ${esc(listWords([...g.memory].reverse().slice(0, 4)))}.</p>` : ''}`;
+    if (g.lastEnvoy === state.turn) html += '<p>Your envoy has already gone to them this season.</p>';
+    else if (ready.length) html += `<div class="actions">${ready.map((a) => `<button type="button" data-action="greatDiplomacy" data-nation="${id}" data-act="${a.act}">${esc(a.label)}</button>`).join('')}</div>`;
+    if (g.lastEnvoy !== state.turn && notNow.length) html += `<p>Not possible now:</p><ul>${notNow.map((a) => `<li>${esc(a.label)}. ${esc(a.why)}</li>`).join('')}</ul>`;
+  }
+  return html;
+}
+
+function orhaiStatus() {
+  const g = state.great.orhai;
+  if (g.treaties.peace) return 'Under the peace pact, their riders leave your settlements alone.';
+  if (g.paidUntil > state.turn) return `Your tribute keeps their riders away for ${plural(g.paidUntil - state.turn, 'more season', 'more seasons')}. Next year they will ask for ${tributeCost(state)} coin.`;
+  const reach = (state.settlements || []).filter(inOrhaiReach);
+  return reach.length
+    ? `Their riders may fall on your settlements within their reach (${listWords(reach.map((t) => t.name))}): about ${Math.round(orhaiRaidChance(state) * 100)} percent each season.${g.angryUntil > state.turn ? ' They are angry, and come more often.' : ''}`
+    : 'None of your settlements stands within reach of their riders, on the plains or the desert edge.';
 }

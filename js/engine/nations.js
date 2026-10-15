@@ -5,7 +5,7 @@
 
 import { NEIGHBORS, NEIGHBOR_ORDER, NATIONS, TREATIES, PLACES } from './data.js';
 import {
-  living, inVillage, year, isKnown, placeName, seasonIndex, canFight, knownPlaces, taskAvailable,
+  living, inVillage, year, isKnown, placeName, seasonIndex, canFight, knownPlaces, taskAvailable, independent,
 } from './state.js';
 import {
   expectedFood, expectedWood, expectedStone, siteFor,
@@ -94,7 +94,7 @@ export function shiftBetween(state, a, b, delta) {
 // Lines for the Neighbors screen, for the pairs the player knows.
 export function valleyLines(state, word) {
   const pairs = [['velari', 'tellani'], ['velari', 'skarn'], ['tellani', 'skarn']];
-  return pairs.filter(([a, b]) => state.neighbors[a].known && state.neighbors[b].known)
+  return pairs.filter(([a, b]) => independent(state, a) && independent(state, b))
     .map(([a, b]) => `${capital(NEIGHBORS[a].name)} and ${NEIGHBORS[b].name}: ${word(between(state, a, b))} (${between(state, a, b)}).`);
 }
 
@@ -104,10 +104,12 @@ function valleyRelationsYear(state) {
   const lines = [];
   for (const [key, base] of Object.entries(VALLEY_START)) {
     const [a, b] = key.split('|');
+    if (state.neighbors[a].joined || state.neighbors[b].joined) continue;
     const now = between(state, a, b);
     if (now > base) shiftBetween(state, a, b, -Math.min(3, now - base));
     else if (now < base) shiftBetween(state, a, b, Math.min(3, base - now));
   }
+  if (state.neighbors.velari.joined || state.neighbors.tellani.joined) return lines;
   if (between(state, 'velari', 'tellani') > 0) shiftBetween(state, 'velari', 'tellani', 2); // They trade.
   if (between(state, 'velari', 'tellani') <= -40) {
     for (const id of ['velari', 'tellani']) {
@@ -305,6 +307,7 @@ export function makeTreaty(state, id, key) {
   const why = treatyBlocker(state, id, key);
   if (why) return { error: why };
   nation(state, id).treaties[key] = true;
+  if (key === 'alliance') nation(state, id).allianceSince = state.turn;
   changeRelation(state, id, 3);
   remember(state, id, `agreed to ${TREATIES[key].phrase} in Year ${year(state)}`, 2);
   return { message: `${capital(NEIGHBORS[id].name)} agreed to ${TREATIES[key].phrase}. ${TREATIES[key].effect}` };
@@ -353,7 +356,13 @@ export function skarnArmsWord(state) {
 
 // Allies send warriors when raiders come. Returns the number who come.
 export function alliedHelpers(state) {
-  return allies(state).reduce((sum, id) => sum + Math.round(nation(state, id).warriors * 0.3), 0) + swordsHelp(state) + fortressHelp(state);
+  return allies(state).reduce((sum, id) => sum + Math.round(nation(state, id).warriors * 0.3), 0) + swordsHelp(state) + fortressHelp(state) + vassalHelp(state);
+}
+
+// A fifth of the warriors of Skarn vassals stand with you when raiders come.
+export function vassalHelp(state) {
+  const nat = nation(state, 'skarn');
+  return state.neighbors.skarn.vassal && nat ? Math.round(nat.warriors * 0.2) : 0;
 }
 
 // "Your allies, the Velari, and your sell-swords": who comes to help.
@@ -364,6 +373,7 @@ export function helpersText(state) {
   if (swordsHelp(state)) parts.push('your sell-swords');
   const forts = fortresses(state).filter((t) => garrisonHelp(state, t) > 0);
   if (forts.length) parts.push(`the garrison${forts.length === 1 ? '' : 's'} of ${listWords(forts.map((t) => t.name))}`);
+  if (vassalHelp(state)) parts.push('your Skarn vassals');
   return capital(parts.join(', and '));
 }
 
@@ -463,6 +473,7 @@ export function valleyYear(state) {
   const lines = [];
   if (!nationsActive(state) || seasonIndex(state) !== 0) return lines;
   for (const id of NEIGHBOR_ORDER) {
+    if (state.neighbors[id].joined) continue; // Part of your nation now.
     const def = NATIONS[id];
     const nat = nation(state, id);
     // Plunder and trade draw newcomers: every 60 in their stores feeds one more.
@@ -516,10 +527,11 @@ export function valleyYear(state) {
 function skarnRaidsOthers(state) {
   const lines = [];
   const sk = nation(state, 'skarn');
-  if (sk.warriors < 8 || !chance(state, 0.35)) return lines;
+  const targets = ['velari', 'tellani'].filter((id) => !state.neighbors[id].joined);
+  if (state.neighbors.skarn.vassal || !targets.length || sk.warriors < 8 || !chance(state, 0.35)) return lines;
   // The Skarn fall on whoever is weaker and whom they hate more.
   const score = (id) => nation(state, id).warriors + between(state, 'skarn', id) / 10;
-  const target = ['velari', 'tellani'].sort((a, b) => score(a) - score(b))[0];
+  const target = targets.sort((a, b) => score(a) - score(b))[0];
   shiftBetween(state, 'skarn', target, -10);
   const nat = nation(state, target);
   if (nat.treaties.alliance && !state.pendingEvent && living(state).filter(canFight).length >= 3) {

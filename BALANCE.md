@@ -5,9 +5,9 @@ What the simulator says about the game's balance. [DESIGN.md](DESIGN.md) says ho
 ## Running the checks
 
 - `npm run simulate` plays 200 five-year campaigns with each of three strategies. `node tools/simulate.mjs [games] [years] [strategies]` changes the count, the length, and the strategies (comma-separated).
-- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds settlements when ready (up to 6, one every two years at most, from the capital only while it keeps 55 people: the first with heavy demands, the rest normal, salt and iron first, then the richest land, each taking the role its land suits and the most learned governor it can), sends an expedition of 5 for 3 seasons whenever none is out (to the nearest region with places left, led by its best scout), sends aid to any settlement whose loyalty falls below 55, builds roads once it knows how, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
+- Strategies: **sensible** assigns people by hand each season, feasts when the stores are nearly full, and fights a raid when the odds are at least even. **orders** leaves everything to standing orders. **idle** does nothing, as a floor. **village** uses standing orders, becomes a village as soon as it can, claims bordering land, founds settlements when ready (up to 6, one every two years at most, from the capital only while it keeps 55 people: the first with heavy demands, the rest normal, salt and iron first, then the richest land, each taking the role its land suits and the most learned governor it can), sends an expedition of 5 for 3 seasons whenever none is out (to the nearest region with places left, led by its best scout), sends an envoy each season to each great nation it has met (an embassy, treaties, a trade route, or a marriage when it can, otherwise a sale of goods beyond 80, salt beyond 40, or iron beyond 60), sends aid to any settlement whose loyalty falls below 55, builds roads once it knows how, fights a raid when the odds are at least even, and sallies against a siege when the war chief gives it three chances in five, or even odds when a crop is sown (besiegers burn it). It spends goods the way a player would, keeping 40 in hand: sell-swords when the Skarn could field as many warriors as it has fighters, a caravan when food runs low, a master each year, and gifts to the hill clans when 150 goods would still be left. It uses no other diplomacy unless asked.
 - `DIFFICULTY=easy` (or normal, hard, insane) sets the difficulty; runs use Normal, the default for a new game, unless told otherwise. Notes before October 14, 2026 were measured on what is now Easy.
-- Settings for the village strategy, as environment variables: `MAXTOWNS=1` caps how many settlements it founds (6 by default); `NOAID=1` never sends aid to its settlements; `NOEXPLORE=1` sends no expeditions; `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
+- Settings for the village strategy, as environment variables: `MAXTOWNS=1` caps how many settlements it founds (6 by default); `NOAID=1` never sends aid to its settlements; `NOEXPLORE=1` sends no expeditions; `NOGREAT=1` sends no envoys to the great nations; `TAXES=light` (or heavy) sets the tax law once it can; `NOSPEND=1` keeps it from spending goods; `FOODSTORES=4` (or 6, 8, 12, full) sets the food stores; `CLANGIFT=1` sends gifts to the hill clans whenever it can; `PEACE=1` seeks a lasting peace with the Skarn, and `PEACE=honor` also honors it when warned; `LAWS="food=byWork,service=militia"` tries a set of laws.
 - `npm run battles` fights hundreds of battles to check combat odds.
 - Each run counts fights won and not won (raids, sallies, ambushes, and attacks on Skarn hold) and ambushes scattered from. Before October 14, 2026, the count missed sallies and raids the simulated player answered itself, so older notes undercount lost fights.
 
@@ -62,6 +62,22 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 ## Notes by system
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
+
+### The Nation era, phase 3: the first great nations (October 14, 2026)
+
+Thirty-five-year campaigns on Normal, with the village strategy:
+
+| | Capital | Whole nation | Goods | Coin | Embassies | Trade routes | Orhai peace pacts |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Envoys to the great nations | 61 | 153 | 282 | 622 | 1.9 | 1.4 | 99 of 194 |
+| No envoys | 62 | 155 | 594 | 2 | 0 | 0 | 0 |
+| Envoys, and light taxes | 60 | 152 | 269 | 683 | 1.9 | 1.3 | 78 of 194 |
+
+- **Meeting them.** Expeditions reach both homelands in nearly every Nation-era campaign by year 35 (the Ostrani in 185 of 194, the Orhai in 188).
+- **Goods.** Selling goods to the great nations halves what piles up by year 35 (about 280 instead of about 590). Coin now piles up instead, about 600 to 700: wages, hiring, tribute, embassies, and routes use only part of it. Paid soldiers (the standing army of phase 4) will be the large, steady use.
+- **The Orhai.** The simulated nation rarely settles the plains or the desert edge (it prefers salt, iron, and the richest land elsewhere), so their riders seldom find a settlement to raid; a player who settles within their reach will meet them sooner and harder. A peace pact comes in about half of the campaigns, a little less with taxes (which leave less to spend on embassies).
+- **Joining.** The Velari or the Tellani join the nation in about 56 of 194 campaigns by year 35, and the Skarn become vassals in 1 or 2, since the simulated village rarely breaks them.
+- **The Settlement era** is unchanged: with one settlement and no exploring, twenty-year villages end with 55 people in the capital, 2 of 200 wiped out, and 178 reaching the Nation era.
 
 ### The Nation era, phase 2: the wider world (October 14, 2026)
 

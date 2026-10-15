@@ -2,7 +2,9 @@
 // what rots when the stores overflow, and feasts.
 
 import { NEIGHBORS, NEIGHBOR_ORDER, OVERFLOW_ROT } from './data.js';
-import { living, storageCapacity, inVillage } from './state.js';
+import {
+  living, storageCapacity, inVillage, independent,
+} from './state.js';
 import { recordDeed, hasTradition } from './legacy.js';
 import { changeRelation } from './neighbors.js';
 import { clamp } from './util.js';
@@ -73,7 +75,7 @@ export function seasonsUntilFeast(state) {
 
 // Peoples who could be invited: known, and willing to come.
 export function feastGuests(state) {
-  return NEIGHBOR_ORDER.filter((id) => state.neighbors[id].known && state.neighbors[id].relation > -60);
+  return NEIGHBOR_ORDER.filter((id) => independent(state, id) && state.neighbors[id].relation > -60);
 }
 
 // Why a feast cannot be held now, or null if it can.

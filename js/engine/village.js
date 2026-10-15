@@ -140,6 +140,7 @@ export function settlerChance(state) {
   if (hasTradition(state, 'hearth')) p += 0.1;
   if (hasKnowledge(state, 'elders')) p += 0.1; // Word of a fair council spreads.
   if (lawIs(state, 'strangers', 'open')) p += 0.1;
+  if (lawIs(state, 'worship', 'manyGods')) p += 0.1; // All gods welcome.
   return p;
 }
 

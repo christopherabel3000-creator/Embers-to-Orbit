@@ -18,7 +18,7 @@ export const REGIONS = {
     description: 'Downriver, the valley opens into a country of long lakes, reed beds, and slow channels. Fish, fowl, and easy water.',
   },
   coast: {
-    name: 'The coast', dir: 'south, beyond the lakes', neighbors: ['lakes', 'desert'], river: true,
+    name: 'The coast', dir: 'south, beyond the lakes', neighbors: ['lakes', 'desert', 'delta'], river: true,
     heard: 'Beyond the lakes, they say, the water turns salt and runs to the edge of the sky.',
     description: 'Where the lakes drain into the sea: dunes, salt marsh, and grey water to the edge of sight.',
   },
@@ -28,7 +28,7 @@ export const REGIONS = {
     description: 'Bare red hills east of the valley, scarred where the rock bleeds rust. The passes close with snow in winter.',
   },
   plains: {
-    name: 'The great plains', dir: 'west', neighbors: ['valley', 'lakes', 'desert'],
+    name: 'The great plains', dir: 'west', neighbors: ['valley', 'lakes', 'desert', 'steppe'],
     heard: 'West of the valley the forest ends, and the grass begins.',
     description: 'West of the valley the trees give way to grass: a sea of it, rolling to the sky.',
   },
@@ -38,7 +38,7 @@ export const REGIONS = {
     description: 'Dark pine forest running north, where winter comes early and stays late. The best timber, and the hardest winters.',
   },
   desert: {
-    name: 'The desert edge', dir: 'southwest, beyond the plains', neighbors: ['plains', 'coast'],
+    name: 'The desert edge', dir: 'southwest, beyond the plains', neighbors: ['plains', 'coast', 'delta', 'steppe'],
     heard: 'Past the plains, travelers say, the grass thins to sand.',
     description: 'Beyond the plains the grass thins to sand and stone. Caravan tracks lead south to peoples no one in the valley has seen.',
   },
@@ -46,6 +46,17 @@ export const REGIONS = {
     name: 'The old ruins', dir: 'northeast', neighbors: ['woods', 'hills'],
     heard: 'Hunters speak of broken stone towns in the northeast, older than any people they know.',
     description: 'The broken towns of a people who lived here long before yours, half buried in moss.',
+  },
+  // The homelands of the great nations, at the edges of the map.
+  delta: {
+    name: 'The Ostran delta', dir: 'far south, along the coast', neighbors: ['coast', 'desert'], nation: 'ostrani',
+    heard: 'Far down the coast, they say, the great river of the south meets the sea in a thousand channels, and the Ostrani build their city on them.',
+    description: 'A maze of channels, islands, and quays where the great southern river meets the sea: the homeland of the Ostrani.',
+  },
+  steppe: {
+    name: 'The far steppe', dir: 'far west, beyond the plains', neighbors: ['plains', 'desert'], nation: 'orhai',
+    heard: 'Beyond the plains, they say, the grass runs on for a month\'s ride, and the Orhai ride it.',
+    description: 'Short grass and wide sky from one edge of the world to the other: the homeland of the Orhai.',
   },
 };
 export const REGION_ORDER = Object.keys(REGIONS);
@@ -106,6 +117,10 @@ export const WORLD_PLACES = {
     region: 'hills', kind: 'people', name: 'Cairn steading', people: 'cairnFolk', tasks: [], bonus: {},
     description: 'Stone houses behind stone walls, home of the Cairn folk, a hill clan that has never bowed to the Skarn.',
   },
+  silverBeck: {
+    region: 'hills', kind: 'settle', name: 'Silver beck', tasks: ['quarry'], silver: true, bonus: { quarry: 1 },
+    description: 'A stream that runs bright over veins of silver. A mining town here would mine silver for coin, once your people know Coinage.',
+  },
   // The great plains
   horseGrounds: {
     region: 'plains', kind: 'settle', name: 'Wild horse grounds', tasks: ['hunt', 'forage'], horses: true, bonus: { hunt: 2 },
@@ -161,6 +176,32 @@ export const WORLD_PLACES = {
   stoneCircle: {
     region: 'ruins', kind: 'wonder', name: 'Stone circle', tasks: [], bonus: {}, study: 20,
     description: 'A ring of standing stones aligned to the midwinter sunrise. Whoever raised them watched the sky closely.',
+  },
+  // The Ostran delta
+  ostra: {
+    region: 'delta', kind: 'nation', name: 'Ostra', nation: 'ostrani', tasks: [], bonus: {},
+    description: 'The city of a hundred quays, built on islands and stilts, where ships from every coast unload.',
+  },
+  greatLight: {
+    region: 'delta', kind: 'wonder', name: 'The great light', tasks: [], bonus: {},
+    description: 'A stone tower on the outermost island, with a fire on top that burns all night to bring the ships home.',
+  },
+  tollBridge: {
+    region: 'delta', kind: 'route', name: 'The toll bridges', tasks: [], bonus: {},
+    description: 'Bridges across the channels, each with a toll-keeper and a ledger. Everything that comes into Ostra passes here.',
+  },
+  // The far steppe
+  orhaiCamp: {
+    region: 'steppe', kind: 'nation', name: 'The great camp', nation: 'orhai', tasks: [], bonus: {},
+    description: 'A city of felt tents and horse lines that moves with the seasons, home of the Orhai khans.',
+  },
+  kurganField: {
+    region: 'steppe', kind: 'ruins', name: 'Barrow field', tasks: [], bonus: {}, study: 25,
+    description: 'Burial mounds of ancient riders, each with a carved stone face looking west.',
+  },
+  horseFair: {
+    region: 'steppe', kind: 'route', name: 'The horse fair', tasks: [], bonus: {},
+    description: 'Where the Orhai clans meet each summer to race, trade horses, and settle feuds.',
   },
 };
 export const WORLD_PLACE_ORDER = Object.keys(WORLD_PLACES);

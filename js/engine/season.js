@@ -9,13 +9,17 @@ import {
   hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage, capitalCounted, saltNeeded,
 } from './state.js';
 import { maybeSettlers, isNotable, CAPITAL_COUNTED_FROM } from './village.js';
-import { lawSettle } from './laws.js';
 import { spendGoods } from './goods.js';
 import {
   besieged, OUTSIDE_TASKS, siegeSeason, skarnApproach, startSiege, ravage,
 } from './siege.js';
-import { settlementsSeason, harrySettlements } from './settlements.js';
-import { townStudy } from './realm.js';
+import { settlementsSeason, harrySettlements, townDefense } from './settlements.js';
+import { townStudy, wagesDue } from './realm.js';
+import {
+  routesIncome, orhaiSeason, greatSeason, drawMarket,
+} from './great.js';
+import { lawSettle, taxRate } from './laws.js';
+import { vassalYear } from './union.js';
 import { expeditionsSeason } from './world.js';
 import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
 import { peaceYear } from './peace.js';
@@ -66,7 +70,7 @@ export function resolveSeason(state) {
   // is gathered here and reported in a few short lines after the news.
   const routine = [];
   const upkeep = {
-    fires: 0, comforts: 0, arms: 0, spoiled: 0, tools: 0, salt: 0,
+    fires: 0, comforts: 0, arms: 0, spoiled: 0, tools: 0, salt: 0, wages: 0,
   };
   const s = seasonIndex(state);
   const sieged = besieged(state); // No one works outside the walls.
@@ -149,7 +153,23 @@ export function resolveSeason(state) {
   state.resources.food += herds;
   const hunters = sieged ? 0 : people.filter((p) => p.task === 'hunt' || p.task === 'forage').length;
   recordDeed(state, 'hunterSeasons', people.filter((p) => p.task === 'hunt').length);
-  const income = incomeLine({ food, herds, wood, stone, goods, foodWorkers: hunters });
+  // Coin: taxes from the capital and the settlements, and trade routes.
+  const rate = taxRate(state);
+  const taxes = rate ? Math.floor(people.length / rate) + (state.settlements || []).reduce((sum, t) => sum + Math.floor(t.population / rate), 0) : 0;
+  const routes = routesIncome(state);
+  state.resources.coin = (state.resources.coin || 0) + taxes + routes;
+  const income = incomeLine({
+    food, herds, wood, stone, goods, foodWorkers: hunters, taxes, routes,
+  });
+  // Governors are paid from the treasury, if there is coin to pay them.
+  const due = wagesDue(state);
+  if (due > 0 && state.resources.coin >= due) {
+    state.resources.coin -= due;
+    upkeep.wages = due;
+    state.wagesPaid = state.turn;
+  } else if (due > 0 && state.wagesPaid === state.turn - 1) {
+    urgent.push(`The treasury could not pay the governors this season. They need ${due} coin, 1 each; until they are paid, their settlements lose the loyalty pay earns.`);
+  }
   if (sieged && people.some((p) => OUTSIDE_TASKS.includes(p.task))) urgent.push('The Skarn siege kept everyone inside the walls: no one could hunt, forage, farm, cut wood or stone, or scout.');
   if (counted) {
     // A large capital names only its notable people.
@@ -437,6 +457,8 @@ export function resolveSeason(state) {
   const survivors = living(state);
   refreshAdvisors(state);
   driftRelations(state);
+  greatSeason(state); // The great nations' attitudes drift too.
+  drawMarket(state); // With free markets, prices change each season.
   if (state.raidThreat && state.pendingEvent && state.pendingEvent.type === 'raid') state.raidThreat = false;
 
   if (survivors.length === 0) {
@@ -459,6 +481,11 @@ export function resolveSeason(state) {
     const peace = peaceYear(state); // The Skarn weigh the peace, and their chief.
     urgent.push(...peace.urgent);
     events.push(...peace.events);
+    if (seasonIndex(state) === 0) {
+      const vassal = vassalYear(state); // Skarn vassals pay tribute, or rebel.
+      urgent.push(...vassal.urgent);
+      events.push(...vassal.events);
+    }
     if (living(state).length === 0) {
       state.gameOver = true;
       urgent.push(`The last of your people are gone. The fire at ${state.campName} has gone out.`);
@@ -470,6 +497,9 @@ export function resolveSeason(state) {
       if (ev && ev.ambush && !ev.battle) ev.battle = createBattle(state, ev);
     }
     if (!state.siege) urgent.push(...harrySettlements(state));
+    const riders = orhaiSeason(state, townDefense); // The Orhai raid settlements within their reach.
+    urgent.push(...riders.urgent);
+    events.push(...riders.events);
     const happened = maybeStartEvent(state);
     urgent.push(...happened.urgent);
     events.push(...happened.events);

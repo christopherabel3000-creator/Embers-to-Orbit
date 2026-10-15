@@ -100,6 +100,7 @@ function storesSection() {
   if (taskAvailable(state, 'craft') || state.resources.goods) extras.push(`Goods: ${state.resources.goods || 0}, made by crafters, for trade, fine gifts, and grand buildings.`);
   if (state.buildings.pasture) extras.push(`Pastures give ${state.buildings.pasture * 6} food every season.`);
   if (state.resources.iron || hasKnowledge(state, 'ironWorking')) extras.push(`Iron: ${state.resources.iron || 0}, from mining towns${hasKnowledge(state, 'ironWorking') ? `. While there is iron, builders, quarriers, and woodcutters use iron tools, which wear out` : ''}.`);
+  if (state.resources.coin || hasKnowledge(state, 'coinage')) extras.push(`Coin: ${state.resources.coin || 0}, from trade with the great nations, trade routes, taxes, and silver.`);
   if (state.resources.salt || hasKnowledge(state, 'salting')) extras.push(`Salt: ${state.resources.salt || 0}, from mining towns at salt flats and pans${hasKnowledge(state, 'salting') ? `. While there is salt, the stores spoil half as much, using ${saltNeeded(state)} salt a season now` : ''}.`);
   if (extras.length) html += `<p>${esc(extras.join(' '))}</p>`;
   const lean = leanTimesNow(state);

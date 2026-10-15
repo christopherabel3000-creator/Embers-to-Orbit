@@ -131,7 +131,8 @@ test('justice: harsh law makes quarrels rarer and pleases the Skarn; mercy pleas
 
 test('laws reject unknown choices', () => {
   const s = village();
-  assert.match(applyAction(s, { type: 'setLaw', law: 'taxes', option: 'high' }).error, /Unknown law/);
+  assert.match(applyAction(s, { type: 'setLaw', law: 'tithes', option: 'high' }).error, /Unknown law/);
+  assert.match(applyAction(s, { type: 'setLaw', law: 'taxes', option: 'light' }).error, /needs Taxes first/);
   assert.match(applyAction(s, { type: 'setLaw', law: 'food', option: 'feast' }).error, /Unknown choice/);
   assert.match(applyAction(s, { type: 'setLaw', law: 'food', option: null }).error, /already the law/);
 });

@@ -4,7 +4,7 @@
 
 import { NEIGHBORS, PRIORITY_AREAS, SKILLS, PLACES } from './data.js';
 import {
-  living, inVillage, seasonIndex, year, placeName, knownPlaces, canFight, personById,
+  living, inVillage, seasonIndex, year, placeName, knownPlaces, canFight, personById, independent,
 } from './state.js';
 import { advisorPerson, ADVISOR_ROLES } from './advisors.js';
 import { GROUP_NAMES, newcomer } from './village.js';
@@ -85,7 +85,7 @@ function objection(state) {
 // Neighboring nations whose land touches land the village holds.
 function borderNeighbors(state) {
   if (!nationsActive(state)) return [];
-  return ['velari', 'tellani'].filter((id) => state.neighbors[id].known && Object.keys(state.places)
+  return ['velari', 'tellani'].filter((id) => independent(state, id) && Object.keys(state.places)
     .some((pl) => owner(state, pl) === 'player' && PLACES[pl].neighbors.some((n) => owner(state, n) === id)));
 }
 
@@ -355,9 +355,9 @@ export const VILLAGE_EVENTS = {
 
   marriage: {
     choice: true,
-    weight: (state) => (inVillage(state) && ['velari', 'tellani'].some((id) => state.neighbors[id].known && state.neighbors[id].relation >= 20) ? 0.35 : 0),
+    weight: (state) => (inVillage(state) && ['velari', 'tellani'].some((id) => independent(state, id) && state.neighbors[id].relation >= 20) ? 0.35 : 0),
     start(state) {
-      return { from: pick(state, ['velari', 'tellani'].filter((id) => state.neighbors[id].known && state.neighbors[id].relation >= 20)) };
+      return { from: pick(state, ['velari', 'tellani'].filter((id) => independent(state, id) && state.neighbors[id].relation >= 20)) };
     },
     view(state, ev) {
       const who = NEIGHBORS[ev.from];
@@ -434,11 +434,11 @@ export const VILLAGE_EVENTS = {
     weight: (state) => {
       if (!nationsActive(state) || state.laws?.strangers === 'closed') return 0;
       const sk = nation(state, 'skarn');
-      return sk && sk.warriors >= 10 && ['velari', 'tellani'].some((id) => state.neighbors[id].known) ? 0.35 : 0;
+      return sk && sk.warriors >= 10 && ['velari', 'tellani'].some((id) => independent(state, id)) ? 0.35 : 0;
     },
     start(state) {
       return {
-        from: pick(state, ['velari', 'tellani'].filter((id) => state.neighbors[id].known)),
+        from: pick(state, ['velari', 'tellani'].filter((id) => independent(state, id))),
         count: randomInt(state, 3, 5),
       };
     },

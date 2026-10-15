@@ -99,7 +99,7 @@ function updateStatus() {
     + `food ${state.resources.food} of ${storageCapacity(state)}, wood ${state.resources.wood}, `
     + `${taskAvailable(state, 'quarry') || state.resources.stone ? `stone ${state.resources.stone || 0}, ` : ''}`
     + `${taskAvailable(state, 'craft') || state.resources.goods ? `goods ${state.resources.goods || 0}, ` : ''}`
-    + `${state.resources.iron ? `iron ${state.resources.iron}, ` : ''}${state.resources.salt ? `salt ${state.resources.salt}, ` : ''}`
+    + `${state.resources.iron ? `iron ${state.resources.iron}, ` : ''}${state.resources.salt ? `salt ${state.resources.salt}, ` : ''}${state.resources.coin ? `coin ${state.resources.coin}, ` : ''}`
     + `shelter for ${shelterCapacity(state)}.${state.siege ? ' Under siege.' : ''}`
     + `${(state.settlements || []).length ? ` ${plural(state.settlements.length, 'other settlement', 'other settlements')}.` : ''}`;
 }

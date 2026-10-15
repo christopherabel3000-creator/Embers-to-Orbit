@@ -5,8 +5,10 @@
 
 import {
   FOES, WAR_FOES, WAR_SCORE, PEACE_TERMS, PEACE_ORDER, TRIBUTE_YEARS, TRIBUTES, LAND_TERMS, WAR_TRUCE,
-  KILLED_SHARE, FOE_KINDS, COMPANY_SIZE,
+  KILLED_SHARE, FOE_KINDS, COMPANY_SIZE, HOSTS,
 } from './armyData.js';
+import { REGIONS } from './worldData.js';
+import { GREAT_TREATIES } from './greatData.js';
 import {
   createField, autoField, estimateField, soldiersIn, fighting, SOLDIER,
 } from './field.js';
@@ -19,14 +21,14 @@ import {
 } from './warStatus.js';
 import { NEIGHBORS, NEIGHBOR_ORDER, placeRegion } from './data.js';
 import {
-  living, year, seasonIndex, eraAtLeast, placeName,
+  living, year, seasonIndex, eraAtLeast, placeName, hasKnowledge,
 } from './state.js';
 import {
   nation, skarnArms, skarnLosses, remember, landsOf,
 } from './nations.js';
 import { clans, clansMarching } from './clans.js';
 import {
-  great, greatMet, changeGreat, greatRemember, ORHAI_REACH, tributeCost,
+  great, greatMet, changeGreat, greatRemember, tributeCost,
 } from './great.js';
 import { changeRelation } from './neighbors.js';
 import { endPeace } from './peace.js';
@@ -37,7 +39,7 @@ import { startSiege } from './siege.js';
 import { recordDeed } from './legacy.js';
 import { chance, pick } from './rng.js';
 import {
-  clamp, listWords, plural, capital,
+  clamp, listWords, plural, capital, lowerFirst,
 } from './util.js';
 
 export { atWar };
@@ -60,7 +62,7 @@ function nationYears(state) {
 export function foeWorth(state, foe) {
   if (foe === 'skarn' || foe === 'clans') return skarnArms(state);
   if (foe === 'orhai') return Math.min(2.4, 1.8 + 0.03 * nationYears(state));
-  return 2.2;
+  return FOES[foe].worth || 2.2;
 }
 
 // Everyone they could send to fight.
@@ -130,6 +132,11 @@ export function wouldBreakWord(state, foe) {
   return Boolean(g && g.treaties && g.treaties.peace);
 }
 
+function hostWords(foe) {
+  return { orhai: 'their hosts will ride against your armies and settlements on the plains and the desert edge', ostrani: 'their galleys will raid your settlements on the coast and in the lake country' }[foe]
+    || `${HOSTS[foe].who.replace(/^An? /, '').toLowerCase()} will come against your armies and settlements in ${listWords(HOSTS[foe].reach.map((r) => lowerFirst(REGIONS[r].name)))}`;
+}
+
 export function foeMet(state, foe) {
   if (foe === 'skarn') return Boolean(state.neighbors.skarn.known && nation(state, 'skarn'));
   return greatMet(state, foe);
@@ -143,6 +150,7 @@ export function warBlocker(state, foe) {
   const ended = (state.warEnded || {})[foe];
   if (ended != null && state.turn - ended < WAR_TRUCE) return `You made peace with ${foeName(foe)} less than two years ago, and your word holds until then.`;
   if (foe === 'skarn' && state.neighbors.skarn.vassal) return 'The Skarn are your vassals.';
+  if (hasKnowledge(state, 'assembly') && (!warReason(state, foe) || wouldBreakWord(state, foe))) return 'The assembly will not vote for a war without a reason, or one that breaks your word.';
   return null;
 }
 
@@ -154,8 +162,7 @@ export function warCostWords(state, foe) {
   if (reason && !broken) parts.push(`You have a reason: ${reason}.`);
   else parts.push(`${broken ? 'It would break your word to them' : 'You have no reason your people would accept'}: every other people would think less of you (relations 10 lower), and your settlements would be 5 less loyal for two years.`);
   if (foe === 'skarn') parts.push('Their raids go on as before, and your armies could raid their land or besiege Skarn hold.');
-  if (foe === 'orhai') parts.push('Their embassy, treaties, and trade with you end, and their hosts will ride against your armies and settlements on the plains and the desert edge.');
-  if (foe === 'ostrani') parts.push('Their embassy, treaties, trade, and trade route end, and their galleys will raid your settlements on the coast and in the lake country.');
+  if (foe !== 'skarn') parts.push(`Their embassy, treaties, trade, and trade route end, and ${hostWords(foe)}.${REGIONS[FOES[foe].home].sea ? ' Your armies cannot reach their islands.' : ''}`);
   return parts.join(' ');
 }
 
@@ -309,7 +316,8 @@ function applyOurLosses(state, ev, outcome) {
     if (!c) continue;
     const lost = Math.min(c.soldiers, Math.round(u.start - u.soldiers));
     if (lost <= 0) continue;
-    const k = Math.round(lost * KILLED_SHARE[outcome === 'won' ? 'won' : 'lost']);
+    // Physicians save a third of those who would have died.
+    const k = Math.round(lost * KILLED_SHARE[outcome === 'won' ? 'won' : 'lost'] * (hasKnowledge(state, 'physicians') ? 2 / 3 : 1));
     heroes.push(...companyLosses(state, c, k, lost - k));
     killed += k;
     wounded += lost - k;
@@ -447,17 +455,18 @@ export function sackTown(state, t, foe) {
   return `${capital(foeName(foe))} sacked ${t.name}: ${plural(lost, 'settler was', 'settlers were')} killed or carried off, and its people feel abandoned.`;
 }
 
-// Where their hosts can reach.
+// Where their hosts can reach: a peace that pushed them back holds them to
+// their homeland.
 function hostReach(state, foe) {
-  if (foe === 'orhai') return great(state, 'orhai').pulledBack ? ['steppe'] : ORHAI_REACH;
-  if (foe === 'ostrani') return ['coast', 'lakes', 'delta'];
-  return [];
+  const g = great(state, foe);
+  if (g && g.pulledBack) return [FOES[foe].home];
+  return HOSTS[foe] ? HOSTS[foe].reach : [];
 }
 
 // The chance a settlement holds out against a host without an army: as
 // against skirmishers, but harder, and a keep holds far longer.
 export function holdOutChance(state, t) {
-  return Math.min(0.95, townDefense(state, t) * 0.6 + (t.buildings.keep ? 0.3 : 0));
+  return Math.min(0.95, townDefense(state, t) * 0.6 + (t.buildings.keep ? 0.3 : 0) + (hasKnowledge(state, 'wells') ? 0.1 : 0));
 }
 
 // At war, the Orhai and the Ostrani send hosts against your settlements and
@@ -465,11 +474,11 @@ export function holdOutChance(state, t) {
 function hostSeason(state, foe) {
   const lines = [];
   if (homeBesieged(state, foe)) return lines;
-  if (!chance(state, foe === 'orhai' ? 0.4 : 0.3)) return lines;
+  if (!chance(state, HOSTS[foe].chance)) return lines;
   const size = Math.max(12, Math.round(foeForce(state, foe) * (foe === 'orhai' ? 0.35 : 0.3)));
   const reach = hostReach(state, foe);
   const towns = (state.settlements || []).filter((t) => reach.includes(placeRegion(t.place)));
-  const who = foe === 'orhai' ? 'An Orhai host' : 'Ostrani galleys';
+  const who = HOSTS[foe].who;
   if (towns.length) {
     const t = pick(state, towns);
     const region = placeRegion(t.place);
@@ -662,6 +671,10 @@ export function payCost(state, foe) {
   return { coin: 40 };
 }
 
+function hasLand(foe) {
+  return Boolean(LAND_TERMS[foe]);
+}
+
 function costText(cost) {
   return listWords(Object.entries(cost).map(([k, n]) => `${n} ${k}`));
 }
@@ -685,6 +698,7 @@ export function peaceOptions(state, foe) {
   for (const id of PEACE_ORDER) {
     const t = PEACE_TERMS[id];
     if (t.only && !t.only.includes(foe)) continue;
+    if (id === 'land' && !hasLand(foe)) continue;
     if (id === 'pay') {
       const cost = payCost(state, foe);
       if (!short(needScore('white', foe))) continue; // Only when they will not take even terms.
@@ -737,11 +751,12 @@ export function makePeace(state, { foe, terms }) {
     }
   } else {
     const g = great(state, foe);
-    if (foe === 'orhai') g.treaties.peace = true;
+    if (GREAT_TREATIES.peace.with.includes(foe)) g.treaties.peace = true;
     changeGreat(state, foe, 10);
     greatRemember(state, foe, `made peace with you in Year ${year(state)}`, 5);
-    if (terms === 'land' && foe === 'orhai') g.pulledBack = true;
+    if (terms === 'land' && ['orhai', 'dravan', 'haldi'].includes(foe)) g.pulledBack = true;
     if (terms === 'land' && foe === 'ostrani') g.quay = true;
+    if (terms === 'land' && foe === 'ashani') g.richRoute = true;
     if (terms === 'land') lines.push(LAND_TERMS[foe]);
   }
   if (terms === 'tribute') {
@@ -749,7 +764,7 @@ export function makePeace(state, { foe, terms }) {
     state.tributes.push({ foe, until: state.turn + 4 * TRIBUTE_YEARS, ...TRIBUTES[foe] });
     lines.push(`They will pay ${tributeText(foe)}.`);
   }
-  if (foe === 'orhai') lines.push('A peace pact holds between you: their riders leave your settlements alone, and they will trade.');
+  if (GREAT_TREATIES.peace.with.includes(foe)) lines.push('A peace pact holds between you: their raiders leave your settlements alone, and they will trade.');
   return { message: `Peace with ${foeName(foe)}${terms === 'pay' ? ', bought and paid for' : ''}. ${lines.join(' ')}`.trim() };
 }
 
@@ -764,7 +779,7 @@ export function tributesYear(state) {
   for (const t of state.tributes) {
     if (t.until <= state.turn) continue;
     const got = [];
-    for (const res of ['food', 'goods', 'coin', 'horses']) {
+    for (const res of ['food', 'goods', 'coin', 'horses', 'iron']) {
       if (!t[res]) continue;
       state.resources[res] = (state.resources[res] || 0) + t[res];
       got.push(`${t[res]} ${res}`);
@@ -811,7 +826,7 @@ export function warSeason(state) {
       out.urgent.push(...siegeSeason(state, army));
     }
   }
-  for (const foe of ['orhai', 'ostrani']) if (atWar(state, foe)) out.urgent.push(...hostSeason(state, foe));
+  for (const foe of Object.keys(HOSTS)) if (atWar(state, foe)) out.urgent.push(...hostSeason(state, foe));
   if (seasonIndex(state) === 0 && warYears(state) >= 2) {
     const tired = warWeariness(state);
     out.events.push(`The war is in its ${ORDINALS[warYears(state)] || `${warYears(state) + 1}th`} year. Your people tire of it: the settlements are ${tired.loyalty} less loyal, and spirits in ${state.campName} settle ${tired.spirits} lower.`);

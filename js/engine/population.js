@@ -1,7 +1,9 @@
 // Who can have children, and how likely births are right now.
 // Kept separate so the advisors can read it without import cycles.
 
-import { living, foodNeeded, shelterNeeded, shelterCapacity } from './state.js';
+import {
+  living, foodNeeded, shelterNeeded, shelterCapacity, eraAtLeast,
+} from './state.js';
 
 export const CHILDBEARING = [18, 40];
 
@@ -20,7 +22,7 @@ export function birthOutlook(state) {
   // Up to one birth a season, until the Nation era, when a large capital
   // can have several.
   let p = 0.04 * (possibleParents / 2);
-  if (state.era !== 'nation') p = Math.min(0.5, p);
+  if (!eraAtLeast(state, 'nation')) p = Math.min(0.5, p);
   if (state.resources.food < foodNeeded(people) * 2) {
     p *= 0.3;
     reasons.push('food is short');

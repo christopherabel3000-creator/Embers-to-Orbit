@@ -682,6 +682,103 @@ export const KNOWLEDGE = {
     excludes: ['levies'],
     effect: 'Soldiers by trade, always ready and well trained: new companies are worth a quarter more in battle, and their settlements do not miss them, but each company costs 2 coin a season. Choosing this closes off levies.',
   },
+
+  // ----- The Nation era: toward the sea -----
+  cropRotation: {
+    branch: 'food', era: 'nation',
+    name: 'Crop rotation',
+    cost: 90,
+    after: ['irrigation'],
+    effect: 'Beans and clover in turn with the grain, so the land rests. Every plot yields 2 more food, a drought takes a tenth of the harvest instead of a fifth, and farming towns send home a tenth more.',
+  },
+  plough: {
+    branch: 'food', era: 'nation',
+    name: 'The plough',
+    cost: 100,
+    after: ['ironWorking', 'horseBreeding'],
+    effect: 'Iron ploughs drawn by horses. With 10 or more horses in store, each farmer plants, tends, and harvests half again as many plots, and farming towns send home a fifth more.',
+  },
+  mills: {
+    branch: 'food', era: 'nation',
+    name: 'Mills',
+    cost: 90,
+    after: ['masonry'],
+    effect: 'Water mills that grind the grain. Every harvest brings a fifth more food, and farming towns send home a tenth more.',
+  },
+  fishingBoats: {
+    branch: 'food', era: 'nation',
+    name: 'Fishing boats',
+    cost: 70,
+    after: ['riverBoats'],
+    effect: 'Nets and boats on the river. Foragers fish in winter, when there is nothing to gather, and farming towns at good fishing send home a tenth more for each point of fishing there.',
+  },
+  bridges: {
+    branch: 'building', era: 'nation',
+    name: 'Bridges',
+    cost: 90,
+    after: ['roads', 'mathematics'],
+    effect: 'Stone bridges over the rivers. Armies march a third faster, and settlements in other regions feel closer to the capital: 3 less loyal for the distance instead of 5.',
+  },
+  wells: {
+    branch: 'building', era: 'nation',
+    name: 'Wells and cisterns',
+    cost: 80,
+    after: ['masonry'],
+    effect: 'Deep wells and stone cisterns. Every home in the settlements shelters 10 instead of 8, settlements grow 2 percent faster each year, and they hold out against a host a tenth more often.',
+  },
+  shipbuilding: {
+    branch: 'exploration', era: 'nation',
+    name: 'Shipbuilding',
+    cost: 100,
+    after: ['riverBoats', 'ironWorking'],
+    effect: 'Keeled ships that sail along the coast. Expeditions reach the lake country, the coast, the Ostran delta, and the outer isles at once, and the isles can be reached at all.',
+  },
+  harbors: {
+    branch: 'building', era: 'nation',
+    name: 'Harbors',
+    cost: 90,
+    after: ['shipbuilding'],
+    needsFind: 'harbor',
+    effect: 'Quays and breakwaters. A settlement at the Grey headland can become a port, which sends home coin from the ships, and builds a harbor.',
+  },
+  navigation: {
+    branch: 'exploration', era: 'nation',
+    name: 'Navigation',
+    cost: 140,
+    after: ['shipbuilding', 'astronomy'],
+    effect: 'Steering by the stars, out of sight of land. With a harbor, a ship can be sent across the open sea: the voyage that ends the Nation era.',
+  },
+  temples: {
+    branch: 'society', era: 'nation',
+    name: 'Temples',
+    cost: 80,
+    after: ['writing'],
+    needsBuilding: 'shrine',
+    effect: 'The shrine becomes a temple, with priests and festivals. Spirits in the capital settle 2 higher, every settlement is 3 more loyal, and each feast lifts the settlements\' loyalty by 5.',
+  },
+  physicians: {
+    branch: 'society', era: 'nation',
+    name: 'Medicine',
+    cost: 90,
+    after: ['medicine', 'writing'],
+    effect: 'Physicians who write down what heals. Healing is a quarter more effective, the sick recover from fever faster, and a third fewer of the soldiers who fall in battle are killed.',
+  },
+  crown: {
+    branch: 'society', era: 'nation',
+    name: 'A crown',
+    cost: 90,
+    after: ['lawCodes'],
+    excludes: ['assembly'],
+    effect: 'One ruler for the whole nation. Laws can change every two seasons, armies fight a tenth harder and tire of war half as much, but loyalty rests on the ruler: settlements are 3 more loyal while the capital is in high spirits, and 5 less while it is not. Cheaper for a people led by a chieftain. Choosing this closes off an assembly.',
+  },
+  assembly: {
+    branch: 'society', era: 'nation',
+    name: 'An assembly',
+    cost: 90,
+    after: ['lawCodes'],
+    excludes: ['crown'],
+    effect: 'An assembly of every settlement. Settlements are 5 more loyal, but change comes slowly: laws can change only every two years, and the assembly will not declare a war without a reason. Cheaper for a people led by a council of elders. Choosing this closes off a crown.',
+  },
 };
 
 // The branches of the research tree.
@@ -721,8 +818,10 @@ export const BABY_NAMES = [
 // ----- The Settlement era -----
 
 // The eras in order. A camp becomes a village by the player's choice.
-export const ERAS = ['camp', 'village', 'nation'];
-export const ERA_NAMES = { camp: 'the Survival era', village: 'the Settlement era', nation: 'the Nation era' };
+export const ERAS = ['camp', 'village', 'nation', 'discovery'];
+export const ERA_NAMES = {
+  camp: 'the Survival era', village: 'the Settlement era', nation: 'the Nation era', discovery: 'the Age of Discovery',
+};
 
 // What the player can push the council toward in a village.
 export const PRIORITY_AREAS = {

@@ -6,7 +6,7 @@ import {
 import {
   living, seasonIndex, dateLabel, shelterCapacity, isKnown, foodNeeded,
   woodNeededForWarmth, spoilageRate, makePerson, year, placeName, unexploredNeighbors,
-  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage, capitalCounted, saltNeeded,
+  hasKnowledge, fieldPlots, shelterNeeded, hasCondition, storageCapacity, inVillage, capitalCounted, saltNeeded, eraAtLeast,
 } from './state.js';
 import { maybeSettlers, isNotable, CAPITAL_COUNTED_FROM } from './village.js';
 import { spendGoods } from './goods.js';
@@ -16,13 +16,14 @@ import {
 import { settlementsSeason, harrySettlements, townDefense } from './settlements.js';
 import { townStudy, wagesDue } from './realm.js';
 import {
-  routesIncome, orhaiSeason, greatSeason, drawMarket,
+  routesIncome, orhaiSeason, greatSeason, drawMarket, greatRaidsSeason,
 } from './great.js';
 import { lawSettle, taxRate } from './laws.js';
 import { vassalYear } from './union.js';
 import { expeditionsSeason } from './world.js';
 import { warSeason, meetOnRoad, tributesYear } from './war.js';
 import { warWeariness, homeBesieged, armyHolding } from './warStatus.js';
+import { voyageReady } from './voyage.js';
 import { skarnStrength, clanRaidChance, clansRaidingAlone } from './clans.js';
 import { peaceYear } from './peace.js';
 import { raidGrowth } from './rules.js';
@@ -241,6 +242,7 @@ export function resolveSeason(state) {
   // Study: points flow into the current discovery, then the next in the
   // queue. Scholars in every settlement add to it.
   studyPool += townStudy(state);
+  if (state.great && state.great.keshari && state.great.keshari.embassy) studyPool *= 1.1; // Keshari scholars help yours.
   if (studyPool > 0) {
     const studied = applyStudy(state, studyPool);
     urgent.push(...studied.urgent);
@@ -258,19 +260,19 @@ export function resolveSeason(state) {
       if (plots === 0) {
         events.push('Farmers had no fields to plant. Build a field first.');
       } else {
-        const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER));
+        const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER, state));
         const planted = Math.min(plots - state.farm.planted, can);
         state.farm.planted += planted;
         farmWork.push(`Farmers planted ${planted} ${planted === 1 ? 'plot' : 'plots'} of grain. ${state.farm.planted} of ${plots} plots are sown.`);
       }
     } else if (s === 1 && state.farm.planted) {
-      state.farm.tended = Math.min(state.farm.planted, farmerCapacity(people, TEND_PER_FARMER));
+      state.farm.tended = Math.min(state.farm.planted, farmerCapacity(people, TEND_PER_FARMER, state));
       const share = Math.round((state.farm.tended / state.farm.planted) * 100);
       if (share >= 100) farmWork.push('Farmers tended every plot. The grain is growing well.');
       else events.push(`Farmers tended ${share} percent of the plots. Untended grain will yield less.`);
     } else if (s === 2 && state.farm.planted) {
       const planted = state.farm.planted;
-      const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
+      const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER, state));
       const perPlot = foodPerPlot(state.farm.tended / planted, state);
       const gained = Math.round(harvested * perPlot + (planted - harvested) * perPlot * 0.5);
       state.resources.food += gained;
@@ -413,7 +415,7 @@ export function resolveSeason(state) {
     if (state.buildings.healersHut > 0 && p.health < 75) p.health = clamp(p.health + 5);
     // Spirits settle back toward steady: high spirits fade faster the higher they are.
     const settle = (state.buildings.meetingHall > 0 ? 62 : 55) + lawSettle(state) + spent.settle
-      + (state.buildings.shrine > 0 ? 2 : 0) // A meeting hall, the laws, comforts, and a shrine move where spirits settle.
+      + (state.buildings.shrine > 0 ? 2 : 0) + (hasKnowledge(state, 'temples') ? 2 : 0) // A meeting hall, the laws, comforts, a shrine, and a temple move where spirits settle.
       - crowding // A large village frays.
       - weary; // So does a long war.
     if (p.morale < settle) p.morale = clamp(Math.min(settle, p.morale + 3));
@@ -514,6 +516,9 @@ export function resolveSeason(state) {
     const riders = orhaiSeason(state, townDefense); // The Orhai raid settlements within their reach.
     urgent.push(...riders.urgent);
     events.push(...riders.events);
+    const rovers = greatRaidsSeason(state, townDefense); // So do the Dravan and the Haldi.
+    urgent.push(...rovers.urgent);
+    events.push(...rovers.events);
     const happened = maybeStartEvent(state);
     urgent.push(...happened.urgent);
     events.push(...happened.events);
@@ -521,6 +526,10 @@ export function resolveSeason(state) {
     urgent.push(...fromOrders.urgent);
     ordersDone.push(...fromOrders.orders);
     urgent.push(...checkTraditions(state));
+    if (!state.voyageNoticed && voyageReady(state)) {
+      state.voyageNoticed = true;
+      urgent.push(`Your nation is ready to send a ship across the open sea, from its harbor, into the unknown. The voyage would end the Nation era and begin the Age of Discovery, whenever you choose. See the Report screen.`);
+    }
     if (!state.milestoneReached && survivors.length >= MILESTONE_POPULATION
         && state.buildings.storehouse > 0 && state.buildings.palisade > 0 && hasKnowledge(state, 'farming')) {
       state.milestoneReached = true;
@@ -531,7 +540,7 @@ export function resolveSeason(state) {
     events.push(`${state.campName} now has ${living(state).length} people.`);
   }
   // Past 100 people, the capital counts its ordinary people for good.
-  if (!state.capitalCounted && state.era === 'nation' && living(state).length > CAPITAL_COUNTED_FROM) {
+  if (!state.capitalCounted && eraAtLeast(state, 'nation') && living(state).length > CAPITAL_COUNTED_FROM) {
     state.capitalCounted = true;
     events.push(`${state.campName} has passed ${CAPITAL_COUNTED_FROM} people. From now on, the capital counts its people by group, as the settlements do: the Village screen lists its groups and notable people, and the season's report counts ordinary people rather than naming each one.`);
   }

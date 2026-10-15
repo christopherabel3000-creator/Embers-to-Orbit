@@ -73,7 +73,8 @@ export function expectedFood(state, person, task, seasonIdx) {
     if (wolvesAt(state, site)) amount *= 0.7; // Wolves scare off and take the game.
     if (hasCondition(state, 'hardWinter')) amount *= 0.7; // Deep snow; the game hides.
   } else if (task === 'forage') {
-    if (seasonIdx === 3) return 0;
+    // With fishing boats, foragers fish the river in winter.
+    if (seasonIdx === 3) return hasKnowledge(state, 'fishingBoats') ? (3 + s.foraging * 0.6) * workFactor(person) * lawWork(state) : 0;
     const site = siteFor(state, 'forage');
     amount = FORAGE_BASE[seasonIdx] + s.foraging * 0.6 + bonus(site, 'forage');
     amount *= abundanceFactor(state, site, 'forage') * distanceFactor(site);
@@ -152,9 +153,19 @@ export const PLANT_PER_FARMER = 2;
 export const TEND_PER_FARMER = 3;
 export const HARVEST_PER_FARMER = 3;
 
-export function farmerCapacity(people, perFarmer) {
+// With the plough, and horses to draw it, each farmer works half again as many plots.
+export function ploughing(state) {
+  return Boolean(state) && hasKnowledge(state, 'plough') && (state.resources.horses || 0) >= 10;
+}
+
+export function farmerCapacity(people, perFarmer, state = null) {
   return people.filter((p) => p.task === 'farm')
-    .reduce((sum, p) => sum + perFarmer * workFactor(p), 0);
+    .reduce((sum, p) => sum + perFarmer * workFactor(p), 0) * (ploughing(state) ? 1.5 : 1);
+}
+
+// Plots one farmer can plant, tend, or harvest this season.
+export function plotsPerFarmer(state, base) {
+  return base * (ploughing(state) ? 1.5 : 1);
 }
 
 // How many farmers the fields can use this season.
@@ -162,17 +173,20 @@ export function farmersNeeded(state) {
   const s = seasonIndex(state);
   const plots = fieldPlots(state);
   if (!plots || s === 3) return 0;
-  if (s === 0) return Math.ceil((plots - state.farm.planted) / PLANT_PER_FARMER);
-  if (s === 1) return Math.ceil(state.farm.planted / TEND_PER_FARMER);
-  return Math.ceil(state.farm.planted / HARVEST_PER_FARMER);
+  if (s === 0) return Math.ceil((plots - state.farm.planted) / plotsPerFarmer(state, PLANT_PER_FARMER));
+  if (s === 1) return Math.ceil(state.farm.planted / plotsPerFarmer(state, TEND_PER_FARMER));
+  return Math.ceil(state.farm.planted / plotsPerFarmer(state, HARVEST_PER_FARMER));
 }
 
 export function foodPerPlot(tendedFraction, state = null) {
   const base = 6 + 4 * tendedFraction + (state && hasTradition(state, 'seasons') ? 1 : 0)
     + (state && hasKnowledge(state, 'irrigation') ? 2 : 0)
-    + (state && hasKnowledge(state, 'astronomy') ? 1 : 0);
-  if (!state || !hasCondition(state, 'drought')) return base;
-  return base * (hasKnowledge(state, 'irrigation') ? 0.8 : 0.6); // Ditches soften a drought.
+    + (state && hasKnowledge(state, 'astronomy') ? 1 : 0)
+    + (state && hasKnowledge(state, 'cropRotation') ? 2 : 0);
+  const milled = state && hasKnowledge(state, 'mills') ? 1.2 : 1; // Mills grind more from every harvest.
+  if (!state || !hasCondition(state, 'drought')) return base * milled;
+  const drought = hasKnowledge(state, 'cropRotation') ? 0.9 : hasKnowledge(state, 'irrigation') ? 0.8 : 0.6; // Ditches and resting land soften a drought.
+  return base * drought * milled;
 }
 
 // Food the coming autumn harvest should bring, with current farmers.
@@ -181,11 +195,11 @@ export function expectedHarvest(state) {
   if (s === 3) return 0;
   const people = living(state);
   let planted = state.farm.planted;
-  if (s === 0) planted = Math.min(fieldPlots(state), planted + Math.floor(farmerCapacity(people, PLANT_PER_FARMER)));
+  if (s === 0) planted = Math.min(fieldPlots(state), planted + Math.floor(farmerCapacity(people, PLANT_PER_FARMER, state)));
   if (planted === 0) return 0;
   let tended = state.farm.tended;
-  if (s <= 1) tended = Math.min(planted, farmerCapacity(people, TEND_PER_FARMER));
-  const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER));
+  if (s <= 1) tended = Math.min(planted, farmerCapacity(people, TEND_PER_FARMER, state));
+  const harvested = Math.min(planted, farmerCapacity(people, HARVEST_PER_FARMER, state));
   const perPlot = foodPerPlot(tended / planted, state);
   return harvested * perPlot + (planted - harvested) * perPlot * 0.5;
 }
@@ -195,6 +209,7 @@ export function healingPoints(state, person) {
   if (state.buildings.healersHut > 0) points *= 1.5;
   if (isKnown(state, 'herbHillside')) points *= 1.25;
   if (hasKnowledge(state, 'medicine')) points *= 1.2;
+  if (hasKnowledge(state, 'physicians')) points *= 1.25;
   return points * workFactor(person);
 }
 

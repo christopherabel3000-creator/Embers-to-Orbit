@@ -10,10 +10,10 @@ import {
 } from './data.js';
 import { emptyDeeds } from './legacy.js';
 import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
-import { initialGreat } from './greatData.js';
+import { initialGreat, GREAT_NATIONS } from './greatData.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -131,6 +131,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     warEnded: {}, // People to the turn peace was made with them.
     tributes: [], // Tribute owed to you: { foe, until, food, goods, coin, horses }.
     lastHarm: {}, // People to the turn they last raided you: a reason for war.
+    voyage: null, // The first ship across the open sea, which ends the Nation era.
+    voyageNoticed: false, // Whether the report has said the nation is ready for it.
     laws: { food: null, strangers: null, service: null, justice: null }, // null keeps to custom.
     lawChanged: {}, // Law to the turn it last changed.
     siege: null, // { raiders, supplies, started } while the Skarn besiege the village.
@@ -385,6 +387,26 @@ export function migrate(data) {
     }
     data.version = 32;
   }
+  if (data.version === 32) {
+    // The five other great nations, their homelands, and the voyage.
+    const fresh = initialWorld();
+    for (const [id, r] of Object.entries(fresh.regions)) if (!data.world.regions[id]) data.world.regions[id] = r;
+    for (const [id, p] of Object.entries(fresh.places)) if (!data.world.places[id]) data.world.places[id] = p;
+    for (const [id, r] of Object.entries(REGIONS)) {
+      if (data.world.regions[id].status !== 'explored') continue;
+      for (const n of r.neighbors) if (data.world.regions[n].status === 'unknown') data.world.regions[n].status = 'heard';
+    }
+    const great = initialGreat();
+    for (const [id, g] of Object.entries(great)) {
+      if (data.great[id]) continue;
+      data.great[id] = g;
+      const home = data.world.regions[GREAT_NATIONS[id].homeland];
+      g.heard = home.status !== 'unknown';
+    }
+    data.voyage = null;
+    data.voyageNoticed = false;
+    data.version = 33;
+  }
   return data.version === SAVE_VERSION ? data : null;
 }
 
@@ -500,6 +522,17 @@ export function relationWord(value) {
   return 'hostile';
 }
 
+// What a discovery costs now: a crown comes cheaper to a people led by a
+// chieftain, an assembly to one led by a council of elders, and the Haldi's
+// shipwrights teach what they know to a nation with an embassy among them.
+export function knowledgeCost(state, id) {
+  const k = KNOWLEDGE[id];
+  let cost = k.cost;
+  if ((id === 'crown' && hasKnowledge(state, 'chieftain')) || (id === 'assembly' && hasKnowledge(state, 'elders'))) cost = Math.round(cost * 2 / 3);
+  if ((id === 'shipbuilding' || id === 'navigation') && state.great && state.great.haldi && state.great.haldi.embassy) cost = Math.round(cost * 2 / 3);
+  return cost;
+}
+
 export function hasKnowledge(state, id) {
   return Boolean(state.knowledge && state.knowledge.learned.includes(id));
 }
@@ -525,7 +558,7 @@ export function knowledgeBlocker(state, id) {
   if (missing.length) return `Needs ${missing.map((a) => KNOWLEDGE[a].name).join(' and ')} first.`;
   if (k.place && !isKnown(state, k.place)) return `Your people must find ${PLACES[k.place].name} first.`;
   if (k.needsBuilding && !(state.buildings[k.needsBuilding] > 0)) return `Needs a ${BUILDINGS[k.needsBuilding].name.toLowerCase()} first.`;
-  if (k.needsFind && !worldFound(state, k.needsFind)) return `Your expeditions must find ${{ ore: 'iron ore', horses: 'the wild horse grounds' }[k.needsFind] || k.needsFind} first.`;
+  if (k.needsFind && !worldFound(state, k.needsFind)) return `Your expeditions must find ${{ ore: 'iron ore', horses: 'the wild horse grounds', harbor: 'a place for a harbor' }[k.needsFind] || k.needsFind} first.`;
   if (k.needsResource && !(state.resources[k.needsResource] > 0)) return `Needs ${k.needsResource} in store first.`;
   return null;
 }

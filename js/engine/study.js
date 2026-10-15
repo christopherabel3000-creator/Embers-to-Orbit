@@ -2,7 +2,7 @@
 // is made, leftover points go straight into the next ready one in the queue.
 
 import { KNOWLEDGE } from './data.js';
-import { knowledgeBlocker } from './state.js';
+import { knowledgeBlocker, knowledgeCost } from './state.js';
 import { recordDeed } from './legacy.js';
 
 // Starts the first queued discovery that is ready. Returns its id or null.
@@ -47,10 +47,11 @@ export function applyStudy(state, points) {
   while (left > 0 && k.current) {
     const item = KNOWLEDGE[k.current];
     const done = k.progress[k.current] || 0;
-    const used = Math.min(item.cost - done, left);
+    const cost = knowledgeCost(state, k.current);
+    const used = Math.min(cost - done, left);
     k.progress[k.current] = done + used;
     left -= used;
-    if (k.progress[k.current] >= item.cost - 1e-9) {
+    if (k.progress[k.current] >= cost - 1e-9) {
       k.learned.push(k.current);
       recordDeed(state, 'discoveries');
       // A choice closes off its alternatives for good.
@@ -67,7 +68,7 @@ export function applyStudy(state, points) {
   }
   if (k.current && k.progress[k.current]) {
     const item = KNOWLEDGE[k.current];
-    out.events.push(`Study of ${item.name.toLowerCase()} is ${Math.floor((k.progress[k.current] / item.cost) * 100)} percent done.`);
+    out.events.push(`Study of ${item.name.toLowerCase()} is ${Math.floor((k.progress[k.current] / knowledgeCost(state, k.current)) * 100)} percent done.`);
   }
   return out;
 }

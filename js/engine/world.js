@@ -16,7 +16,7 @@ import { gainExperience } from './skills.js';
 import { applyStudy, learnNow } from './study.js';
 import { chance, pick, randomInt } from './rng.js';
 import { refreshAdvisors } from './advisors.js';
-import { meetGreat } from './great.js';
+import { meetGreat, hearOfHomeland } from './great.js';
 import { listWords, clamp, lowerFirst } from './util.js';
 
 export const PARTY_SIZE = [3, 8];
@@ -72,8 +72,12 @@ export function regionDone(state, regionId) {
 export function expeditionTargets(state) {
   if (!worldOpen(state)) return [];
   return REGION_ORDER.filter((id) => id !== 'valley' && regionStatus(state, id) !== 'unknown' && !regionDone(state, id)
+    && (!REGIONS[id].sea || hasKnowledge(state, 'shipbuilding')) // The isles are reached only by ship.
     && REGIONS[id].neighbors.some((n) => regionStatus(state, n) === 'explored'));
 }
+
+// Regions ships reach along the coast, with Shipbuilding.
+export const COASTAL = ['lakes', 'coast', 'delta', 'isles'];
 
 // Seasons of travel each way: one for each region between, none by river
 // boat to the lake country and the coast, and one less through a mapped
@@ -81,6 +85,7 @@ export function expeditionTargets(state) {
 export function travelTime(state, regionId) {
   let t = Math.max(0, HOPS[regionId] - 1);
   if (REGIONS[regionId].river && hasKnowledge(state, 'riverBoats')) t = 0;
+  if (COASTAL.includes(regionId) && hasKnowledge(state, 'shipbuilding')) t = 0; // Ships along the coast.
   const between = REGIONS[regionId].neighbors.filter((n) => HOPS[n] === HOPS[regionId] - 1);
   if (t > 0 && (regionMapped(state, regionId) || between.some((n) => n !== 'valley' && regionMapped(state, n)))) t -= 1;
   if (t > 0 && hasKnowledge(state, 'horseRiding')) t -= 1; // Riders go far and fast.
@@ -161,8 +166,8 @@ export function sendExpedition(state, {
     pendingChoice: null,
   };
   state.world.expeditions.push(exp);
-  if (travel === 0) arrive(state, exp);
-  return { message: `${leader.name} leads ${n - 1} others toward ${lowerFirst(REGIONS[region].name)}, with ${food} food. ${travel ? `The journey there takes ${travel === 1 ? 'a season' : `${travel} seasons`}; then they` : 'They'} will explore for ${stay === 1 ? 'a season' : `${stay} seasons`} and come home.` };
+  const news = travel === 0 ? arrive(state, exp).rumors : [];
+  return { message: `${leader.name} leads ${n - 1} others toward ${lowerFirst(REGIONS[region].name)}, with ${food} food. ${travel ? `The journey there takes ${travel === 1 ? 'a season' : `${travel} seasons`}; then they` : 'They'} will explore for ${stay === 1 ? 'a season' : `${stay} seasons`} and come home.${news.length ? ` ${news.join(' ')}` : ''}` };
 }
 
 // The party reaches its region: it is explored, and its neighbors heard of.
@@ -177,13 +182,15 @@ function arrive(state, exp) {
     if (!placeFound(state, home)) findPlace(state, exp, home);
   }
   const heard = [];
+  const rumors = [];
   for (const n of REGIONS[exp.region].neighbors) {
     if (regionStatus(state, n) === 'unknown') {
       state.world.regions[n].status = 'heard';
       heard.push(n);
+      rumors.push(...hearOfHomeland(state, n)); // Word of the people who live there.
     }
   }
-  return { first, heard };
+  return { first, heard, rumors };
 }
 
 export function recallExpedition(state, { id }) {
@@ -341,10 +348,10 @@ export function expeditionsSeason(state) {
     if (exp.stage === 'out') {
       exp.left -= 1;
       if (exp.left <= 0) {
-        const { first, heard } = arrive(state, exp);
+        const { first, heard, rumors } = arrive(state, exp);
         exp.stage = 'exploring';
         exp.left = exp.plan;
-        word(`They have reached it${first ? '' : ' again'}.${heard.length ? ` Beyond it, they hear, lies ${listWords(heard.map((n) => lowerFirst(REGIONS[n].name)))}.` : ''}`);
+        word(`They have reached it${first ? '' : ' again'}.${heard.length ? ` Beyond it, they hear, lies ${listWords(heard.map((n) => lowerFirst(REGIONS[n].name)))}.` : ''}${rumors.length ? ` ${rumors.join(' ')}` : ''}`);
       }
       continue;
     }

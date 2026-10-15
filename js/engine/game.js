@@ -24,6 +24,7 @@ import {
 import { resolveSeason } from './season.js';
 import { sendExpedition, recallExpedition } from './world.js';
 import { greatDiplomacy } from './great.js';
+import { sendVoyage } from './voyage.js';
 import {
   raiseArmy, raiseCompany, disbandCompany, disbandArmy, appointCommander, setArmyOrder, setStance,
 } from './armies.js';
@@ -251,6 +252,16 @@ const handlers = {
       if (!pendingField(state)) recordBattle(state, result.lines);
       return { message: result.lines.join(' ') };
     });
+  },
+
+  sendVoyage(state) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const result = sendVoyage(state);
+    if (result.error) return result;
+    state.report.decisions = [...(state.report.decisions || []), result.message];
+    state.log.push({ turn: state.turn, date: state.report.title, text: result.message });
+    return result;
   },
 
   // A field battle: deploy, give orders each round, or let the commander fight.

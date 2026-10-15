@@ -14,7 +14,7 @@ A long, single-player strategy campaign that takes a handful of survivors on an 
 
 ## Where the game stands
 
-Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and the Nation era is being built in five phases, the first four of which are playable. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
+Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitHub Pages and on iPhone with VoiceOver, and so is the Nation era, built in five phases. A campaign starts with twelve named survivors in the forest valley and plays season by season. What exists today:
 
 - **Survivors** with ages, six skills that grow with practice, health, and morale; births, childhood, aging, and old age; mentoring.
 - **Seasonal work:** hunt, forage, farm, gather wood, build, scout, tend the hurt, study, or rest, with one button (or a standing order) to put everyone on their best work.
@@ -40,6 +40,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **The wider world** (the Nation era, phase 2): seven regions around the valley with 25 places, expeditions with choices on the road, small peoples, wonders, and ruins; iron and salt; settlements beyond the valley; and five more discoveries, including River boats and Mapmaking.
 - **The first great nations** (the Nation era, phase 3): the Ostrani and the Orhai, met in their homelands at the edge of the map; envoys, trade for coin, embassies, treaties, marriages, and trade routes; Orhai raids and demands; coin, governors' wages, and taxes; laws on inheritance and worship; the Velari and Tellani joining the nation, and the Skarn as vassals; and nine more discoveries.
 - **Armies** (the Nation era, phase 4): companies of six kinds raised from the capital and the settlements under named commanders; marches, supply, and standing orders on the regional map; field battles on the ground of each region; wars declared with or without a reason, raids, sieges the player lays, storming with siege engines, and peace on terms; enemy hosts against your settlements; horses; and ten more discoveries.
+- **Toward the sea** (the Nation era, phase 5): the other five great nations (the Keshari, the Dravan, the Ashani, the Haldi, and the Venn) in five new homelands; raids by the Dravan and the Haldi; ships, ports, and a harbor; thirteen more discoveries, including a crown or an assembly; and the voyage across the open sea that ends the era.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -301,7 +302,7 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 5. **The world** at first: about eight hand-crafted regions around the forest valley. The sea and what lies past it wait for the Age of Discovery.
 6. **Expeditions: send and wait.** The player chooses where, who, and how much food; the party reports back, with a choice or two on the way.
 7. **The great nations are met by exploring.** Rumors of them come at the start of the era, and each is met when an expedition, caravan, or envoy reaches its land.
-8. **The first two great nations:** a river and coast people of traders (the natural partner) and a riding people of the plains (the natural rival). The other five come in phase 5.
+8. **The first two great nations:** a river and coast people of traders (the natural partner) and a riding people of the plains (the natural rival). The other five come in phase 5 (built: the Keshari, the Dravan, the Ashani, the Haldi, and the Venn).
 9. **The valley peoples can join the nation.** After a long alliance, the Velari or Tellani can become a federated part of it; a beaten Skarn can become a vassal paying tribute.
 10. **New resources:** iron, horses, coin, and salt.
 11. **The knowledge tree:** all 36 discoveries and three either-or choices below, built in slices, each phase adding the discoveries its systems need.
@@ -316,7 +317,7 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 2. **The wider world (built):** the regional map and its regions, expeditions, river boats, mapmaking, and iron and salt with Mining and Salting.
 3. **The first great nations (built):** the two designed first, embassies and trade, coin, taxes, trade routes, and the valley peoples joining the nation.
 4. **Armies (built):** companies and commanders, campaigns and supply, sieges the player lays, the six kinds of soldiers, wars and peace, and horses with cavalry.
-5. **Toward the sea:** the rest of the tree, the remaining great nations, harbors and ships, Navigation, and the voyage that ends the era.
+5. **Toward the sea (built):** the rest of the tree, the remaining great nations, harbors and ships, Navigation, and the voyage that ends the era.
 
 ### Phase 1: the nation at home (built)
 
@@ -333,7 +334,7 @@ Decided with Christopher on October 14, 2026, from the Nation era brief, where h
 | Market town (needs Weaving) | Sends home goods: 0.55 for each worker at the role | Market hall |
 | Fortress | Sends home nothing. At least 4 in 10 of its workers are soldiers, who meet raiders on the road to the capital, and the Skarn skirmish your people less often | Barracks |
 
-  Each level of works adds 15 percent to what the role brings in (for a fortress, to what its soldiers are worth). A port comes in phase 5.
+  Each level of works adds 15 percent to what the role brings in (for a fortress, to what its soldiers are worth). A port came in phase 5: see there.
 - **The land.** A role suits some places better: a farming town does a tenth better for each point of the place's best hunting or foraging bonus, a timber town for each point of wood bonus, and a mining town for each point of quarry bonus. A timber or mining town where there is no wood or stone to work brings in half, and a farming town on land with no game or wild food four fifths. The founding form and the Settlement screen say which role the land suits best.
 - **Demands** (light, normal, or heavy) set how much of what the settlement brings in is sent home: 40, 70, or all of it. What it keeps helps it grow, with its own children and newcomers drawn to it: each spring it grows by 12, 9, or 5 percent, half that while its loyalty is below 40, and only as far as its homes allow. Light demands raise loyalty by 10; heavy demands lower it by 10. Settlements from older saves keep their policy: grow became light demands, and supply became heavy.
 - **Priorities,** as in the capital: Defense (low, normal, or high: 5, 10, or 20 percent of its workers stand guard) and Learning (low, normal, or high: none, 4, or 8 percent study, half again as many with Schools). Scholars everywhere add to the one shared study queue: about 3.5 points a season each, more with Writing.
@@ -606,7 +607,7 @@ With Levies, a company costs half (horses excepted). With Iron weapons and 5 iro
 
 Every term is open once their home has fallen. Peace raises relations by 10.
 
-**Horses,** a new resource, shown in the status line and the stores. With Horse breeding, every 2 pastures in the capital raise a horse each season but winter (at least 1 with any pasture), and a farming town at the wild horse grounds sends home a horse for every 6 of its workers at the role (at least 1) each season but winter. The Orhai sell 10 horses for 15 coin under a peace pact, and pay them in tribute. They mount cavalry, and with 10 or more in store, carts pull your loads: settlements without a road lose half as much on the way home, and armies carry a season more food. (Ploughs come in phase 5.)
+**Horses,** a new resource, shown in the status line and the stores. With Horse breeding, every 2 pastures in the capital raise a horse each season but winter (at least 1 with any pasture), and a farming town at the wild horse grounds sends home a horse for every 6 of its workers at the role (at least 1) each season but winter. The Orhai sell 10 horses for 15 coin under a peace pact, and pay them in tribute. They mount cavalry, and with 10 or more in store, carts pull your loads: settlements without a road lose half as much on the way home, and armies carry a season more food. With the plough (phase 5), 10 horses also help the farmers.
 
 **The discoveries of phase 4:**
 
@@ -623,32 +624,85 @@ Every term is open once their home has fallen. Peace raises relations by 10.
 | Levies | War and defense | 60 | Shields and drill, Law codes; closes off a standing army | Settlements can send half their people, companies cost half, and new companies are worth 0.85 |
 | A standing army | War and defense | 80 | Shields and drill, Coinage; closes off Levies | New companies are worth 1.25 and are not missed at home, for 2 coin a season each |
 
-### Phase 5: toward the sea (planned)
+### Phase 5: toward the sea (built)
 
-The rest of the tree, the five remaining great nations, harbors and ships, Navigation, and the voyage that ends the era (see below).
+**The rest of the tree:**
+
+| Discovery | Branch | Cost | Needs | Effect |
+| --- | --- | --- | --- | --- |
+| Crop rotation | Food and farming | 90 | Irrigation | Every plot yields 2 more food; a drought takes a tenth of the harvest instead of a fifth; farming towns send a tenth more |
+| The plough | Food and farming | 100 | Iron working, Horse breeding | With 10 or more horses in store, each farmer plants, tends, and harvests half again as many plots, and farming towns send a fifth more |
+| Mills | Food and farming | 90 | Masonry | Every harvest brings a fifth more; farming towns send a tenth more |
+| Fishing boats | Food and farming | 70 | River boats | Foragers fish in winter (3 food, plus 0.6 for each point of foraging, before their work factor), so the council keeps them foraging; farming towns send a tenth more for each point of fishing at their place |
+| Bridges | Building and stone | 90 | Roads, Mathematics | Armies march a third faster; settlements in other regions are 3 less loyal for the distance instead of 5 |
+| Wells and cisterns | Building and stone | 80 | Masonry | Each home in a settlement shelters 10 instead of 8; settlements grow 2 percent faster each year, and hold out against a host a tenth more often |
+| Shipbuilding | Exploration | 100 | River boats, Iron working | Expeditions reach the lake country, the coast, the Ostran delta, and the outer isles at once, and the isles can be reached at all |
+| Harbors | Building and stone | 90 | Shipbuilding; a place for a harbor found | A settlement at the Grey headland can be a port |
+| Navigation | Exploration | 140 | Shipbuilding, Astronomy | With a harbor, the voyage that ends the era |
+| Temples | Society and law | 80 | Writing; a shrine | Spirits in the capital settle 2 higher; settlements are 3 more loyal; each feast lifts every settlement's loyalty by 5 |
+| Medicine | Society and law | 90 | Herbal medicine, Writing | Healing a quarter more effective; the sick recover from fever more often (15 percent more each season); a third fewer of the soldiers who fall in battle are killed |
+| A crown | Society and law | 90 (60 for a people led by a chieftain) | Law codes; closes off an assembly | Laws can change every two seasons; armies fight a tenth harder and tire of war half as much; settlements are 3 more loyal while most of the capital's workers are in high spirits, and 5 less while they are not |
+| An assembly | Society and law | 90 (60 for a people led by a council of elders) | Law codes; closes off a crown | Settlements are 5 more loyal; laws change only every two years; the assembly will not declare a war without a reason, or one that breaks your word |
+
+Fishing became a winter use of foraging rather than a new task, so the council, the People screen, and the standing orders needed no new work to learn; the winter foragers order leaves foragers at their nets once there are boats.
+
+**The other five great nations,** each met by reaching its homeland at the edge of the map, as the first two are. Word of each comes when an expedition hears of its homeland, by reaching a region next to it.
+
+| | Homeland (beyond) | Who they are | Temperament and values | What moves them | Trade | Signature |
+| --- | --- | --- | --- | --- | --- | --- |
+| The Keshari | The Kesh highlands (the old ruins, the white north) | Star-watchers of the highland towers, heirs of the people who built the old ruins | Scholarly: they prize learning, patience, and kept records, and think little of a people who burn what they do not understand | Nature 5; a sixth of your name as honest traders, less a sixth of your name as fierce fighters, and half a point for every discovery beyond 30 | Buy goods and fine goods; sell 30 points of study for 12 coin | With an embassy among them, every scholar of yours studies a tenth faster |
+| The Dravan | The high crags (the iron hills, through passes closed in winter) | Iron-helmed mountain lords; their younger sons come down as the hill clans | Warlike: they honor courage and good iron, and keep their word to the strong | Nature -15; a third of your name as fierce fighters, less a tenth of your name for generosity | Only under a peace pact: buy food and goods; sell iron | Under a peace pact, the hill clans stay home, and neither march with the Skarn nor raid on their own |
+| The Ashani | The southern sands (the desert edge, along the caravan track) | Caravan kings of white cities around the great wells | Devout: they honor the gods, hospitality, and an open hand | Nature 5; a sixth of your names for generosity and for welcoming strangers; 10 more for your temples | Buy goods, fine goods, iron, and horses (10 for 18 coin) | A trade route to them brings 4 coin a season, the richest of any |
+| The Haldi | The outer isles (the coast and the delta, by ship only) | Sea rovers who fish, trade, and raid in longships | Seafaring: they respect bold sailors and strong arms | Nature -10; a quarter of your name as fierce fighters | Only under a peace pact: buy food and iron; sell 20 goods for 8 coin | With an embassy among them, Shipbuilding and Navigation cost a third less |
+| The Venn | The white north (the northern woods, the Kesh highlands) | Deer herders of the white north, in hide tents | Wary: patient and quiet, they fear warlike peoples and warm slowly (their attitude moves 1 a season, not 2) | Nature 0; a fifth of your name for welcoming strangers, less a sixth of your name as fierce fighters | Buy food and iron; sell 20 goods for 8 coin | Under a trade pact, your armies march through winter at half pace |
+
+- **Treaties:** a trade pact is possible with all seven; a peace pact with the Orhai, the Dravan, and the Haldi. Trade routes bring 2 coin a season (1 from the Venn, 3 from the Ostrani, 4 from the Ashani), 2 more with a trade pact.
+- **Raids in peace.** As the Orhai's riders do, the Dravan's war bands fall on your settlements in the iron hills (and the crags), and the Haldi's longships on those on the coast, in the lake country, and in the delta: 5 percent a season, half again as often while relations are below -20, half as often at 20 or more, and never under a peace pact. They find you this way before you meet them, once the Nation era is six (the Dravan) or eight (the Haldi) years old. An army holding the region keeps them off.
+- **The regions:** each homeland has its people's home and a wonder or ruins: Stonehelm and the ice crown in the high crags; the star towers and the sky wheel (30 study points) in the Kesh highlands; the winter camps, the northern lights, and the ice fields (a danger) in the white north; Ashar of the wells and the singing dunes in the southern sands; Skerry hold and the drowned temple (30 study points) in the outer isles. That makes 15 regions and 38 places.
+
+**Ships and ports.**
+
+- **Shipbuilding** lets expeditions sail along the coast (see the table above). The outer isles are reached only by ship: no army can march there, so a war with the Haldi is fought against their longships.
+- **A port** (with Harbors) can be founded at the Grey headland, the one place on the coast where a harbor can stand, or a settlement there can take the role. It sends home 0.3 coin for each worker at the role (a tenth more for each point of fishing there), and its governor's skill is scouting. Its works are the harbor, built like any role's works once it has 10 people: the first level is the harbor the voyage needs.
+
+**War with any of them.** Wars, hosts, raids, sieges, and peace work as in phase 4 for all seven great nations:
+
+| | Soldiers (base, each year, most) | Worth | Home and walls | Garrison, hunger, yields | Hosts at war | Tribute | Land |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| The Keshari | 20, 1, 40 | 2 | The star towers, stone (4 tenths) | 8 tenths, 5 percent, 8 seasons | 15 percent, the old ruins and the highlands | 15 coin | none |
+| The Dravan | 40, 3, 80, by difficulty | 2.2 | Stonehelm (half) | all, 6 percent, 8 | 40 percent, the iron hills and the crags | 10 iron | they no longer raid the iron hills |
+| The Ashani | 30, 2, 60 | 2 | Ashar of the wells (half) | 6 tenths, 5 percent, 8 | 25 percent, the desert edge and the sands | 25 coin | a well on the caravan track: their trade route brings twice as much |
+| The Haldi | 30, 2, 60, by difficulty | 2 | Skerry hold (no walls; no army can reach it) | 6 tenths, 5 percent, 8 | 35 percent, the coast, the lake country, the delta, and the isles | 15 goods | they no longer raid your coasts |
+| The Venn | 15, 1, 30 | 1.6 | The winter camps (no walls) | half, 4 percent, 8 | 15 percent, the northern woods and the white north | 10 goods | none |
+
+They make peace on even terms at a war score of -40 or more (the Keshari and the Venn), -20 (the Ashani), or -10 (the Dravan and the Haldi). A peace with the Dravan or the Haldi brings a peace pact. Taking their home brings its stores: the star towers 40 coin and 30 goods; Stonehelm 40 iron and 20 goods; Ashar 60 coin and 10 horses; Skerry hold 40 goods and 20 iron; the winter camps 60 food and 30 goods.
+
+**The voyage** that ends the era: see The end of the era, below.
 
 ### The Nation era's knowledge tree
 
-36 discoveries in seven branches, plus three either-or choices, taking the tree from 19 discoveries to about 55. Writing is the gate to most of them. Each costs about 60 to 160 study points; scholars in every settlement add to one shared study queue, and ruins can give study points or reveal a discovery. Each phase adds the ones its systems need; phase 1's are marked, and phases 2 to 4 list theirs in their own sections. Built so far: 25 of the 36, and two of the three choices. Phase 5 adds the rest: Crop rotation, The plough, Mills, Fishing boats, Bridges, Wells and cisterns, Harbors, Shipbuilding, Navigation, Temples, Medicine, and the Crown or the Assembly.
+36 discoveries in seven branches, plus three either-or choices, taking the tree from 19 discoveries to about 55. Writing is the gate to most of them. Each costs about 60 to 160 study points; scholars in every settlement add to one shared study queue, and ruins can give study points or reveal a discovery. Each phase adds the ones its systems need; phase 1's are marked, and phases 2 to 4 list theirs in their own sections. All of it is built: phases 2 to 5 list their discoveries in their own sections.
 
 - **Learning (new branch):** Writing (Oral law; phase 1), Mathematics (Writing; phase 1), Astronomy (Mathematics; phase 1), Schools (Writing, a meeting hall; phase 1).
-- **Food and farming:** Crop rotation (Irrigation: plots yield 2 more, and drought hurts less), The plough (Iron working, horses: each farmer plants and tends half again as many plots), Mills (Masonry: every harvest a fifth more), Salting (salt in hand: stored food spoils far less; expeditions and armies carry food twice as long), Fishing boats (River boats: fishing, a food task that works in winter too), Horse breeding (Animal husbandry, the plains found: pastures raise horses).
+- **Food and farming:** Crop rotation (Irrigation: plots yield 2 more, and drought hurts less), The plough (Iron working, horses: each farmer plants and tends half again as many plots), Mills (Masonry: every harvest a fifth more), Salting (salt in hand: stored food spoils far less; expeditions and armies carry food twice as long), Fishing boats (River boats: foragers fish through the winter), Horse breeding (Animal husbandry, the plains found: pastures raise horses).
 - **Building and stone:** Mining (Stonecutting, ore found: mines for iron, and gold or silver where they lie), Roads (Stonecutting; phase 1), Bridges (Roads, Mathematics: crossings that shorten routes and open new ones), Wells and cisterns (Masonry: settlements grow larger and hold out longer under siege), Fortresses (Masonry, Shields and drill: a stone keep; a garrison holds far longer), Harbors (Shipbuilding, the coast found: a port settlement).
 - **Crafts and trade:** Iron working (Mining: iron tools and iron arms), Coinage (Mining, Markets: coin, a treasury, and wages), Weights and measures (Writing, Markets: every trade a quarter better), Fine crafts (Kilns: glass, dyed cloth, and jewelry, which the great nations prize), Trade routes (Roads, Coinage: standing caravans that bring in coin every season), and a choice: Guild charters (crafters more productive at fixed prices) or Free markets (more trade and better prices, which rise and fall).
 - **War and defense:** Iron weapons (Iron working: every soldier strikes harder and is harder to bring down), Cavalry (Horse breeding), Siege engines (Mathematics), Logistics (Roads, Salting: armies carry supply longer), Signal beacons (Writing: a raid on any settlement is seen coming), and a choice: Levies (many fighters from every settlement when war comes; weaker, and missed at their work) or a Standing army (fewer, stronger, always ready, paid in coin).
 - **Society and law:** Law codes (Writing, Oral law: laws for the whole nation, including inheritance, worship, and taxes), Taxes (Coinage, Law codes: coin from every settlement, at a cost in loyalty), Temples (a shrine: spirits and loyalty rise; festivals bring settlements together), Medicine (Herbal medicine, Writing: wounds heal faster, fewer die of fever or in battle), Diplomacy (Writing: embassies, treaties, and marriages between ruling families), and a choice: a Crown (swift decisions and loyal armies, but loyalty rests on the ruler) or an Assembly (loyalty stays higher, but change comes slower). A Chieftain village leans toward the crown and a Council of elders toward the assembly, but either may choose.
 - **Exploration (new branch):** River boats (Weaving), Horse riding (Horse breeding: riders scout twice as far), Mapmaking (Writing), Shipbuilding (River boats, Iron working: ships that sail along the coast), Navigation (Shipbuilding, Astronomy: crossing open water by the stars, the key to the era's end).
 
-### The end of the era
+### The end of the era (built)
 
-As with becoming a village, the step is the player's to take once the nation is ready, and it cannot be undone. The Report screen offers it, or says what is missing:
+As with becoming a village, the step is the player's to take once the nation is ready, and it cannot be undone. The Report screen shows what is missing, once your people know Shipbuilding, and offers the step when the nation is ready; the report says so the first time it is.
 
-- a capital of at least 150 people
+- a capital of at least 100 people
 - at least four other settlements
-- Navigation known, and a harbor built on the coast
+- Navigation known, and a port on the coast with its harbor built
 - contact made with at least three great nations
 
-Then the player can send the first ship across the open sea, which begins the Age of Discovery. These numbers are starting points for the simulator to test; the aim is an era of about 20 to 25 years for a steady player, closing around year 40.
+Fitting out the ship takes 120 wood, 60 goods, 30 iron, and 150 food, and a crew of 12, the best scouts the capital can spare (never the council), who sail away with it. The voyage begins the Age of Discovery, which is still to be built: until it is, the game goes on as in the Nation era.
+
+The capital was first set at 150 people. In the simulator, a nation that founds four or five settlements has everything else in place by about year 34, but its capital reaches 150 only rarely by year 45; at 100, it sends the voyage in about year 40, the aim (see BALANCE.md).
 
 ## Population and resources
 
@@ -873,8 +927,8 @@ The game is built in layers, and each phase should be playable and fun on its ow
 
 1. **Phase 1: Survival era (playable).** One starting region (forest valley), named survivors, seasons, food and shelter, raids, the turn report, the first advisors, and saving, tested with VoiceOver from day one. Built beyond the original plan: the local map, standing orders, events, the first knowledge, farming, skills that grow, births and aging, build and study queues, three neighboring peoples, tactical battles, traditions and reputation, and limited storage with feasts and lean times. Still to do: families and relationships, more events, and audio cues (see BACKLOG.md).
 2. **Phase 2: Settlement era (playable).** Built: becoming a village by choice, the council with player priorities, groups by work, guards, huts, and settlers; stone, goods, and a research tree in five branches with new village buildings; the valley peoples as nations with territory, treaties, trust, and a Skarn that grows into a real power; and a second settlement, which begins the Nation era. Still open: late-game challenge, the other four starting regions, and unit types in battle (see BACKLOG.md).
-3. **Phase 3: Nation era (being built).** Built in five phases of its own (see The Nation era): the nation at home (built), the wider world (built), the first great nations (built), armies (built), and toward the sea.
-4. **Phase 4: Age of Discovery.** Voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies.
+3. **Phase 3: Nation era (playable).** Built in five phases of its own (see The Nation era): the nation at home, the wider world, the first great nations, armies, and toward the sea, ending with the voyage across the open sea.
+4. **Phase 4: Age of Discovery (next).** Voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies. It begins with the Nation era's voyage.
 5. **Phase 5: Modern era.** Combined arms, air and sea layers, special operations, supply, espionage.
 6. **Phase 6: Space age.** Satellites, mining, colonization, space combat.
 7. **Later:** multiplayer modes, challenge mode with 16 to 20 nations, endgame.
@@ -883,7 +937,7 @@ The game is built in layers, and each phase should be playable and fun on its ow
 
 - [x] Game title: Embers to Orbit
 - [ ] How the game ends: victory conditions, or endless play
-- [ ] Names, cultures, and homelands of the 7 core nations. Partly answered: the first two are a river and coast people of traders and a riding people of the plains (see The Nation era); their names and the other five are still to come
+- [x] Names, cultures, and homelands of the 7 core nations: the Ostrani, the Orhai, the Keshari, the Dravan, the Ashani, the Haldi, and the Venn (see The Nation era). Built in October 2026 from the brief's recommendations; open to Christopher's changes
 - [ ] Exact resource list per era. Answered for the Nation era: iron, horses, coin, and salt (all built)
 - [x] What comes between the Nation and Modern eras: the Age of Discovery, which the Nation era's first ocean voyage begins
 - [x] Shape of the research tree: five branches, with occasional choices that close off an alternative (built through the Settlement era)

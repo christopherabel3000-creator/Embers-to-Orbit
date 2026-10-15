@@ -50,6 +50,7 @@ export function progressConditions(state, healersAtWork) {
       if (healersAtWork > 0) recover += 0.3;
       if (state.buildings.healersHut > 0) recover += 0.1;
       if (hasKnowledge(state, 'medicine')) recover += 0.15;
+      if (hasKnowledge(state, 'physicians')) recover += 0.15;
       if (chance(state, recover)) {
         p.sick = false;
         recovered.push(p);

@@ -7,12 +7,15 @@ import { NEIGHBORS, LEAN_TIMES } from '../../engine/data.js';
 import { settlementBlocker, MIN_VILLAGE } from '../../engine/settlements.js';
 import { ransom, ransomGoods, sallyEvent } from '../../engine/siege.js';
 import {
-  living, foodNeeded, storageCapacity, leanTimesNow, inVillage, taskAvailable, hasKnowledge, saltNeeded,
+  living, foodNeeded, storageCapacity, leanTimesNow, inVillage, taskAvailable, hasKnowledge, saltNeeded, eraAtLeast,
 } from '../../engine/state.js';
 import {
   feastBlocker, feastCost, feastGuests, FEAST_GUEST_FOOD, feastLift, fullFeastLift, feastsInARow, feastExpected,
 } from '../../engine/stores.js';
 import { villageBlocker } from '../../engine/village.js';
+import {
+  voyageChecklist, voyageBlocker, voyageReady, voyageCostWords, VOYAGE,
+} from '../../engine/voyage.js';
 import { weatherLine, weatherNow } from '../../engine/weather.js';
 import { state, esc, plural, adviceList } from '../core.js';
 
@@ -66,6 +69,13 @@ export function reportScreen() {
     html += `<h2>A new settlement</h2>
       <p>Your nation could found another settlement. The Nation screen shows every settlement.</p>
       <div class="actions"><button type="button" data-nav="foundSettlement">Plan a new settlement</button></div>`;
+  }
+  if (eraAtLeast(state, 'nation') && !state.voyage && (hasKnowledge(state, 'shipbuilding') || voyageReady(state))) {
+    const why = voyageBlocker(state);
+    html += `<h2 id="voyageHeading">Across the open sea</h2>
+      <p>The Nation era ends when your nation sends its first ship from its harbor across the open sea, into the unknown: the start of the Age of Discovery. It is a great step, and it cannot be undone. Fitting out the ship takes ${esc(voyageCostWords())}, and a crew of ${VOYAGE.crew} of your best scouts. The voyage needs:</p>
+      <ul>${voyageChecklist(state).map((x) => `<li>${x.done ? 'Done' : 'Not yet'}: ${esc(x.text)}.</li>`).join('')}</ul>
+      ${why ? `<p>${esc(why)}</p>` : '<div class="actions"><button type="button" class="primary" data-action="sendVoyage">Send the first ship across the open sea</button></div>'}`;
   }
   if (!villageBlocker(state)) {
     html += `<h2>Become a village</h2>

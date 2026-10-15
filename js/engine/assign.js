@@ -6,11 +6,11 @@ import { TASKS, WANDERERS } from './data.js';
 import { remainingQueueWork, shortfall } from './building.js';
 import {
   living, seasonIndex, allowedTasksFor, unexploredNeighbors, knownPlaces, fieldPlots,
-  inVillage, woodNeededForWarmth, hasCondition, taskAvailable, foodNeeded, foodStoreTarget, foodStocked, hasKnowledge,
+  inVillage, woodNeededForWarmth, hasCondition, taskAvailable, foodNeeded, foodStoreTarget, foodStocked, hasKnowledge, eraAtLeast,
 } from './state.js';
 import { BUILDINGS } from './data.js';
 import {
-  siteFor, farmersNeeded, workFactor, expectedWork, foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER,
+  siteFor, farmersNeeded, workFactor, expectedWork, foodPerPlot, PLANT_PER_FARMER, TEND_PER_FARMER, HARVEST_PER_FARMER, plotsPerFarmer,
 } from './rules.js';
 
 // When two tasks use equally strong skills, prefer the earlier one. Farming
@@ -26,9 +26,9 @@ function fieldWork(state) {
   const s = seasonIndex(state);
   const plots = fieldPlots(state);
   if (!plots || s === 3) return 0;
-  if (s === 0) return (plots - state.farm.planted) / PLANT_PER_FARMER;
-  if (s === 1) return state.farm.planted / TEND_PER_FARMER;
-  return state.farm.planted / HARVEST_PER_FARMER;
+  if (s === 0) return (plots - state.farm.planted) / plotsPerFarmer(state, PLANT_PER_FARMER);
+  if (s === 1) return state.farm.planted / plotsPerFarmer(state, TEND_PER_FARMER);
+  return state.farm.planted / plotsPerFarmer(state, HARVEST_PER_FARMER);
 }
 
 function needsRest(p) {
@@ -48,7 +48,7 @@ function limits(state, people) {
   const farmers = farmersNeeded(state);
   return {
     hunt: Infinity,
-    forage: s === 3 ? 0 : Infinity,
+    forage: s === 3 && !hasKnowledge(state, 'fishingBoats') ? 0 : Infinity, // With boats, they fish in winter.
     farm: farmers,
     wood: Infinity,
     // Enough builders to finish the project in about two seasons.
@@ -135,7 +135,7 @@ const NATION_STONE_IN_HAND = 40;
 function quarriersNeeded(state, workers) {
   if (!taskAvailable(state, 'quarry')) return 0;
   const waiting = state.buildQueue.filter((item) => !item.paid).reduce((sum, item) => sum + (BUILDINGS[item.id].stone || 0), 0);
-  const inHand = state.era === 'nation' ? NATION_STONE_IN_HAND : STONE_IN_HAND;
+  const inHand = eraAtLeast(state, 'nation') ? NATION_STONE_IN_HAND : STONE_IN_HAND;
   const short = waiting + inHand - (state.resources.stone || 0);
   if (short <= 0) return 0;
   const extra = (state.priorities || {}).building === 'high' ? 1 : 0;
@@ -217,7 +217,7 @@ export function villagePlan(state) {
     return plan;
   }
   // In spring the council sows only what the food stores need.
-  const needed = s === 0 ? plotsToSow(state) / PLANT_PER_FARMER : fieldWork(state);
+  const needed = s === 0 ? plotsToSow(state) / plotsPerFarmer(state, PLANT_PER_FARMER) : fieldWork(state);
   if (needed > 0) {
     let strength = 0;
     for (const p of free('farm').sort((a, b) => b.skills.foraging - a.skills.foraging)) {
@@ -249,7 +249,7 @@ export function villagePlan(state) {
       continue;
     }
     const options = [['hunt', p.skills.hunting], ['forage', p.skills.foraging], ['wood', p.skills.building - 0.5]]
-      .filter(([t]) => allowed.includes(t) && !(t === 'forage' && s === 3)) // Nothing to forage in winter.
+      .filter(([t]) => allowed.includes(t) && !(t === 'forage' && s === 3 && !hasKnowledge(state, 'fishingBoats'))) // Nothing to forage in winter, unless they fish.
       .sort((a, b) => b[1] - a[1]);
     plan.set(p.id, options.length ? options[0][0] : (allowed.includes('study') && state.knowledge.current ? 'study' : 'rest'));
   }

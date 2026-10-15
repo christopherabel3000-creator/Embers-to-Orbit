@@ -133,7 +133,7 @@ export function applyStandingOrders(state) {
       const back = people.filter((p) => returnFrom(p, 'winter', 'hunt'));
       if (back.length) say('steward', `${listNames(back)} went back to the fields and foraging grounds now that spring has come.`);
     }
-    if (orders.winterForagers && s === 3) {
+    if (orders.winterForagers && s === 3 && !hasKnowledge(state, 'fishingBoats')) {
       const idle = people.filter((p) => p.task === 'forage' || p.task === 'farm');
       for (const p of idle) moveFor(p, 'hunt', 'winter');
       if (idle.length) say('steward', `nothing grows in winter, so ${listNames(idle)} will hunt until spring.`);

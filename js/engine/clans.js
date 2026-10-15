@@ -37,8 +37,13 @@ export function clansQuiet(state) {
 }
 
 // Clansmen who would march with the Skarn now.
+// Under a peace pact with the Dravan, their younger sons stay home.
+function dravanPeace(state) {
+  return Boolean(state.great && state.great.dravan && state.great.dravan.treaties.peace);
+}
+
 export function clansMarching(state) {
-  if (!state.neighbors.skarn.nation || skarnAtPeace(state) || clansQuiet(state) || passHeld(state)) return 0;
+  if (!state.neighbors.skarn.nation || skarnAtPeace(state) || clansQuiet(state) || passHeld(state) || dravanPeace(state)) return 0;
   return clans(state).warriors;
 }
 
@@ -46,7 +51,7 @@ export function clansMarching(state) {
 // their own. Returns how many could come, or 0.
 export const CLAN_RAID_MIN = 5;
 export function clansRaidingAlone(state) {
-  if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known || !skarnAtPeace(state) || clansQuiet(state) || passHeld(state)) return 0;
+  if (!state.neighbors.skarn.nation || !state.neighbors.skarn.known || !skarnAtPeace(state) || clansQuiet(state) || passHeld(state) || dravanPeace(state)) return 0;
   return clans(state).warriors >= CLAN_RAID_MIN ? clans(state).warriors : 0;
 }
 

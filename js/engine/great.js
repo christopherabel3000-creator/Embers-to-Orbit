@@ -16,6 +16,7 @@ import { recordDeed, reputation } from './legacy.js';
 import { lawIs } from './laws.js';
 import { raidScale } from './difficulty.js';
 import { atWar, armyHolding, homeBesieged } from './warStatus.js';
+import { applyStudy } from './study.js';
 import { chance, randomInt, randomBetween } from './rng.js';
 import { clamp, capital, listWords } from './util.js';
 
@@ -34,16 +35,26 @@ export function metGreat(state) {
   return GREAT_ORDER.filter((id) => greatMet(state, id));
 }
 
-// When the Nation era begins, rumors of them reach the capital. Returns lines.
+// When the Nation era begins, rumors of the first two reach the capital.
+// Returns lines.
 export function hearOfGreat(state) {
   if (!state.great) state.great = initialGreat();
   const lines = [];
-  for (const id of GREAT_ORDER) {
+  for (const id of GREAT_ORDER.filter((x) => GREAT_NATIONS[x].early)) {
     if (state.great[id].heard) continue;
     state.great[id].heard = true;
     lines.push(GREAT_NATIONS[id].rumor);
   }
   return lines;
+}
+
+// Word of a homeland's people comes with word of the region. Returns lines.
+export function hearOfHomeland(state, regionId) {
+  const id = REGIONS[regionId] && REGIONS[regionId].nation;
+  const g = id && great(state, id);
+  if (!g || g.heard) return [];
+  g.heard = true;
+  return [GREAT_NATIONS[id].rumor];
 }
 
 // An expedition has reached their homeland, or their riders found you:
@@ -77,6 +88,9 @@ export function greatRegard(state, id) {
   if (def.likes.trader) add('your name as honest traders', rep.traders * def.likes.trader / 3);
   if (def.likes.fierce) add('your name as fierce fighters', rep.fierce * def.likes.fierce / 3);
   if (def.likes.generous) add('your name for generosity', rep.generous * def.likes.generous / 3);
+  if (def.likes.welcoming) add('your welcome to strangers', rep.welcoming * def.likes.welcoming / 3);
+  if (def.likes.learned) add('your learning', Math.max(0, state.knowledge.learned.length - 30) * def.likes.learned);
+  if (def.likes.temples) add('your temples', hasKnowledge(state, 'temples') ? def.likes.temples : 0);
   add('your embassy', g.embassy ? 10 : 0);
   add('the trade pact', g.treaties.trade ? 5 : 0);
   add('the peace pact', g.treaties.peace ? 5 : 0);
@@ -96,7 +110,7 @@ export function greatTarget(state, id) {
 export function greatSeason(state) {
   if (!state.great) return;
   if (seasonIndex(state) === 0 && state.nationFounded != null) {
-    for (const id of GREAT_ORDER) {
+    for (const id of GREAT_ORDER.filter((x) => great(state, x))) {
       const g = great(state, id);
       const target = greatStrengthTarget(state, id);
       const now = g.strength ?? target;
@@ -106,18 +120,21 @@ export function greatSeason(state) {
   for (const id of metGreat(state)) {
     const g = great(state, id);
     const target = greatTarget(state, id);
-    if (g.relation < target) g.relation = Math.min(target, g.relation + 2);
-    else if (g.relation > target) g.relation = Math.max(target, g.relation - 2);
+    const drift = GREAT_NATIONS[id].drift || 2; // The wary Venn warm slowly.
+    if (g.relation < target) g.relation = Math.min(target, g.relation + drift);
+    else if (g.relation > target) g.relation = Math.max(target, g.relation - drift);
     if (seasonIndex(state) === 0 && Object.values(g.treaties).some(Boolean)) g.trust = clamp(g.trust + 2);
   }
 }
 
 // The riders or soldiers they keep under arms, which they make good each
 // spring: the Orhai grow in number, and the Ostrani hire more in a war.
+// (The Ostrani hire half again as many in a war.)
 export function greatStrengthTarget(state, id) {
   const years = Math.max(0, state.turn - (state.nationFounded ?? state.turn)) / 4;
-  if (id === 'orhai') return Math.round(Math.min(100, 50 + 4 * years) * raidScale(state));
-  return Math.round(Math.min(60, 30 + 2 * years) * (atWar(state, id) ? 1.5 : 1));
+  const st = GREAT_NATIONS[id].strength;
+  const base = Math.min(st.cap, st.base + st.per * years);
+  return Math.round(base * (st.scaled ? raidScale(state) : 1) * (id === 'ostrani' && atWar(state, id) ? 1.5 : 1));
 }
 
 // ----- Trade -----
@@ -153,7 +170,7 @@ export function tradeTerms(state, id, lotId) {
 export function tradesWith(state, id) {
   const g = great(state, id);
   if (!g || !g.met || atWar(state, id)) return [];
-  if (id === 'orhai' && !g.treaties.peace) return [];
+  if (GREAT_NATIONS[id].needsPeace && !g.treaties.peace) return [];
   return TRADES_BY[id].filter((lotId) => !TRADE_LOTS[lotId].needs || hasKnowledge(state, TRADE_LOTS[lotId].needs))
     .filter((lotId) => !(lotId === 'sellGoods' && hasKnowledge(state, 'fineCrafts') && TRADES_BY[id].includes('sellFine')));
 }
@@ -198,7 +215,7 @@ export function greatActs(state, id) {
   }
   if (!g.married) acts.push({ act: 'marry', label: 'Propose a marriage between your ruling families', why: !g.embassy ? 'That needs an embassy.' : g.relation < 40 ? 'Relations must be at least 40.' : null });
   if (!g.route) {
-    acts.push({ act: 'route', label: `Set up a trade route to them, for ${costWords(ROUTE_COST)}`, why: !hasKnowledge(state, 'tradeRoutes') ? 'Your people must learn Trade routes first.' : id === 'orhai' && !g.treaties.peace ? 'The Orhai will only trade under a peace pact.' : g.relation < 10 ? 'Relations must be at least 10.' : short(state, ROUTE_COST).length ? `You are short of ${listWords(short(state, ROUTE_COST))}.` : null });
+    acts.push({ act: 'route', label: `Set up a trade route to them, for ${costWords(ROUTE_COST)}`, why: !hasKnowledge(state, 'tradeRoutes') ? 'Your people must learn Trade routes first.' : GREAT_NATIONS[id].needsPeace && !g.treaties.peace ? `${capital(GREAT_NATIONS[id].name)} will only trade under a peace pact.` : g.relation < 10 ? 'Relations must be at least 10.' : short(state, ROUTE_COST).length ? `You are short of ${listWords(short(state, ROUTE_COST))}.` : null });
   }
   return acts;
 }
@@ -221,9 +238,14 @@ export function greatDiplomacy(state, id, act) {
   if (TRADE_LOTS[act]) {
     const t = tradeTerms(state, id, act);
     state.resources[t.give] -= t.giveAmount;
-    state.resources[t.get] = (state.resources[t.get] || 0) + t.getAmount;
     recordDeed(state, 'trades');
     changeGreat(state, id, 1);
+    if (t.get === 'study') {
+      // Their scholars teach yours: points toward the current discovery.
+      const studied = applyStudy(state, t.getAmount);
+      return { message: `${who} took ${t.giveAmount} coin, and their scholars taught yours: ${t.getAmount} points toward your studies.${studied.urgent.length ? ` ${studied.urgent.join(' ')}` : ''}` };
+    }
+    state.resources[t.get] = (state.resources[t.get] || 0) + t.getAmount;
     return { message: `${who} took ${t.giveAmount} ${t.give}${t.fine ? ' of fine work' : ''} and gave ${t.getAmount} ${t.get}.` };
   }
   if (act === 'gift') {
@@ -271,7 +293,7 @@ export function greatDiplomacy(state, id, act) {
 
 export function routeIncome(state, id) {
   const g = great(state, id);
-  let coin = (id === 'ostrani' ? 3 : 2) + (g.treaties.trade ? 2 : 0);
+  let coin = ((GREAT_NATIONS[id].route || 2) + (g.treaties.trade ? 2 : 0)) * (g.richRoute ? 2 : 1);
   if (hasKnowledge(state, 'measures')) coin *= 1.25;
   return Math.round(coin);
 }
@@ -342,6 +364,58 @@ export function orhaiSeason(state, defense) {
     if (!state.lastHarm) state.lastHarm = {};
     state.lastHarm.orhai = state.turn;
     out.urgent.push(`${who} raided ${t.name}, killed ${lost === 1 ? 'one settler' : `${lost} settlers`}, and drove off its herds.${first ? ' They call themselves the Orhai, and they will be back.' : ''} More guards or a fortress on the plains would help, or a peace pact with them.`);
+  }
+  return out;
+}
+
+// ----- The Dravan and the Haldi -----
+
+// In peace, their war bands fall on your settlements within their reach: 5
+// percent a season, half again as often while relations are below -20, half
+// as often at 20 or more, and never under a peace pact or once a peace has
+// pushed them back. Before they are met, they find you this way, once the
+// Nation era is old enough.
+export function raidChance(state, id) {
+  const g = great(state, id);
+  const def = GREAT_NATIONS[id];
+  if (!g || !def.raids || g.treaties.peace || g.pulledBack || atWar(state, id) || homeBesieged(state, id)) return 0;
+  if (!g.met && (state.turn - (state.nationFounded ?? state.turn)) < def.raids.after) return 0;
+  let p = 0.05;
+  if (g.relation < -20) p *= 1.5;
+  if (g.relation >= 20) p *= 0.5;
+  return p;
+}
+
+export function inRaidReach(state, id, t) {
+  const def = GREAT_NATIONS[id];
+  return Boolean(def.raids) && def.raids.reach.includes(placeRegion(t.place));
+}
+
+// Runs each season, as the Orhai's raids do. Returns { urgent, events }.
+export function greatRaidsSeason(state, defense) {
+  const out = { urgent: [], events: [] };
+  if (!state.great) return out;
+  for (const id of GREAT_ORDER.filter((x) => GREAT_NATIONS[x].raids && great(state, x))) {
+    const g = great(state, id);
+    const def = GREAT_NATIONS[id];
+    for (const t of (state.settlements || []).filter((x) => inRaidReach(state, id, x))) {
+      if (!chance(state, raidChance(state, id))) continue;
+      if (armyHolding(state, placeRegion(t.place))) continue; // Your army there keeps them off.
+      const first = !g.met && !g.contactPending;
+      if (first) meetGreat(state, id);
+      const who = first ? def.raids.stranger : def.raids.who;
+      if (chance(state, defense(state, t) * 0.7)) {
+        out.urgent.push(`${who} came against ${t.name}, and its guards drove them off.${first ? ` They call themselves ${def.name}.` : ''}`);
+        continue;
+      }
+      const lost = randomInt(state, 1, 3);
+      t.population = Math.max(3, t.population - lost);
+      t.loyalty = clamp(t.loyalty - 8);
+      t.harriedAt = state.turn;
+      if (!state.lastHarm) state.lastHarm = {};
+      state.lastHarm[id] = state.turn;
+      out.urgent.push(`${who} raided ${t.name}, killed ${lost === 1 ? 'one settler' : `${lost} settlers`}, and carried off what they could.${first ? ` They call themselves ${def.name}, and they will be back.` : ''} More guards there would help, or a peace pact with them.`);
+    }
   }
   return out;
 }

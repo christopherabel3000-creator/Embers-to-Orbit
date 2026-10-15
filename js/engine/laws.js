@@ -25,7 +25,15 @@ export function lawIs(state, law, option) {
 export function seasonsUntilChange(state, law) {
   const last = state.lawChanged && state.lawChanged[law];
   if (last === undefined || last === null) return 0;
-  return Math.max(0, last + LAW_CHANGE_GAP - state.turn);
+  return Math.max(0, last + lawGap(state) - state.turn);
+}
+
+// Seasons before a law can change again: a year, two seasons under a crown,
+// two years under an assembly.
+export function lawGap(state) {
+  if (hasKnowledge(state, 'crown')) return 2;
+  if (hasKnowledge(state, 'assembly')) return 8;
+  return LAW_CHANGE_GAP;
 }
 
 export function lawBlocker(state, law, option) {

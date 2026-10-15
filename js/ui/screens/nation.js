@@ -6,7 +6,7 @@ import { SKILLS, placeData, NEIGHBORS } from '../../engine/data.js';
 import { taxRate } from '../../engine/laws.js';
 import { soldiersFromTown } from '../../engine/armies.js';
 import {
-  ROLES, ROLE_ORDER, DEMANDS, DEMAND_ORDER, TOWN_PRIORITIES, MAKER_NAMES, HOME_ROOM,
+  ROLES, ROLE_ORDER, DEMANDS, DEMAND_ORDER, TOWN_PRIORITIES, MAKER_NAMES, homeRoom,
   settlementById, townGroups, expectedShipment, governorFactor, governorSkill, loyaltyWord, loyaltyTarget,
   landFit, bestRole, roleAvailable, hasRoad, far, keepingAll, worksLevel, garrisonHelp, nationPopulation, UNROADED_LOSS, LOYALTY_BASE,
   wagesDue, wagesPaid,
@@ -89,7 +89,7 @@ export function settlementScreen() {
   const gov = t.governor;
   const skill = governorSkill(t);
   const { target, reasons } = loyaltyTarget(state, t);
-  const roleOptions = ROLE_ORDER.filter((r) => roleAvailable(state, r) || r === t.role).map((r) => [r, ROLES[r].name]);
+  const roleOptions = ROLE_ORDER.filter((r) => roleAvailable(state, r, t.place) || r === t.role).map((r) => [r, ROLES[r].name]);
   const candidates = governorCandidates(state, t);
   let html = `<h1>${esc(t.name)}</h1>
     <p>A ${esc(ROLES[t.role].name.toLowerCase())} at ${esc(placeName(state, t.place))}, founded in Year ${year(state, t.founded - state.turn)}: ${plural(t.population, 'person', 'people')}, ${loyaltyWord(t.loyalty)} (loyalty ${t.loyalty}).</p>
@@ -135,7 +135,7 @@ export function settlementScreen() {
   const b = t.buildings;
   const level = worksLevel(t);
   const built = [
-    `Homes: ${b.homes}, room for ${b.homes * HOME_ROOM}.`,
+    `Homes: ${b.homes}, room for ${b.homes * homeRoom(state)}.`,
     b.stoneWall ? 'A stone wall.' : b.palisade ? 'A palisade.' : 'No walls yet.',
     `${capitalize(ROLES[t.role].works)}: ${level ? `level ${level} of 3, ${level * 15} percent more from its role` : 'not yet built'}.`,
     b.hall ? 'A hall, where its people gather: loyalty 5 higher.' : null,

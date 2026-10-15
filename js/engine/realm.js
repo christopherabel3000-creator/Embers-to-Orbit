@@ -37,6 +37,10 @@ export const ROLES = {
     name: 'Fortress', kind: null, rate: 0, skill: 'hunting', works: 'barracks',
     about: 'Sends home nothing, but keeps a strong garrison. Its soldiers meet raiders on the road to the capital, and the Skarn skirmish your people less often.',
   },
+  port: {
+    name: 'Port', kind: 'coin', rate: 0.3, skill: 'scouting', works: 'a harbor', requires: 'harbors', harbor: true,
+    about: 'Sends home coin from the ships that put in, and builds a harbor, from which ships can cross the open sea. Only at a place where a harbor can stand.',
+  },
 };
 export const ROLE_ORDER = Object.keys(ROLES);
 
@@ -61,6 +65,17 @@ const STUDY_SHARE = { low: 0, normal: 0.04, high: 0.08 };
 
 export const WORKER_SHARE = 0.72; // The rest are children and elders.
 export const HOME_ROOM = 8;
+
+// How many each home in a settlement shelters: 10 with wells and cisterns.
+export function homeRoom(state) {
+  return hasKnowledge(state, 'wells') ? 10 : HOME_ROOM;
+}
+
+// Whether most of the capital's workers are in high spirits (morale 70 or more).
+export function capitalHighSpirits(state) {
+  const workers = (state.people || []).filter((p) => p.alive && p.age >= 16);
+  return workers.length > 0 && workers.filter((p) => p.morale >= 70).length * 2 >= workers.length;
+}
 export const WORKS_BONUS = 0.15; // Each level of a role's works.
 export const UNROADED_LOSS = 0.15; // Lost on the way from a settlement 2 or more places off.
 export const LOYALTY_START = 70;
@@ -85,6 +100,7 @@ export function landFit(role, placeId) {
   }
   if (role === 'timber') return p.tasks.includes('wood') ? 1 + 0.1 * Math.max(0, b.wood || 0) : 0.5;
   if (role === 'mining') return p.tasks.includes('quarry') ? 1 + 0.1 * Math.max(0, b.quarry || 0) : 0.5;
+  if (role === 'port') return 1 + 0.1 * Math.max(0, b.fish || 0);
   return 1;
 }
 
@@ -99,8 +115,17 @@ export function bestRole(placeId) {
   return best[1] > 0 ? best[0] : 'farming';
 }
 
-export function roleAvailable(state, role) {
-  return Boolean(ROLES[role]) && (!ROLES[role].requires || hasKnowledge(state, ROLES[role].requires));
+// Whether a settlement can take this role: some need a discovery, and a
+// port needs a place where a harbor can stand.
+export function roleAvailable(state, role, placeId = null) {
+  const r = ROLES[role];
+  if (!r || (r.requires && !hasKnowledge(state, r.requires))) return false;
+  return !r.harbor || placeId == null || Boolean(placeData(placeId).harbor);
+}
+
+// Whether a port has built its harbor.
+export function hasHarbor(state) {
+  return (state.settlements || []).some((t) => t.role === 'port' && worksLevel(t) >= 1);
 }
 
 // ----- Roads -----
@@ -162,7 +187,7 @@ export function townGroups(state, t) {
 
 // "Farmers and foragers", "Woodcutters", ... for the workers at the role.
 export const MAKER_NAMES = {
-  farming: 'Farmers and foragers', timber: 'Woodcutters', mining: 'Quarriers', market: 'Crafters and traders', fortress: 'Farmers who feed the garrison',
+  farming: 'Farmers and foragers', timber: 'Woodcutters', mining: 'Quarriers', market: 'Crafters and traders', fortress: 'Farmers who feed the garrison', port: 'Sailors and dockhands',
 };
 
 // ----- Governors -----
@@ -224,7 +249,7 @@ export function loyaltyTarget(state, t) {
   add('their hall', t.buildings.hall ? 5 : 0);
   add('a road to the capital', hasRoad(state, t) ? 5 : 0);
   const distance = placeData(t.place).distance;
-  add(distance >= 4 ? 'being in another region' : 'being far from the capital', distance >= 4 ? -5 : distance >= 3 ? -3 : 0);
+  add(distance >= 4 ? 'being in another region' : 'being far from the capital', distance >= 4 ? (hasKnowledge(state, 'bridges') ? -3 : -5) : distance >= 3 ? -3 : 0);
   const without = state.turn - (t.lastAid ?? t.founded);
   if (without > NEGLECT_AFTER) add(`no aid from the capital in ${Math.floor(without / 4)} years`, -Math.min(15, 3 * Math.floor((without - NEGLECT_AFTER) / 4) + 3));
   if (t.harriedAt != null && state.turn - t.harriedAt < 4) add('settlers killed by raiders this past year', -5);
@@ -235,6 +260,12 @@ export function loyaltyTarget(state, t) {
   add(`${away} of its people away with your armies`, -Math.min(8, Math.ceil(away / 5)));
   add(`a war of ${warYears(state)} years`, -warWeariness(state).loyalty);
   add('a war without just cause', unjustWar(state) ? -5 : 0);
+  add('the temple\'s festivals', hasKnowledge(state, 'temples') ? 3 : 0);
+  add('the assembly, where they have a voice', hasKnowledge(state, 'assembly') ? 5 : 0);
+  if (hasKnowledge(state, 'crown')) {
+    const high = capitalHighSpirits(state);
+    add(high ? 'the crown, while the capital is in high spirits' : 'the crown, while the capital is not in high spirits', high ? 3 : -5);
+  }
   const target = Math.max(0, Math.min(100, LOYALTY_BASE + reasons.reduce((sum, [, n]) => sum + n, 0)));
   return { target, reasons };
 }
@@ -258,11 +289,17 @@ export function townOutput(state, t) {
   const role = ROLES[t.role];
   if (!role.kind) return 0;
   const g = townGroups(state, t);
-  const rate = KIND_RATE[townKind(state, t)] || role.rate;
+  const rate = (t.role === 'mining' && KIND_RATE[townKind(state, t)]) || role.rate;
   let amount = g.makers * rate * landFit(t.role, t.place) * governorFactor(t, state)
     * loyaltyFactor(t.loyalty) * (1 + WORKS_BONUS * worksLevel(t));
   if (role.kind === 'food' && seasonIndex(state) === 3) amount *= 0.5; // Lean winters there too.
-  if (t.role === 'farming' && hasKnowledge(state, 'astronomy')) amount *= 1.1;
+  if (t.role === 'farming') {
+    if (hasKnowledge(state, 'astronomy')) amount *= 1.1;
+    if (hasKnowledge(state, 'cropRotation')) amount *= 1.1;
+    if (hasKnowledge(state, 'mills')) amount *= 1.1;
+    if (hasKnowledge(state, 'plough') && (state.resources.horses || 0) >= 10) amount *= 1.2;
+    if (hasKnowledge(state, 'fishingBoats')) amount *= 1 + 0.1 * (placeData(t.place).bonus.fish || 0);
+  }
   return amount;
 }
 

@@ -18,7 +18,7 @@ import { refreshAdvisors, ADVISOR_ROLES } from './advisors.js';
 import { notablePeople, newName } from './village.js';
 import { nationsActive, harryChance, skarnLosses } from './nations.js';
 import {
-  ROLES, DEMANDS, TOWN_PRIORITIES, LOYALTY_START, HOME_ROOM, bestRole, roleAvailable, settlementById,
+  ROLES, DEMANDS, TOWN_PRIORITIES, LOYALTY_START, homeRoom, bestRole, roleAvailable, settlementById,
   townGroups, expectedShipment, governorSkill, loyaltyTarget, loyaltyWord, keepingAll, hasRoad, worksLevel,
 } from './realm.js';
 import { gainExperience } from './skills.js';
@@ -139,7 +139,7 @@ function newTown(state, { name, placeId, count, governor, notables, role, demand
     governorSince: state.turn,
     notables: notables.map((p) => ({ ...p, task: 'settler' })),
     buildings: {
-      homes: Math.ceil((count + 2) / HOME_ROOM), palisade: 0, stoneWall: 0, hall: 0, keep: 0, works: {},
+      homes: Math.ceil((count + 2) / homeRoom(state)), palisade: 0, stoneWall: 0, hall: 0, keep: 0, works: {},
     },
     project: null,
     lastAid: state.turn,
@@ -168,7 +168,7 @@ export function foundSettlement(state, {
   const chosenDemands = demands || POLICY_TO_DEMANDS[policy] || (policy ? null : 'normal');
   if (!DEMANDS[chosenDemands]) return { error: 'Choose light, normal, or heavy demands.' };
   const chosenRole = role || bestRole(placeId);
-  if (!roleAvailable(state, chosenRole)) return { error: 'Choose a role your people can fill.' };
+  if (!roleAvailable(state, chosenRole, placeId)) return { error: ROLES[chosenRole] && ROLES[chosenRole].harbor ? 'A port needs a place where a harbor can stand.' : 'Choose a role your people can fill.' };
   const title = String(name || '').trim().slice(0, 30) || `New ${placeName(state, placeId)}`;
   const fromTown = source === 'capital' ? null : settlementById(state, source);
   const fromCapital = state.people.some((p) => p.id === governor.id);
@@ -208,7 +208,7 @@ export function foundSettlement(state, {
   });
   state.settlements.push(town);
   refreshAdvisors(state);
-  const firstSettlement = state.era !== 'nation';
+  const firstSettlement = !eraAtLeast(state, 'nation');
   state.era = 'nation';
   const heard = firstSettlement ? openWorld(state) : [];
   const rumors = firstSettlement ? hearOfGreat(state) : [];
@@ -235,7 +235,7 @@ export function setTownRole(state, { settlementId, role }) {
   const { t, error } = townOr(state, settlementId);
   if (error) return { error };
   if (!ROLES[role]) return { error: 'Unknown role.' };
-  if (!roleAvailable(state, role)) return { error: `A ${ROLES[role].name.toLowerCase()} needs weaving first.` };
+  if (!roleAvailable(state, role, t.place)) return { error: ROLES[role].harbor ? (hasKnowledge(state, 'harbors') ? 'A port needs a place where a harbor can stand.' : 'A port needs Harbors first.') : `A ${ROLES[role].name.toLowerCase()} needs weaving first.` };
   if (t.role === role) return { message: `${t.name} is already a ${ROLES[role].name.toLowerCase()}.` };
   t.role = role;
   if (t.project && t.project.id === 'works') t.project = null; // The old works stand idle.
@@ -338,7 +338,7 @@ export function appointGovernor(state, { settlementId, personId }) {
 // What a settlement's governor builds next, or null.
 export function nextProject(state, t) {
   const b = t.buildings;
-  const room = b.homes * HOME_ROOM;
+  const room = b.homes * homeRoom(state);
   const pop = t.population;
   const fortress = t.role === 'fortress';
   const level = worksLevel(t);
@@ -349,7 +349,7 @@ export function nextProject(state, t) {
   if (level < 3 && pop >= 10 * (level + 1)) return 'works';
   if (!b.hall && pop >= 25 && hasKnowledge(state, 'oralLaw')) return 'hall';
   if (b.palisade && !b.stoneWall && pop >= 30 && hasKnowledge(state, 'masonry')) return 'stoneWall';
-  if (pop + HOME_ROOM > room) return 'homes';
+  if (pop + homeRoom(state) > room) return 'homes';
   return null;
 }
 
@@ -484,8 +484,8 @@ export function settlementsSeason(state, { routine = null, cutOff = false } = {}
       const life = townYear(state, t);
       out.urgent.push(...life.urgent);
       out.events.push(...life.events);
-      const rate = (DEMANDS[t.demands] || DEMANDS.normal).growth * (t.loyalty < 40 ? 0.5 : 1);
-      const room = t.buildings.homes * HOME_ROOM - t.population;
+      const rate = ((DEMANDS[t.demands] || DEMANDS.normal).growth + (hasKnowledge(state, 'wells') ? 0.02 : 0)) * (t.loyalty < 40 ? 0.5 : 1);
+      const room = t.buildings.homes * homeRoom(state) - t.population;
       const expected = t.population * rate;
       const grown = Math.min(Math.max(0, room), Math.floor(expected) + (chance(state, expected % 1) ? 1 : 0));
       if (grown > 0) {

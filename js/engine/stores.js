@@ -3,7 +3,7 @@
 
 import { NEIGHBORS, NEIGHBOR_ORDER, OVERFLOW_ROT } from './data.js';
 import {
-  living, storageCapacity, inVillage, independent,
+  living, storageCapacity, inVillage, independent, hasKnowledge,
 } from './state.js';
 import { recordDeed, hasTradition } from './legacy.js';
 import { changeRelation } from './neighbors.js';
@@ -102,6 +102,9 @@ export function holdFeast(state, guest = null) {
   state.feastThisSeason = true; // Families grow closer: births are likelier this season.
   for (const p of living(state)) p.morale = clamp(p.morale + lift);
   recordDeed(state, 'feasts');
+  // With temples, the festival brings the settlements together too.
+  const festival = hasKnowledge(state, 'temples') && (state.settlements || []).length;
+  if (festival) for (const t of state.settlements) t.loyalty = clamp(t.loyalty + 5);
   let message = `Your people feasted, eating ${cost} food. Spirits are high, and families have grown closer.`;
   if (guest) {
     const generous = hasTradition(state, 'generous') ? 1.5 : 1;
@@ -109,6 +112,7 @@ export function holdFeast(state, guest = null) {
     recordDeed(state, 'gifts');
     message = `Your people feasted with ${NEIGHBORS[guest].name}, eating ${cost} food. Spirits are high, and your guests went home pleased.`;
   }
+  if (festival) message += ' The temple\'s festival brought the settlements together: each is 5 more loyal.';
   if (lift < fullFeastLift(state)) message += ` Feasting is a custom now: this feast lifted spirits by ${lift}, where a first feast lifts them by ${fullFeastLift(state)}.`;
   return { message };
 }

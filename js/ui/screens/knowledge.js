@@ -3,7 +3,9 @@
 import { KNOWLEDGE, KNOWLEDGE_ORDER, BRANCHES } from '../../engine/data.js';
 import { studyPoints } from '../../engine/rules.js';
 import { townStudy } from '../../engine/realm.js';
-import { living, hasKnowledge, knowledgeBlocker, inVillage, knowledgeClosed } from '../../engine/state.js';
+import {
+  living, hasKnowledge, knowledgeBlocker, inVillage, knowledgeClosed, knowledgeCost,
+} from '../../engine/state.js';
 import { state, esc, plural } from '../core.js';
 
 export function knowledgeScreen() {
@@ -21,8 +23,8 @@ export function knowledgeScreen() {
   if (k.current) {
     const item = KNOWLEDGE[k.current];
     const done = Math.floor(k.progress[k.current] || 0);
-    const seasons = rate ? Math.ceil((item.cost - done) / rate) : null;
-    html += `<p>${esc(item.name)}: ${done} of ${item.cost} points.${seasons ? ` About ${plural(seasons, 'more season', 'more seasons')}.` : ' No one is studying it.'}</p>`;
+    const seasons = rate ? Math.ceil((knowledgeCost(state, k.current) - done) / rate) : null;
+    html += `<p>${esc(item.name)}: ${done} of ${knowledgeCost(state, k.current)} points.${seasons ? ` About ${plural(seasons, 'more season', 'more seasons')}.` : ' No one is studying it.'}</p>`;
   } else {
     html += '<p>Nothing chosen. Pick a discovery below.</p>';
   }
@@ -32,7 +34,7 @@ export function knowledgeScreen() {
   } else {
     html += `<ol class="plain">${k.queue.map((id, i) => {
       const why = knowledgeBlocker(state, id);
-      return `<li class="card"><p><strong>${i + 1}. ${esc(KNOWLEDGE[id].name)}.</strong> ${KNOWLEDGE[id].cost} points.${why ? ` Waiting: ${esc(why)}` : ''}</p>
+      return `<li class="card"><p><strong>${i + 1}. ${esc(KNOWLEDGE[id].name)}.</strong> ${knowledgeCost(state, id)} points.${why ? ` Waiting: ${esc(why)}` : ''}</p>
         <p><button type="button" data-action="unqueueStudy" data-knowledge="${id}">Remove ${esc(KNOWLEDGE[id].name.toLowerCase())} from the queue</button></p></li>`;
     }).join('')}</ol>`;
   }
@@ -55,7 +57,7 @@ export function knowledgeScreen() {
     const name = item.name.toLowerCase();
     return `<li class="card"><h4>${esc(item.name)}</h4>
       <p>${esc(item.effect)}</p>
-      <p>Costs ${item.cost} points.${done ? ` ${done} points already done.` : ''}</p>
+      <p>Costs ${knowledgeCost(state, id)} points.${done ? ` ${done} points already done.` : ''}</p>
       <div class="actions">
         <button type="button" data-action="setStudy" data-knowledge="${id}">Study ${esc(name)} now</button>
         <button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(name)} to the queue</button>
@@ -66,7 +68,7 @@ export function knowledgeScreen() {
     html += '<h2>Not yet possible</h2>';
     html += byBranch(locked, (id) => `<li class="card"><h4>${esc(KNOWLEDGE[id].name)}</h4>
       <p>${esc(KNOWLEDGE[id].effect)}</p>
-      <p>${esc(knowledgeBlocker(state, id))} Costs ${KNOWLEDGE[id].cost} points.</p>
+      <p>${esc(knowledgeBlocker(state, id))} Costs ${knowledgeCost(state, id)} points.</p>
       <p><button type="button" data-action="queueStudy" data-knowledge="${id}">Add ${esc(KNOWLEDGE[id].name.toLowerCase())} to the queue, to start when possible</button></p></li>`);
   }
   if (known.length) {

@@ -132,12 +132,43 @@ export const FOES = {
     name: 'the Ostrani', home: 'delta', homeName: 'Ostra', walls: 0.4, garrison: 0.6, hunger: 0.04, yields: 10,
     kinds: [['sellswords', 0.6], ['crossbows', 0.4]], loot: { coin: 80, goods: 40 },
   },
+  keshari: {
+    name: 'the Keshari', home: 'highlands', homeName: 'the star towers', walls: 0.4, garrison: 0.8, hunger: 0.05, yields: 8,
+    kinds: [['crossbows', 0.5], ['sellswords', 0.5]], loot: { coin: 40, goods: 30 }, worth: 2,
+  },
+  dravan: {
+    name: 'the Dravan', home: 'crags', homeName: 'Stonehelm', walls: 0.5, garrison: 1, hunger: 0.06, yields: 8,
+    kinds: [['warriors', 0.6], ['crossbows', 0.4]], loot: { iron: 40, goods: 20 }, worth: 2.2,
+  },
+  ashani: {
+    name: 'the Ashani', home: 'southlands', homeName: 'Ashar of the wells', walls: 0.5, garrison: 0.6, hunger: 0.05, yields: 8,
+    kinds: [['lancers', 0.4], ['bowmen', 0.3], ['sellswords', 0.3]], loot: { coin: 60, horses: 10 }, worth: 2,
+  },
+  haldi: {
+    name: 'the Haldi', home: 'isles', homeName: 'Skerry hold', walls: null, garrison: 0.6, hunger: 0.05, yields: 8,
+    kinds: [['warriors', 0.7], ['bowmen', 0.3]], loot: { goods: 40, iron: 20 }, worth: 2,
+  },
+  venn: {
+    name: 'the Venn', home: 'north', homeName: 'the winter camps', walls: null, garrison: 0.5, hunger: 0.04, yields: 8,
+    kinds: [['warriors', 0.5], ['bowmen', 0.5]], loot: { goods: 30, food: 60 }, worth: 1.6,
+  },
   clans: {
     name: 'the hill clans', home: 'hills', homeName: null, walls: null, garrison: 0, hunger: 0, yields: 0,
     kinds: [['warriors', 1]], loot: {},
   },
 };
-export const WAR_FOES = ['skarn', 'orhai', 'ostrani'];
+export const WAR_FOES = ['skarn', 'orhai', 'ostrani', 'keshari', 'dravan', 'ashani', 'haldi', 'venn'];
+
+// Where each great nation's hosts reach at war, and how often they ride.
+export const HOSTS = {
+  orhai: { reach: ['plains', 'desert', 'steppe'], chance: 0.4, who: 'An Orhai host' },
+  ostrani: { reach: ['coast', 'lakes', 'delta'], chance: 0.3, who: 'Ostrani galleys' },
+  keshari: { reach: ['ruins', 'highlands'], chance: 0.15, who: 'Keshari hired soldiers' },
+  dravan: { reach: ['hills', 'crags'], chance: 0.4, who: 'A Dravan war host' },
+  ashani: { reach: ['desert', 'southlands'], chance: 0.25, who: 'Ashani desert riders' },
+  haldi: { reach: ['coast', 'lakes', 'delta', 'isles'], chance: 0.35, who: 'Haldi longships' },
+  venn: { reach: ['woods', 'north'], chance: 0.15, who: 'Venn hunters' },
+};
 
 // War score: from -100 (losing badly) to 100 (winning outright).
 export const WAR_SCORE = {
@@ -147,7 +178,12 @@ export const WAR_SCORE = {
 // What they will make peace for. score: the war score they need to see
 // first (null for always).
 export const PEACE_TERMS = {
-  white: { name: 'Peace on even terms', score: { skarn: -20, orhai: -10, ostrani: -40 } },
+  white: {
+    name: 'Peace on even terms',
+    score: {
+      skarn: -20, orhai: -10, ostrani: -40, keshari: -40, dravan: -10, ashani: -20, haldi: -10, venn: -40,
+    },
+  },
   tribute: { name: 'Peace, and they pay you tribute', score: 30 },
   land: { name: 'Peace, and they give up land', score: 50 },
   vassal: { name: 'They become your vassals', score: 70, only: ['skarn'] },
@@ -159,10 +195,19 @@ export const TRIBUTES = {
   skarn: { food: 25, goods: 10 },
   orhai: { horses: 10 },
   ostrani: { coin: 20 },
+  keshari: { coin: 15 },
+  dravan: { iron: 10 },
+  ashani: { coin: 25 },
+  haldi: { goods: 15 },
+  venn: { goods: 10 },
 };
+// Peoples with nothing to give up as land make peace on the other terms.
 export const LAND_TERMS = {
   skarn: 'Their lands beyond the hold become yours.',
   orhai: 'They pull back to the steppe: their riders no longer reach the great plains or the desert edge.',
   ostrani: 'A free quay in Ostra: every trade with them brings a fifth more.',
+  dravan: 'They give up the iron hills: their war bands no longer come down to your settlements there.',
+  ashani: 'A well on the caravan track: a trade route to them brings twice as much.',
+  haldi: 'They swear off your coasts: their longships no longer raid your settlements.',
 };
 export const WAR_TRUCE = 8; // Seasons after a peace before war can be declared on them again.

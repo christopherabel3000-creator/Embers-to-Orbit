@@ -14,10 +14,14 @@ function babyName(state) {
   const used = new Set(state.people.map((p) => p.name));
   const free = BABY_NAMES.filter((n) => !used.has(n));
   if (free.length) return pick(state, free);
+  // Every name is taken: a name passed down, as the Second, the Third, and
+  // so on. (A large capital can run through many.)
   const base = pick(state, BABY_NAMES);
+  const ORDINAL = ['Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
+  const named = (n) => (n - 2 < ORDINAL.length ? `${base} the ${ORDINAL[n - 2]}` : `${base} ${n}`);
   let n = 2;
-  while (used.has(`${base} the ${['Second', 'Third', 'Fourth', 'Fifth'][n - 2] || 'Younger'}`)) n += 1;
-  return `${base} the ${['Second', 'Third', 'Fourth', 'Fifth'][n - 2] || 'Younger'}`;
+  while (used.has(named(n))) n += 1;
+  return named(n);
 }
 
 // Runs at the start of each new season. Returns report lines.

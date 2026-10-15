@@ -6,7 +6,8 @@
 // Regions, as nodes connected to their neighbors. dir: where it lies from
 // the valley. river: reachable by boat down the river. winterPasses: no
 // travel or exploring there in winter. hardWinter: winter is more dangerous.
-// skarn: within reach of Skarn skirmishers.
+// skarn: within reach of Skarn skirmishers. sea: reached only by ship (with
+// Shipbuilding), and never by an army. nation: the homeland of a great nation.
 export const REGIONS = {
   valley: {
     name: 'The forest valley', dir: 'home', neighbors: ['lakes', 'hills', 'plains', 'woods'], skarn: true,
@@ -18,12 +19,12 @@ export const REGIONS = {
     description: 'Downriver, the valley opens into a country of long lakes, reed beds, and slow channels. Fish, fowl, and easy water.',
   },
   coast: {
-    name: 'The coast', dir: 'south, beyond the lakes', neighbors: ['lakes', 'desert', 'delta'], river: true,
+    name: 'The coast', dir: 'south, beyond the lakes', neighbors: ['lakes', 'desert', 'delta', 'isles'], river: true,
     heard: 'Beyond the lakes, they say, the water turns salt and runs to the edge of the sky.',
     description: 'Where the lakes drain into the sea: dunes, salt marsh, and grey water to the edge of sight.',
   },
   hills: {
-    name: 'The iron hills', dir: 'east, beyond the Skarn', neighbors: ['valley', 'ruins'], winterPasses: true, skarn: true,
+    name: 'The iron hills', dir: 'east, beyond the Skarn', neighbors: ['valley', 'ruins', 'crags'], winterPasses: true, skarn: true,
     heard: 'East of Skarn hold the hills turn red, and the Skarn trade for knives made there.',
     description: 'Bare red hills east of the valley, scarred where the rock bleeds rust. The passes close with snow in winter.',
   },
@@ -33,23 +34,23 @@ export const REGIONS = {
     description: 'West of the valley the trees give way to grass: a sea of it, rolling to the sky.',
   },
   woods: {
-    name: 'The northern woods', dir: 'north', neighbors: ['valley', 'ruins'], hardWinter: true,
+    name: 'The northern woods', dir: 'north', neighbors: ['valley', 'ruins', 'north'], hardWinter: true,
     heard: 'North of the valley the pines grow dark and close, and winter comes early.',
     description: 'Dark pine forest running north, where winter comes early and stays late. The best timber, and the hardest winters.',
   },
   desert: {
-    name: 'The desert edge', dir: 'southwest, beyond the plains', neighbors: ['plains', 'coast', 'delta', 'steppe'],
+    name: 'The desert edge', dir: 'southwest, beyond the plains', neighbors: ['plains', 'coast', 'delta', 'steppe', 'southlands'],
     heard: 'Past the plains, travelers say, the grass thins to sand.',
     description: 'Beyond the plains the grass thins to sand and stone. Caravan tracks lead south to peoples no one in the valley has seen.',
   },
   ruins: {
-    name: 'The old ruins', dir: 'northeast', neighbors: ['woods', 'hills'],
+    name: 'The old ruins', dir: 'northeast', neighbors: ['woods', 'hills', 'highlands'],
     heard: 'Hunters speak of broken stone towns in the northeast, older than any people they know.',
     description: 'The broken towns of a people who lived here long before yours, half buried in moss.',
   },
   // The homelands of the great nations, at the edges of the map.
   delta: {
-    name: 'The Ostran delta', dir: 'far south, along the coast', neighbors: ['coast', 'desert'], nation: 'ostrani',
+    name: 'The Ostran delta', dir: 'far south, along the coast', neighbors: ['coast', 'desert', 'isles'], nation: 'ostrani',
     heard: 'Far down the coast, they say, the great river of the south meets the sea in a thousand channels, and the Ostrani build their city on them.',
     description: 'A maze of channels, islands, and quays where the great southern river meets the sea: the homeland of the Ostrani.',
   },
@@ -57,6 +58,31 @@ export const REGIONS = {
     name: 'The far steppe', dir: 'far west, beyond the plains', neighbors: ['plains', 'desert'], nation: 'orhai',
     heard: 'Beyond the plains, they say, the grass runs on for a month\'s ride, and the Orhai ride it.',
     description: 'Short grass and wide sky from one edge of the world to the other: the homeland of the Orhai.',
+  },
+  crags: {
+    name: 'The high crags', dir: 'east, beyond the high pass', neighbors: ['hills'], winterPasses: true, nation: 'dravan',
+    heard: 'Beyond the high pass, the hill folk say, the mountains climb into crags where iron-helmed lords keep halls of stone, and send their younger sons down as raiders.',
+    description: 'Crags and glaciers above the iron hills, where the Dravan lords keep their halls of stone: the homeland of the Dravan.',
+  },
+  highlands: {
+    name: 'The Kesh highlands', dir: 'far northeast, beyond the old ruins', neighbors: ['ruins', 'north'], nation: 'keshari',
+    heard: 'Beyond the old ruins, they say, the people who built them still live, on high moors among towers that watch the stars.',
+    description: 'High green moors and towers of pale stone, where the Keshari keep their libraries and watch the sky: the homeland of the Keshari.',
+  },
+  north: {
+    name: 'The white north', dir: 'far north, beyond the northern woods', neighbors: ['woods', 'highlands'], hardWinter: true, nation: 'venn',
+    heard: 'Past the last pines, trappers say, the land goes white and flat, and herders follow great herds of deer across it.',
+    description: 'Snow and lichen to the edge of the world, crossed by herds of deer and the Venn who follow them: the homeland of the Venn.',
+  },
+  southlands: {
+    name: 'The southern sands', dir: 'far south, along the caravan track', neighbors: ['desert'], nation: 'ashani',
+    heard: 'The caravan track, they say, leads south across the sand to cities around great wells, where kings trade in glass and incense.',
+    description: 'Dunes, wells, and walled cities of white stone, where the caravans of the Ashani come and go: the homeland of the Ashani.',
+  },
+  isles: {
+    name: 'The outer isles', dir: 'out to sea, beyond the coast', neighbors: ['coast', 'delta'], sea: true, nation: 'haldi',
+    heard: 'Fishermen speak of islands out past the grey water, and of longships with striped sails that come from them.',
+    description: 'Rocky islands in a grey sea, with sheltered sounds where the Haldi beach their longships: the homeland of the Haldi.',
   },
 };
 export const REGION_ORDER = Object.keys(REGIONS);
@@ -202,6 +228,55 @@ export const WORLD_PLACES = {
   horseFair: {
     region: 'steppe', kind: 'route', name: 'The horse fair', tasks: [], bonus: {},
     description: 'Where the Orhai clans meet each summer to race, trade horses, and settle feuds.',
+  },
+  // The high crags
+  stonehelm: {
+    region: 'crags', kind: 'nation', name: 'Stonehelm', nation: 'dravan', tasks: [], bonus: {},
+    description: 'A hall of the Dravan lords, cut into the living rock, its doors bound in iron.',
+  },
+  iceCrown: {
+    region: 'crags', kind: 'wonder', name: 'The ice crown', tasks: [], bonus: {},
+    description: 'A ring of glaciers around the highest peak, shining blue and white above the clouds.',
+  },
+  // The Kesh highlands
+  starTowers: {
+    region: 'highlands', kind: 'nation', name: 'The star towers', nation: 'keshari', tasks: [], bonus: {},
+    description: 'Slender towers of pale stone on the moor, each with a room at the top open to the sky, and libraries below.',
+  },
+  skyWheel: {
+    region: 'highlands', kind: 'wonder', name: 'The sky wheel', tasks: [], bonus: {}, study: 30,
+    description: 'A great stone wheel set in the moor, carved with the paths of the stars. The Keshari let your people study it.',
+  },
+  // The white north
+  winterCamps: {
+    region: 'north', kind: 'nation', name: 'The winter camps', nation: 'venn', tasks: [], bonus: {},
+    description: 'Hide tents in the lee of a ridge, smoke rising from each, and the great deer herds grazing below.',
+  },
+  northLights: {
+    region: 'north', kind: 'wonder', name: 'The northern lights', tasks: [], bonus: {},
+    description: 'On the longest nights, curtains of green and violet light ripple across the sky.',
+  },
+  icefields: {
+    region: 'north', kind: 'danger', name: 'The ice fields', tasks: [], bonus: {}, risk: 0.06,
+    description: 'Snow over cracked ice, where the unwary fall through and are never found.',
+  },
+  // The southern sands
+  ashar: {
+    region: 'southlands', kind: 'nation', name: 'Ashar of the wells', nation: 'ashani', tasks: [], bonus: {},
+    description: 'A white city around seven great wells, with temples to a hundred gods and a market that never sleeps.',
+  },
+  singingDunes: {
+    region: 'southlands', kind: 'wonder', name: 'The singing dunes', tasks: [], bonus: {},
+    description: 'Dunes that hum and boom when the wind slides down them, heard for miles across the sand.',
+  },
+  // The outer isles
+  skerryHold: {
+    region: 'isles', kind: 'nation', name: 'Skerry hold', nation: 'haldi', tasks: [], bonus: {},
+    description: 'A town of turf halls around a sheltered sound, its beach lined with longships.',
+  },
+  drownedTemple: {
+    region: 'isles', kind: 'ruins', name: 'The drowned temple', tasks: [], bonus: {}, study: 30,
+    description: 'The walls of an old temple, half under the sea at high tide, carved with ships and stars.',
   },
 };
 export const WORLD_PLACE_ORDER = Object.keys(WORLD_PLACES);

@@ -282,6 +282,15 @@ function handleAction(action, btn) {
       }
       break;
     }
+    case 'sendVoyage': {
+      if (!window.confirm('Send the first ship across the open sea? This ends the Nation era, and cannot be undone.')) break;
+      const msg = act({ type: 'sendVoyage' });
+      if (msg) {
+        show('report');
+        announce(msg);
+      }
+      break;
+    }
     case 'foundVillage': {
       const msg = act({ type: 'foundVillage' });
       if (msg) {

@@ -87,6 +87,7 @@ export function soldierWorth(state, c) {
   w *= hasKnowledge(state, 'drill') ? 1.5 : 1.25;
   w *= TRAINING[c.training] || 1;
   if (c.iron) w *= IRON_ARMS;
+  if (hasKnowledge(state, 'crown')) w *= 1.1; // Loyal to the crown.
   return w;
 }
 
@@ -427,12 +428,12 @@ export function regionName(id) {
 
 // Regions an army can march to: any your expeditions have explored.
 export function marchTargets(state, army) {
-  return Object.keys(REGIONS).filter((id) => id !== army.location && state.world && state.world.regions[id].status === 'explored');
+  return Object.keys(REGIONS).filter((id) => id !== army.location && !REGIONS[id].sea && state.world && state.world.regions[id].status === 'explored');
 }
 
 // The shortest way through explored regions: the regions after `from`, in order.
 export function pathTo(state, from, to) {
-  const open = (id) => state.world && state.world.regions[id] && state.world.regions[id].status === 'explored';
+  const open = (id) => state.world && state.world.regions[id] && state.world.regions[id].status === 'explored' && !REGIONS[id].sea;
   const prev = { [from]: null };
   const queue = [from];
   while (queue.length) {
@@ -463,9 +464,11 @@ export function stepCost(state, a, b) {
 // How far an army marches this season, in regions: none in winter, half in
 // the spring mud, and half again for an army all of riders and skirmishers.
 export function marchSpeed(state, army, seasonIdx = seasonIndex(state)) {
-  const base = [0.5, 1, 1, 0][seasonIdx];
+  // Venn furs keep an army marching through the winter, at half pace.
+  const furs = state.great && state.great.venn && state.great.venn.treaties.trade;
+  const base = [0.5, 1, 1, furs ? 0.5 : 0][seasonIdx];
   const quick = army.companies.length && army.companies.every((c) => KINDS[c.kind].mounted || KINDS[c.kind].scouts);
-  return base * (quick ? 1.5 : 1);
+  return base * (quick ? 1.5 : 1) * (hasKnowledge(state, 'bridges') ? 4 / 3 : 1);
 }
 
 // Seasons the march would take from now, roughly.

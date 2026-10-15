@@ -199,13 +199,13 @@ export function getAdvice(state) {
       const planted = state.farm.planted;
       if (s === 0) {
         const room = plots - planted;
-        const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER));
+        const can = Math.floor(farmerCapacity(people, PLANT_PER_FARMER, state));
         if (room > can) add('steward', farmers ? 'note' : 'warning', `It is planting season. Our fields have room for ${room} more ${room === 1 ? 'plot' : 'plots'}, and our farmers can plant ${can}. Each farmer plants 2 plots.`);
       } else if (s === 1 && planted) {
-        const can = farmerCapacity(people, TEND_PER_FARMER);
+        const can = farmerCapacity(people, TEND_PER_FARMER, state);
         if (can < planted) add('steward', 'warning', `${planted} plots need tending this summer, and our farmers can tend about ${Math.floor(can)}. Each farmer tends 3. Untended grain yields less.`);
       } else if (s === 2 && planted) {
-        const can = farmerCapacity(people, HARVEST_PER_FARMER);
+        const can = farmerCapacity(people, HARVEST_PER_FARMER, state);
         if (can < planted) add('steward', 'warning', `${planted} plots are ready to harvest, and our farmers can bring in about ${Math.floor(can)}. Each farmer harvests 3. Grain left in the fields rots.`);
       } else if (s === 3 && farmers) {
         add('steward', 'warning', `${farmers} ${farmers === 1 ? 'person is' : 'people are'} set to farm, but there is no farm work in winter.`);

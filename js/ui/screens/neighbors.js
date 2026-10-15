@@ -12,7 +12,7 @@ import {
 } from '../../engine/state.js';
 import { GREAT_NATIONS, GREAT_ORDER, GREAT_TREATIES } from '../../engine/greatData.js';
 import {
-  greatActs, greatRegard, greatTarget, routeIncome, tributeCost, orhaiRaidChance, inOrhaiReach,
+  greatActs, greatRegard, greatTarget, routeIncome, tributeCost, orhaiRaidChance, inOrhaiReach, raidChance, inRaidReach,
 } from '../../engine/great.js';
 import { REGIONS } from '../../engine/worldData.js';
 import { atWar } from '../../engine/warStatus.js';
@@ -126,6 +126,7 @@ function greatSection() {
       <p>They want ${esc(def.wants)}, and offer ${esc(def.offers)}. ${esc(def.signature)}</p>
       <p>${ties.length ? `Between you: ${esc(listWords(ties))}.` : 'Nothing binds you yet.'}</p>
       ${id === 'orhai' ? `<p>${esc(orhaiStatus())}</p>` : ''}
+      ${def.raids ? `<p>${esc(raidStatus(id))}</p>` : ''}
       ${g.memory.length ? `<p>They remember that you ${esc(listWords([...g.memory].reverse().slice(0, 4)))}.</p>` : ''}`;
     if (atWar(state, id)) html += '<p>You are at war with them: no envoys go between you. The Armies screen has the war, and the terms they would take for peace.</p>';
     else if (g.lastEnvoy === state.turn) html += '<p>Your envoy has already gone to them this season.</p>';
@@ -133,6 +134,19 @@ function greatSection() {
     if (g.lastEnvoy !== state.turn && notNow.length) html += `<p>Not possible now:</p><ul>${notNow.map((a) => `<li>${esc(a.label)}. ${esc(a.why)}</li>`).join('')}</ul>`;
   }
   return html;
+}
+
+// The Dravan and the Haldi raid settlements within their reach in peace.
+function raidStatus(id) {
+  const def = GREAT_NATIONS[id];
+  const g = state.great[id];
+  if (atWar(state, id)) return 'At war, their hosts come against your armies and settlements within their reach.';
+  if (g.treaties.peace) return 'Under the peace pact, their raiders leave your settlements alone.';
+  if (g.pulledBack) return 'By the peace you made, they no longer raid your settlements.';
+  const reach = (state.settlements || []).filter((t) => inRaidReach(state, id, t));
+  return reach.length
+    ? `${capitalize(def.raids.who)} may fall on your settlements within their reach (${listWords(reach.map((t) => t.name))}): about ${Math.round(raidChance(state, id) * 100)} percent each season.`
+    : `None of your settlements stands within reach of ${def.raids.who.toLowerCase()}, in ${listWords(def.raids.reach.map((r) => lowerFirst(REGIONS[r].name)))}.`;
 }
 
 function orhaiStatus() {

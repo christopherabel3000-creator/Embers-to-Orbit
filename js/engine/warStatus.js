@@ -39,7 +39,8 @@ export function warYears(state) {
 // each, up to 4.
 export function warWeariness(state) {
   const years = Math.max(0, warYears(state) - 1);
-  return { loyalty: Math.min(8, 2 * years), spirits: Math.min(4, years) };
+  const crown = state.knowledge && state.knowledge.learned.includes('crown') ? 0.5 : 1; // Loyal to the crown.
+  return { loyalty: Math.round(Math.min(8, 2 * years) * crown), spirits: Math.round(Math.min(4, years) * crown) };
 }
 
 // A war declared without cause, or breaking your word, troubles your own

@@ -59,6 +59,7 @@ import { incomeLine, upkeepLine, skillLine } from './report.js';
 import {
   shuffle, listNames, clamp, plural,
 } from './util.js';
+import { greatWorldSeason } from './greatWorld.js';
 
 function hurt(person, amount) {
   person.health = clamp(person.health - amount);
@@ -473,6 +474,7 @@ export function resolveSeason(state) {
   refreshAdvisors(state);
   driftRelations(state);
   greatSeason(state); // The great nations' attitudes drift too.
+  events.push(...greatWorldSeason(state)); // And among themselves: wars and alliances.
   drawMarket(state); // With free markets, prices change each season.
   if (state.raidThreat && state.pendingEvent && state.pendingEvent.type === 'raid') state.raidThreat = false;
 

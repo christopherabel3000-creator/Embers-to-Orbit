@@ -19,6 +19,7 @@ import { atWar, armyHolding, homeBesieged } from './warStatus.js';
 import { applyStudy } from './study.js';
 import { chance, randomInt, randomBetween } from './rng.js';
 import { clamp, capital, listWords } from './util.js';
+import { warTradeFactor, warRouteFactor } from './greatWorld.js';
 
 export { initialGreat };
 
@@ -153,7 +154,7 @@ export function tradeFactor(state, id) {
   if (hasKnowledge(state, 'freeMarkets')) f *= (state.marketMood || 1);
   if (id === 'ostrani' && coastHarbor(state)) f *= 1.1;
   if (g.quay) f *= 1.2;
-  return f;
+  return f * warTradeFactor(state, id); // A people beaten in a recent war pays less.
 }
 
 // What a trade would give or cost, now: { give, giveAmount, get, getAmount }.
@@ -295,6 +296,7 @@ export function routeIncome(state, id) {
   const g = great(state, id);
   let coin = ((GREAT_NATIONS[id].route || 2) + (g.treaties.trade ? 2 : 0)) * (g.richRoute ? 2 : 1);
   if (hasKnowledge(state, 'measures')) coin *= 1.25;
+  coin *= warRouteFactor(state, id); // Less while they fight, and for years after a defeat.
   return Math.round(coin);
 }
 

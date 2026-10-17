@@ -19,6 +19,7 @@ import { atWar } from '../../engine/warStatus.js';
 import {
   state, esc, capitalize, listWords, plural, lowerFirst,
 } from '../core.js';
+import { standingLine, worldLines } from '../../engine/greatWorld.js';
 
 function nationSection(id) {
   const nat = state.neighbors[id].nation;
@@ -111,7 +112,8 @@ function greatSection() {
     const def = GREAT_NATIONS[id];
     const g = state.great[id];
     if (!g.met) {
-      html += `<h3 id="great-${id}">${esc(def.title)}</h3><p>Known only by rumor: ${esc(def.rumor)} An expedition to ${esc(lowerFirst(REGIONS[def.homeland].name))} would find them.</p>`;
+      const heardOf = standingLine(state, id);
+      html += `<h3 id="great-${id}">${esc(def.title)}</h3><p>Known only by rumor: ${esc(def.rumor)} An expedition to ${esc(lowerFirst(REGIONS[def.homeland].name))} would find them.</p>${heardOf ? `<p>Travelers say: ${esc(heardOf)}</p>` : ''}`;
       continue;
     }
     const regard = greatRegard(state, id);
@@ -119,8 +121,10 @@ function greatSection() {
     const acts = greatActs(state, id);
     const ready = acts.filter((a) => !a.why);
     const notNow = acts.filter((a) => a.why);
+    const standing = standingLine(state, id);
     html += `<h3 id="great-${id}">${esc(def.title)}</h3>
       <p>Relations: ${relationWord(g.relation)} (${g.relation}), drifting toward ${greatTarget(state, id)}. Trust: ${esc(trustWord(g.trust))} (${g.trust}).</p>
+      ${standing ? `<p>Among the great nations: ${esc(standing)}</p>` : ''}
       ${regard.length ? `<p>What moves them: ${esc(listWords(regard.map(([text, n]) => `${text} (${n > 0 ? 'plus' : 'minus'} ${Math.abs(n)})`)))}.</p>` : ''}
       <p>${esc(def.description)} ${esc(def.values)}</p>
       <p>They want ${esc(def.wants)}, and offer ${esc(def.offers)}. ${esc(def.signature)}</p>
@@ -132,6 +136,11 @@ function greatSection() {
     else if (g.lastEnvoy === state.turn) html += '<p>Your envoy has already gone to them this season.</p>';
     else if (ready.length) html += `<div class="actions">${ready.map((a) => `<button type="button" data-action="greatDiplomacy" data-nation="${id}" data-act="${a.act}">${esc(a.label)}</button>`).join('')}</div>`;
     if (g.lastEnvoy !== state.turn && notNow.length) html += `<p>Not possible now:</p><ul>${notNow.map((a) => `<li>${esc(a.label)}. ${esc(a.why)}</li>`).join('')}</ul>`;
+  }
+  if (state.nationFounded != null) {
+    const world = worldLines(state);
+    html += `<h3 id="greatWorldHeading">Between the great nations</h3>
+      ${world.length ? `<ul>${world.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '<p>As far as your people know, the great nations are at peace with one another, and none is allied with another.</p>'}`;
   }
   return html;
 }

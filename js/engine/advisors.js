@@ -31,12 +31,14 @@ import { expeditionBlocker, expeditionTargets } from './world.js';
 import { REGIONS } from './worldData.js';
 import { armyRation, inSupply } from './armies.js';
 import { STANDING_PAY } from './armyData.js';
-import { listWords, lowerFirst } from './util.js';
+import { listWords, lowerFirst, capital } from './util.js';
 import {
   inviteBlocker, inviteRoom, inviteCost,
 } from './invite.js';
 import { voyageMissing, VOYAGE } from './voyage.js';
 import { townRoom, moveBlocker } from './resettle.js';
+import { warOf, enemiesOf } from './greatWorld.js';
+import { GREAT_NATIONS, GREAT_ORDER } from './greatData.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -350,6 +352,11 @@ export function getAdvice(state) {
   // Speaker: the world beyond the valley.
   if (state.world && !state.world.expeditions.length && !expeditionBlocker(state)) {
     add('speaker', 'note', `No expedition is out. ${listWords(expeditionTargets(state).map((id) => lowerFirst(REGIONS[id].name)))} ${expeditionTargets(state).length === 1 ? 'waits' : 'wait'} to be explored; send a party from the World screen.`);
+  }
+  // Speaker: a trade route to a great nation at war with another brings less.
+  for (const id of GREAT_ORDER.filter((x) => state.great && state.great[x].met && state.great[x].route && warOf(state, x))) {
+    const foes = enemiesOf(state, id).map((x) => (state.great[x].heard || state.great[x].met ? GREAT_NATIONS[x].name : 'a people we have not met'));
+    add('speaker', 'note', `${capital(GREAT_NATIONS[id].name)} are at war with ${listWords(foes)}. Our trade route to them brings half as much while it lasts.`);
   }
   const unroaded = nextUnroaded(state);
   if (unroaded && hasKnowledge(state, 'roads') && !state.buildQueue.some((item) => item.id === 'road')) {

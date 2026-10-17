@@ -11,9 +11,10 @@ import {
 import { emptyDeeds } from './legacy.js';
 import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
 import { initialGreat, GREAT_NATIONS } from './greatData.js';
+import { initialGreatWorld } from './greatWorld.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 35;
+export const SAVE_VERSION = 36;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -128,6 +129,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     capitalCounted: false, // Past 100 people, the capital counts its ordinary people instead of naming them.
     world: initialWorld(), // The regions beyond the valley, and expeditions to them.
     great: initialGreat(), // The great nations beyond the valley.
+    greatWorld: initialGreatWorld(), // Their feelings for each other, their wars, and their alliances.
     nationFounded: null, // The turn the Nation era began.
     armies: [], // Armies in the field: see armies.js.
     nextArmyId: 1,
@@ -424,6 +426,11 @@ export function migrate(data) {
     data.orders.spreadAbove = null;
     data.movedOut = 0;
     data.version = 35;
+  }
+  if (data.version === 35) {
+    // The great nations' feelings for each other, their wars, and their alliances.
+    data.greatWorld = initialGreatWorld();
+    data.version = 36;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

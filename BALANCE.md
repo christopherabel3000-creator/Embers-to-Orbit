@@ -63,6 +63,18 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
 
+### Great nations among themselves (October 16, 2026)
+
+Forty-five-year campaigns on Normal with the village strategy (inviting settlers and keeping the capital near 120), after the great nations began to feel, fight, and ally among themselves. 200 campaigns:
+
+| | Wars among them | Alliances made | Voyage sent by the end | Capital | Whole nation | Coin |
+| --- | --- | --- | --- | --- | --- | --- |
+| Before | none | none | 179 of 194, about year 38.5 | 120 | 469 | 140 |
+| After | 5.7 (0.6 still going at year 45) | 1.0 | 172 of 194, about year 38.9 | 117 | 446 | 137 |
+
+- **Pace.** The first try, a 1 in 3 chance each spring, gave about 7 wars in the 28 years of the Nation era, above the target of 4 to 6; 1 in 4 gives 5.7. Without a truce, a beaten people was attacked again by the same winner two years later; the 4-year truce stops that.
+- **What it costs the player** is small: trade routes bring half while their people are at war, and less from a beaten people, so the simulated nation, which does not yet react to their wars, is a little smaller and sends the voyage a little later. Part of the change is chance: the great nations' wars draw on the same dice as everything else, so every campaign after the first war plays out differently.
+
 ### Moving out of the capital (October 16, 2026)
 
 Forty-five-year campaigns on Normal with the village strategy, inviting settlers as above, now also keeping the capital at about 120 and sending the rest to the settlements. 200 of each:

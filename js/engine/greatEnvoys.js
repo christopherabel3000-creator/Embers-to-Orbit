@@ -247,7 +247,7 @@ export const GREAT_ENVOY_EVENT = {
         options.push({ id: 'refuse', label: 'Refuse. They will declare war on you next season.' });
         return {
           title: `An ultimatum from ${def.name}`,
-          text: `${who} have lost patience with you (relations ${g.relation}). Their envoy brings terms: ${ev.coin} coin${t ? `, or ${t.name}` : ''}${ev.ally ? `, or an end to your alliance with ${GREAT_NATIONS[ev.ally].name}` : ''}. Meet one, or they will declare war next season.`,
+          text: `${who} have lost patience with you (relations ${g.relation}). Their envoy brings terms: ${ev.coin} coin${t ? `, or ${t.name}` : ''}${ev.ally ? `, or an end to your alliance with ${GREAT_NATIONS[ev.ally].name}` : ''}. ${t || ev.ally ? 'Meet one' : 'Meet them'}, or they will declare war next season.`,
           options,
           advice: [
             ['speaker', `They have about ${Math.round(g.strength || 0)} under arms. Meeting their terms would turn them from war, for now; gifts and treaties would keep them from coming back.`],

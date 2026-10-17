@@ -93,3 +93,13 @@ fieldTrial('4 cavalry against 4 of the Skarn, on the plains', ['cavalry', 'caval
 fieldTrial('4 skirmishers against 4 of the Skarn, in the woods', ['skirmishers', 'skirmishers', 'skirmishers', 'skirmishers'], [...skarnBand, 'warriors'], { region: 'woods' });
 fieldTrial('storming walls: 6 against 3', [...line, ...line], skarnBand, { attacker: 'us', walls: true });
 fieldTrial('storming walls: 6 and 2 siege engines against 3', [...line, ...line, 'engines', 'engines'], skarnBand, { attacker: 'us', walls: true });
+// A great nation's host comes against the capital (October 2026): about a
+// third to a half of their strength, worth 2.2 to 2.4. Your army meets it in
+// the valley, before it reaches the walls.
+const greatHost = ['horseArchers', 'horseArchers', 'lancers', 'lancers', 'horseArchers'];
+const dravanHost = ['warriors', 'warriors', 'bowmen', 'warriors'];
+fieldTrial('a great host: 6 companies against 5 Orhai riders, in the valley', [...line, ...line], greatHost, { foe: 'orhai', theirWorth: 2.4 });
+fieldTrial('a great host: 5 companies against 5 Orhai riders', [...line, 'spearmen', 'archers'], greatHost, { foe: 'orhai', theirWorth: 2.4 });
+fieldTrial('a great host: 4 companies against 5 Orhai riders', [...line, 'spearmen'], greatHost, { foe: 'orhai', theirWorth: 2.4 });
+fieldTrial('a great host: 5 companies against 4 Dravan companies', [...line, 'spearmen', 'archers'], dravanHost, { foe: 'dravan', theirWorth: 2.2 });
+fieldTrial('a great host: 4 companies against 4 Dravan companies', [...line, 'spearmen'], dravanHost, { foe: 'dravan', theirWorth: 2.2 });

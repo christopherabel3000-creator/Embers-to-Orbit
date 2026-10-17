@@ -15,7 +15,7 @@ import {
 } from './field.js';
 import {
   armies, armyById, armiesIn, armySoldiers, armyPower, companyUnit, fieldCommander, companyLosses,
-  pruneArmy, pathTo, regionName, armiesUpkeep, supplyCapacity,
+  pruneArmy, pathTo, regionName, armiesUpkeep, supplyCapacity, raiseSources,
 } from './armies.js';
 import {
   atWar, homeBesieged, armyHolding, warWeariness, warYears,
@@ -29,16 +29,17 @@ import {
 } from './nations.js';
 import { clans, clansMarching } from './clans.js';
 import {
-  great, greatMet, changeGreat, greatRemember, tributeCost,
+  great, greatMet, changeGreat, greatRemember, tributeCost, setFieldable,
 } from './great.js';
 import { changeRelation } from './neighbors.js';
 import { endPeace } from './peace.js';
 import { makeVassal } from './union.js';
 import { townDefense } from './settlements.js';
 import { createBattle } from './battle.js';
-import { startSiege } from './siege.js';
+import { startSiege, villageDefense, coverWeight } from './siege.js';
+import { isNotable } from './village.js';
 import { recordDeed } from './legacy.js';
-import { chance, pick } from './rng.js';
+import { chance, pick, randomBetween } from './rng.js';
 import {
   clamp, listWords, plural, capital, lowerFirst,
 } from './util.js';
@@ -402,6 +403,14 @@ function consequences(state, ev, outcome, army) {
       lines.push(sackTown(state, t, ev.foe));
     }
   }
+  if (ev.context === 'capital') {
+    if (won) {
+      addScore(state, ev.foe, WAR_SCORE.townSaved * 2);
+      lines.push(`${state.campName} is safe: the host never reached its walls.`);
+    } else {
+      lines.push(...assaultCapital(state, ev.foe, Math.round(soldiersIn(ev.battle.them))));
+    }
+  }
   if (ev.context === 'storm') {
     if (won) lines.push(...homeFallen(state, ev.foe, army, 'stormed'));
     else lines.push(`The walls of ${FOES[ev.foe].homeName} held. The siege goes on.`);
@@ -448,6 +457,183 @@ export function meetOnRoad(state, {
     title: `On the road to ${state.campName}`,
     text: `About ${raiders} ${who} are marching on ${state.campName}, and the ${army.name.toLowerCase()} stands in their way.`,
   });
+}
+
+// ----- War comes to you: great nations that declare war, and their hosts -----
+
+// How quick the great nations are to turn on you, and how large their great
+// hosts come, by difficulty (Easy halves the hostility of Normal).
+export const HOSTILITY = {
+  easy: 0.5, normal: 1, hard: 1.5, insane: 2,
+};
+const HOST_SIZE = {
+  easy: 0.6, normal: 1, hard: 1.15, insane: 1.3,
+};
+// Relations below which a great nation will send you an ultimatum: the
+// raiding peoples are quick to it, the Keshari and Venn almost never.
+export const DECLARE_AT = {
+  ostrani: -50, orhai: -40, keshari: -80, dravan: -40, ashani: -50, haldi: -40, venn: -80,
+};
+export const LAND_PEOPLES = ['orhai', 'dravan', 'ashani', 'venn'];
+export const HOST_CHANCE = 0.04; // Each season of a war they declared.
+export const ULTIMATUM_GAP = 8;
+
+export function hostility(state) {
+  return HOSTILITY[state.difficulty] ?? 1;
+}
+
+// How much lower (or higher) relations must be before they turn on you, by difficulty.
+export const DECLARE_SHIFT = {
+  easy: -15, normal: 0, hard: 10, insane: 20,
+};
+
+// The relations at which this nation would turn on you, at this difficulty.
+export function declareThreshold(state, id) {
+  return DECLARE_AT[id] + (DECLARE_SHIFT[state.difficulty] ?? 0);
+}
+
+// Soldiers you could field now: those in your armies and those you could raise.
+export function soldiersYouCouldField(state) {
+  const inArms = armies(state).reduce((sum, a) => sum + armySoldiers(a), 0);
+  return inArms + raiseSources(state).reduce((sum, s) => sum + s.spare, 0);
+}
+setFieldable(soldiersYouCouldField);
+
+// Whether this great nation would send you an ultimatum now: it has fallen
+// far out with you, thinks itself stronger, is not busy with another war,
+// is bound by no peace pact or alliance, and no great nation already makes
+// war on you (an alliance may bring a second in when war begins).
+export function ultimatumReady(state, id) {
+  const g = great(state, id);
+  if (!g || !g.met || atWar(state, id) || g.treaties.peace || g.treaties.alliance) return false;
+  if (Object.keys(state.wars || {}).some((f) => GREAT_NATIONS[f])) return false;
+  if (enemiesOf(state, id).length) return false;
+  if (g.warComing != null) return false;
+  const ended = (state.warEnded || {})[id];
+  if (ended != null && state.turn - ended < WAR_TRUCE) return false;
+  if (state.turn - (g.lastUltimatum ?? -99) < ULTIMATUM_GAP) return false;
+  if (g.relation > declareThreshold(state, id)) return false;
+  return (g.strength || 0) * foeWorth(state, id) >= 1.2 * soldiersYouCouldField(state);
+}
+
+// They declare war on you: the war begins, and their allies may join it.
+// Returns report lines.
+function theyDeclare(state, id, alliedTo = null) {
+  const g = great(state, id);
+  g.warComing = null;
+  if (!state.wars) state.wars = {};
+  state.wars[id] = {
+    since: state.turn, score: 0, reason: null, stormed: false, battles: 0, byThem: true,
+  };
+  const had = [g.embassy && 'your embassy', g.route && 'the trade route', Object.values(g.treaties).some(Boolean) && 'every treaty'].filter(Boolean);
+  g.embassy = false;
+  g.route = false;
+  g.treaties = {};
+  g.paidUntil = -1;
+  greatRemember(state, id, `went to war with you in Year ${year(state)}`, -5);
+  if (state.greatWorld) state.greatWorld.declaredOnYou = (state.greatWorld.declaredOnYou || 0) + 1;
+  if (!state.lastHarm) state.lastHarm = {};
+  state.lastHarm[id] = state.turn; // You have a reason for war with them now.
+  const lines = [`${capital(foeName(id))} have declared war on you${alliedTo ? `, beside their allies ${foeName(alliedTo)}` : ''}. ${had.length ? `${capital(listWords(had))} with them ${had.length === 1 ? 'is' : 'are'} gone. ` : ''}${capital(hostWords(id))}. The Armies screen has the war.`];
+  if (!alliedTo) {
+    for (const ally of alliesOf(state, id)) {
+      const ag = great(state, ally);
+      if (!ag || !ag.met || atWar(state, ally) || ag.treaties.alliance || ag.treaties.peace || ag.relation >= 0 || enemiesOf(state, ally).length) continue;
+      lines.push(...theyDeclare(state, ally, id));
+    }
+  }
+  return lines;
+}
+
+// A great host on the march into the valley, and what comes of it.
+function hostAtCapital(state, h) {
+  const who = HOSTS[h.foe].who;
+  if (state.greatWorld) state.greatWorld.hostsArrived = (state.greatWorld.hostsArrived || 0) + 1;
+  const army = armiesIn(state, 'valley').filter((a) => armySoldiers(a) > 0)
+    .sort((a, b) => armyPower(state, b) - armyPower(state, a))[0];
+  if (army) {
+    return armyBattle(state, {
+      army,
+      foe: h.foe,
+      count: h.size,
+      context: 'capital',
+      attacker: 'them', // In the valley, before it reaches the walls.
+      title: `Before ${state.campName}`,
+      text: `${who}, about ${h.size} strong, has come into the valley against ${state.campName}, and the ${army.name.toLowerCase()} stands before it.`,
+    });
+  }
+  return assaultCapital(state, h.foe, h.size);
+}
+
+// The host assaults the capital, with no army to meet it. Its fighters and
+// walls decide whether it holds. Returns report lines.
+export function assaultCapital(state, foe, count) {
+  const who = HOSTS[foe] ? HOSTS[foe].who : capital(foeName(foe));
+  if (count < 4) return [`What was left of ${foeName(foe)}'s host turned back from ${state.campName}.`];
+  const attack = count * foeWorth(state, foe) * 6;
+  const defense = villageDefense(state) * coverWeight(state);
+  const hold = Math.max(0.05, Math.min(0.95, defense / (defense + attack)));
+  if (chance(state, hold)) {
+    foeLosses(state, foe, Math.round(count * 0.25));
+    addScore(state, foe, WAR_SCORE.townSaved * 2);
+    const fighters = living(state).filter((p) => p.age >= 16 && p.health >= 40);
+    for (const p of fighters.slice(0, Math.ceil(fighters.length * 0.15))) p.health = Math.max(20, p.health - 30);
+    return [`${who}, about ${count} strong, assaulted ${state.campName}, and its defenders threw them back${state.buildings.stoneWall || state.buildings.palisade ? ' from the walls' : ''}. Some of yours were hurt.`];
+  }
+  const ordinary = living(state).filter((p) => !isNotable(state, p) && p.age >= 12);
+  const killed = ordinary.slice(-Math.max(2, Math.round(living(state).length * 0.08)));
+  for (const p of killed) p.alive = false;
+  const taken = [];
+  for (const res of ['food', 'goods', 'coin']) {
+    const n = Math.floor((state.resources[res] || 0) * 0.3);
+    if (n > 0) { state.resources[res] -= n; taken.push(`${n} ${res}`); }
+  }
+  for (const p of living(state)) p.morale = clamp(p.morale - 10);
+  addScore(state, foe, WAR_SCORE.townSacked * 2);
+  return [`${who}, about ${count} strong, broke into ${state.campName}. ${plural(killed.length, 'of your people was', 'of your people were')} killed${taken.length ? `, and they carried off ${listWords(taken)}` : ''}. Spirits have fallen.`];
+}
+
+// Runs each season: declarations that were threatened, and great hosts.
+// Returns report lines.
+export function greatWarSeason(state) {
+  const lines = [];
+  if (!state.great || !eraAtLeast(state, 'nation')) return lines;
+  for (const id of Object.keys(state.great)) {
+    const g = great(state, id);
+    if (g.warComing != null && state.turn >= g.warComing) {
+      if (atWar(state, id)) g.warComing = null;
+      else lines.push(...theyDeclare(state, id));
+    }
+  }
+  const h = state.greatHost;
+  if (h) {
+    if (!atWar(state, h.foe) || homeBesieged(state, h.foe)) {
+      state.greatHost = null;
+      lines.push(`${HOSTS[h.foe].who} that was marching on ${state.campName} has turned back.`);
+      return lines;
+    }
+    if (state.turn >= h.arrives) {
+      state.greatHost = null;
+      lines.push(...hostAtCapital(state, h));
+    } else if (!h.seen && h.arrives - state.turn <= 1) {
+      h.seen = true;
+      lines.push(`${HOSTS[h.foe].who}, about ${h.size} strong, is marching into the valley against ${state.campName}. It will be here next season.`);
+    }
+    return lines;
+  }
+  for (const foe of LAND_PEOPLES) {
+    const w = warWith(state, foe);
+    if (!w || !w.byThem || homeBesieged(state, foe) || great(state, foe).pulledBack) continue;
+    if (!chance(state, HOST_CHANCE * hostility(state))) continue;
+    const size = Math.max(15, Math.round(foeForce(state, foe) * (0.33 + randomBetween(state, 0, 0.17)) * (HOST_SIZE[state.difficulty] ?? 1)));
+    const beacons = hasKnowledge(state, 'signalBeacons');
+    state.greatHost = {
+      foe, size, arrives: state.turn + 2, seen: beacons,
+    };
+    if (beacons) lines.push(`Your signal beacons have seen ${HOSTS[foe].who.toLowerCase()}, about ${size} strong, gathering to march on ${state.campName}. It will be here in two seasons.`);
+    break;
+  }
+  return lines;
 }
 
 // ----- Settlements under attack -----
@@ -729,6 +915,8 @@ export function makePeace(state, { foe, terms }) {
     for (const [k, n] of Object.entries(payCost(state, foe))) state.resources[k] -= n;
   }
   delete state.wars[foe];
+  if (state.greatHost && state.greatHost.foe === foe) state.greatHost = null;
+  if (state.great && state.great[foe]) state.great[foe].warComing = null;
   if (!state.warEnded) state.warEnded = {};
   state.warEnded[foe] = state.turn;
   for (const a of armies(state)) {
@@ -834,6 +1022,7 @@ export function warSeason(state) {
   }
   for (const foe of Object.keys(HOSTS)) if (atWar(state, foe)) out.urgent.push(...hostSeason(state, foe));
   out.urgent.push(...alliesInYourWars(state));
+  out.urgent.push(...greatWarSeason(state));
   if (seasonIndex(state) === 0 && warYears(state) >= 2) {
     const tired = warWeariness(state);
     out.events.push(`The war is in its ${ORDINALS[warYears(state)] || `${warYears(state) + 1}th`} year. Your people tire of it: the settlements are ${tired.loyalty} less loyal, and spirits in ${state.campName} settle ${tired.spirits} lower.`);
@@ -886,7 +1075,7 @@ export function warStatusLines(state) {
       id,
       name: capital(foeName(id)),
       atWar: true,
-      line: `At war for ${years ? plural(years, 'year', 'years') : 'less than a year'}${w.reason ? `, over ${w.reason}` : ''}. War score ${w.score}${w.stormed ? `; ${FOES[id].homeName} has fallen, and they will accept any terms` : ''}. About ${Math.round(foeForce(state, id))} of them under arms, each worth ${foeWorth(state, id).toFixed(1)}.`,
+      line: `At war for ${years ? plural(years, 'year', 'years') : 'less than a year'}${w.byThem ? ', a war they declared' : w.reason ? `, over ${w.reason}` : ''}. War score ${w.score}${w.stormed ? `; ${FOES[id].homeName} has fallen, and they will accept any terms` : ''}. About ${Math.round(foeForce(state, id))} of them under arms, each worth ${foeWorth(state, id).toFixed(1)}.`,
     };
   });
 }

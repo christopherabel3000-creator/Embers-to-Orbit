@@ -11,6 +11,7 @@ import {
 } from './greatData.js';
 import { REGIONS, WORLD_PLACES } from './worldData.js';
 import { placeRegion } from './data.js';
+import { HOSTS } from './armyData.js';
 import { hasKnowledge, year, seasonIndex } from './state.js';
 import { recordDeed, reputation } from './legacy.js';
 import { lawIs } from './laws.js';
@@ -81,6 +82,35 @@ export function changeGreat(state, id, delta) {
   g.relation = Math.max(-100, Math.min(100, Math.round(g.relation + delta)));
 }
 
+// Your settlements in their lands: their homeland and where their hosts reach.
+export function townsInTheirLands(state, id) {
+  const lands = new Set([GREAT_NATIONS[id].homeland, ...(HOSTS[id] ? HOSTS[id].reach : [])]);
+  return (state.settlements || []).filter((t) => !t.federated && lands.has(placeRegion(t.place)) && placeRegion(t.place) !== 'valley');
+}
+
+export const NEGLECT_AFTER = 12; // Seasons without an envoy or an embassy before they feel ignored.
+const WARLIKE = ['orhai', 'dravan', 'haldi'];
+
+// Whether they feel ignored: no embassy, and no envoy from you in three years.
+export function neglected(state, id) {
+  const g = great(state, id);
+  if (!g.met || g.embassy) return false;
+  const since = Math.max(g.lastEnvoy ?? -1, g.metAt ?? -1);
+  return state.turn - since >= NEGLECT_AFTER;
+}
+
+// Your strength as the warlike peoples see it: soldiers in your armies and
+// those you could raise. Set by war.js, which knows how armies are raised.
+let fieldable = () => 0;
+export function setFieldable(fn) { fieldable = fn; }
+
+// Whether a warlike people holds you in contempt: they could field more
+// than twice what you could, and have no embassy of yours to know you better.
+export function despised(state, id) {
+  if (!WARLIKE.includes(id) || great(state, id).embassy) return false;
+  return (great(state, id).strength || 0) * 2.2 > 2 * Math.max(1, fieldable(state));
+}
+
 // Where their attitude drifts, and why: [text, shift] pairs.
 export function greatRegard(state, id) {
   const g = great(state, id);
@@ -102,6 +132,9 @@ export function greatRegard(state, id) {
   add('the trade route', g.route ? 5 : 0);
   add('your welcome to all gods', lawIs(state, 'worship', 'manyGods') ? 5 : 0);
   add('their trust in you', Math.round((g.trust - 50) / 5));
+  add('your settlements in their lands', -5 * Math.min(2, townsInTheirLands(state, id).length));
+  add('no word from you in years', neglected(state, id) ? -10 : 0);
+  add('their contempt for your weakness', despised(state, id) ? -10 : 0);
   return reasons;
 }
 

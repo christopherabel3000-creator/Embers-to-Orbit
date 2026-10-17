@@ -39,6 +39,8 @@ import { voyageMissing, VOYAGE } from './voyage.js';
 import { townRoom, moveBlocker } from './resettle.js';
 import { warOf, enemiesOf } from './greatWorld.js';
 import { envoyAdvice } from './greatEnvoys.js';
+import { declareThreshold } from './war.js';
+import { HOSTS } from './armyData.js';
 import { GREAT_NATIONS, GREAT_ORDER } from './greatData.js';
 
 export const ADVISOR_ROLES = {
@@ -360,6 +362,20 @@ export function getAdvice(state) {
     add('speaker', 'note', `${capital(GREAT_NATIONS[id].name)} are at war with ${listWords(foes)}. Our trade route to them brings half as much while it lasts.`);
   }
   for (const text of envoyAdvice(state)) add('speaker', 'note', text);
+  // Speaker: a great nation sliding toward an ultimatum.
+  for (const id of GREAT_ORDER.filter((x) => state.great && state.great[x].met && !(state.wars || {})[x])) {
+    const g = state.great[id];
+    if (g.treaties.peace || g.treaties.alliance || g.warComing != null) continue;
+    const line = declareThreshold(state, id);
+    if (g.relation > line && g.relation <= line + 15) add('speaker', 'warning', `${capital(GREAT_NATIONS[id].name)} think little of us (relations ${g.relation}). Below ${line}, a people as strong as they are may send us an ultimatum. Gifts, trade, or a treaty would turn them.`);
+  }
+  for (const id of GREAT_ORDER.filter((x) => state.great && state.great[x].warComing != null)) {
+    add('warChief', 'urgent', `${capital(GREAT_NATIONS[id].name)} will declare war on us next season. An army in the valley, guards, and walls are what will hold.`);
+  }
+  if (state.greatHost && state.greatHost.seen) {
+    const h = state.greatHost;
+    add('warChief', 'urgent', `${HOSTS[h.foe].who}, about ${h.size} strong, is marching on ${state.campName}. An army in the valley would meet it before the walls; without one, our fighters and walls must hold.`);
+  }
   const unroaded = nextUnroaded(state);
   if (unroaded && hasKnowledge(state, 'roads') && !state.buildQueue.some((item) => item.id === 'road')) {
     add('steward', 'note', `A road to ${unroaded.name} would ${far(unroaded) ? 'bring home all it sends, and ' : ''}make its people feel closer to us, and keep skirmishers off it. Add one on the Build screen.`);

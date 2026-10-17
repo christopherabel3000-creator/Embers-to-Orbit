@@ -6,21 +6,22 @@
 // which come before a war on you, are in greatWar.js.
 
 import { GREAT_NATIONS, GREAT_TREATIES } from './greatData.js';
-import { HOSTS } from './armyData.js';
 import { REGIONS } from './worldData.js';
 import { placeRegion } from './data.js';
 import { year, placeName } from './state.js';
 import {
-  great, changeGreat, greatRemember, metGreat, WAR_AID, inRaidReach,
+  great, changeGreat, greatRemember, metGreat, WAR_AID, inRaidReach, townsInTheirLands,
 } from './great.js';
-import { warOf, enemiesOf, shiftWar } from './greatWorld.js';
+import { warOf, enemiesOf, shiftWar, feeling as feelingOf } from './greatWorld.js';
 import { atWar, armyHolding } from './warStatus.js';
 import { fortresses } from './realm.js';
 import { reputation, recordDeed } from './legacy.js';
 import { refreshAdvisors } from './advisors.js';
 import { randomInt } from './rng.js';
 import { capital, clamp } from './util.js';
-import { declareWar, warBlocker } from './war.js';
+import {
+  declareWar, warBlocker, ultimatumReady, declareThreshold,
+} from './war.js';
 
 export const ENVOY_GAP = [2, 4]; // Seasons between envoys, from any of them.
 const CLAIM_GAP = 12; // Seasons before the same people claims again.
@@ -48,11 +49,7 @@ function offerFor(state, id) {
   return null;
 }
 
-// Your settlements in their lands: their homeland and where their hosts reach.
-export function townsInTheirLands(state, id) {
-  const lands = new Set([GREAT_NATIONS[id].homeland, ...(HOSTS[id] ? HOSTS[id].reach : [])]);
-  return (state.settlements || []).filter((t) => !t.federated && lands.has(placeRegion(t.place)) && placeRegion(t.place) !== 'valley');
-}
+export { townsInTheirLands };
 
 function tributeFor(state, id) {
   const g = great(state, id);
@@ -96,9 +93,27 @@ export function possibleEnvoys(state) {
 
 // Called before ordinary events each season: an envoy, when one is due.
 // Returns the pending event to start, or null.
+// The terms of an ultimatum: coin, a settlement in their lands if they claim
+// one, and an end to an alliance with a people they hate.
+export function ultimatumTerms(state, id) {
+  const g = great(state, id);
+  const towns = townsInTheirLands(state, id).sort((a, b) => b.population - a.population);
+  const ally = metGreat(state).find((x) => x !== id && great(state, x).treaties.alliance && (enemiesOf(state, id).includes(x) || feelingOf(state, id, x) <= -30));
+  return { coin: Math.round(20 + (g.strength || 0) * 0.6), town: towns.length ? towns[0].id : null, ally: ally || null };
+}
+
 export function envoyCrisis(state) {
   if (!state.greatWorld || state.nationFounded == null) return null;
   const w = state.greatWorld;
+  // An ultimatum comes before anything else, whatever the season.
+  const angry = metGreat(state).find((id) => ultimatumReady(state, id));
+  if (angry) {
+    great(state, angry).lastUltimatum = state.turn;
+    w.ultimatums = (w.ultimatums || 0) + 1;
+    return {
+      type: 'story', id: 'greatEnvoy', nation: angry, kind: 'ultimatum', ...ultimatumTerms(state, angry),
+    };
+  }
   if (w.nextEnvoy == null) w.nextEnvoy = state.turn + randomInt(state, ...ENVOY_GAP);
   if (state.turn < w.nextEnvoy) return null;
   const options = possibleEnvoys(state);
@@ -223,6 +238,23 @@ export const GREAT_ENVOY_EVENT = {
           ],
         };
       }
+      if (ev.kind === 'ultimatum') {
+        const t = ev.town != null ? (state.settlements || []).find((x) => x.id === ev.town) : null;
+        const options = [];
+        if ((state.resources.coin || 0) >= ev.coin) options.push({ id: 'pay', label: `Pay them ${ev.coin} coin.` });
+        if (t) options.push({ id: 'cede', label: `Give ${t.name} up to them. Its ${t.population} people become theirs; its governor and notable people come home.` });
+        if (ev.ally && great(state, ev.ally).treaties.alliance) options.push({ id: 'breakAlliance', label: `End your alliance with ${GREAT_NATIONS[ev.ally].name}, who will not forgive it.` });
+        options.push({ id: 'refuse', label: 'Refuse. They will declare war on you next season.' });
+        return {
+          title: `An ultimatum from ${def.name}`,
+          text: `${who} have lost patience with you (relations ${g.relation}). Their envoy brings terms: ${ev.coin} coin${t ? `, or ${t.name}` : ''}${ev.ally ? `, or an end to your alliance with ${GREAT_NATIONS[ev.ally].name}` : ''}. Meet one, or they will declare war next season.`,
+          options,
+          advice: [
+            ['speaker', `They have about ${Math.round(g.strength || 0)} under arms. Meeting their terms would turn them from war, for now; gifts and treaties would keep them from coming back.`],
+            ['warChief', `${['orhai', 'dravan', 'ashani', 'venn'].includes(id) ? 'At war, they could march a great host into the valley, against the capital itself. ' : 'At war, their ships would raid our settlements on the coast and the lakes. '}Their hosts would strike our settlements within their reach.`],
+          ],
+        };
+      }
       return { title, text: `${who} have sent an envoy.`, options: [{ id: 'decline', label: 'Send them home.' }], advice: [] };
     },
     resolve(state, ev, choice) {
@@ -315,6 +347,34 @@ export const GREAT_ENVOY_EVENT = {
         changeGreat(state, id, -15);
         greatRemember(state, id, `refused their claim to ${t ? t.name : 'a settlement'} ${when}`, -5);
         return [`You refused ${def.name}'s claim. They think much less of you now.`];
+      }
+      if (ev.kind === 'ultimatum') {
+        const calm = declareThreshold(state, id) + 20;
+        if (choice === 'pay') {
+          state.resources.coin -= ev.coin;
+          g.relation = Math.max(g.relation, calm);
+          greatRemember(state, id, `bowed to their ultimatum ${when}`, 0);
+          return [`You paid ${def.name} ${ev.coin} coin. They have turned from war, for now.`];
+        }
+        if (choice === 'cede') {
+          const t = (state.settlements || []).find((x) => x.id === ev.town);
+          if (t) give(state, t);
+          g.relation = Math.max(g.relation, calm + 5);
+          greatRemember(state, id, `gave them ${t ? t.name : 'a settlement'} ${when}`, 5);
+          return [`You gave ${t ? t.name : 'the settlement'} up to ${def.name}. Its governor and notable people have come home. They have turned from war, for now.`];
+        }
+        if (choice === 'breakAlliance' && ev.ally) {
+          const ag = great(state, ev.ally);
+          ag.treaties.alliance = false;
+          changeGreat(state, ev.ally, -20);
+          ag.trust = clamp(ag.trust - 20);
+          greatRemember(state, ev.ally, `broke their alliance with them at the word of ${def.name} ${when}`, 0);
+          g.relation = Math.max(g.relation, calm);
+          return [`You ended your alliance with ${GREAT_NATIONS[ev.ally].name}. ${who} have turned from war; ${GREAT_NATIONS[ev.ally].name} will not forget it.`];
+        }
+        g.warComing = state.turn + 1;
+        changeGreat(state, id, -5);
+        return [`You refused ${def.name}'s ultimatum. They will declare war next season: ready your armies and your walls.`];
       }
       return [`You sent ${def.name}'s envoy home.`];
     },

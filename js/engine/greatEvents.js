@@ -53,6 +53,7 @@ export const GREAT_EVENTS = {
       const g = great(state, ev.nation);
       const def = GREAT_NATIONS[ev.nation];
       g.met = true;
+      g.metAt = state.turn;
       g.contactPending = false;
       if (choice === 'gifts') {
         state.resources.goods -= 10;

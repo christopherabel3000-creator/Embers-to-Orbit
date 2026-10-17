@@ -63,6 +63,24 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
 
+### Great nations: war comes to you (October 16, 2026)
+
+Forty-five-year campaigns with the village strategy: one that keeps up its diplomacy (as above, meeting any ultimatum with the first terms it can), and one that ignores the great nations (`NOGREAT=1`: no envoys, no trade, every ultimatum refused). It makes peace in a war they declared after a year, on the best terms they will take. 200 of each on Normal, 60 on Easy and Hard:
+
+| | Ultimatums | Wars declared on you | Great hosts at the capital | Campaigns with a host at the capital | Voyage sent by the end | Wiped out |
+| --- | --- | --- | --- | --- | --- | --- |
+| Diplomat, Normal | 0.26 | 0 | 0 | 0 of 194 | 164 of 194, about year 39.1 | 2 of 200 |
+| Ignores them, Normal | 1.73 | 1.72 | 0.54 | 45 of 194 (23 percent) | 109 of 194, about year 41.8 | 2 of 200 |
+| Ignores them, Easy | 0.46 | 0.44 | 0 | 0 of 58 | | 0 of 60 |
+| Ignores them, Hard | 2.04 | 2.04 | 1.09 | 22 of 58 (38 percent) | | 3 of 60 |
+
+- **Neglect had no cost at first.** Relations drift back toward each nation's view of you, which never fell near the lines for an ultimatum: in the first runs, a nation that ignored them all met no ultimatum. Settlements in their lands, years without word, and contempt for weakness now pull a neglected nation's standing down to about -50.
+- **Contempt needed an answer.** At first it weighed on any nation the warlike peoples could outnumber, embassy or not, and the diplomat's peace pacts with the Orhai fell from 173 campaigns in 194 to 3 in 58. An embassy now answers it: 170 of 194 keep that peace.
+- **Hosts.** At 3 chances in 20 a season, a great host reached the capital in about half of the neglectful campaigns; at 1 in 25, 23 percent, under the target of a quarter.
+- **Easy.** With its line 10 lower, Easy brought nearly as many wars as Normal (1.54); 20 lower, almost none (0.03); 15 lower, about a quarter as many (0.44), and no host at the capital.
+- **Field odds** (`npm run battles`): an army meets a great host in the valley without the walls' cover. Five companies against five Orhai companies (worth 2.4) win about 72 percent; four against four Dravan (2.2) about 58 percent; one company more wins about 93 percent. Before the palisade, which the host never reaches while an army stands in its way, it would have been nearly certain.
+- **The diplomat pays a little for its settlements in others' lands.** Dravan and Haldi peace pacts are harder to reach, and their raids come about 5.7 times a campaign instead of 3.6. The voyage comes in 164 campaigns of 194 instead of 173. Five campaigns gave up a settlement (and with it their port) to an ultimatum when coin ran short, since the simulated nation takes the first terms it can meet.
+
 ### Great nations: envoys and taking sides (October 16, 2026)
 
 Forty-five-year campaigns on Normal with the village strategy, which now also takes the first answer to each envoy (accepting offers, sending aid, paying tribute or a claim when it can, refusing to stop trading), proposes an alliance pact once its other treaties are in place, and mediates wars among the great nations whenever it can. 200 campaigns:

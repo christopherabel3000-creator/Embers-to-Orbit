@@ -81,12 +81,12 @@ The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The 
 ### Done after the five phases
 
 - Settlers for coin (October 16, 2026): with Coinage, coin pays the passage of settlers to the capital, a party of up to 5 each season, at a price that rises with the capital; a steward's standing order does it each season, keeping a reserve. Simulated nations send the voyage in about year 38 or 39 instead of 42, and finish with about 280 coin instead of 3,200.
+- Great nations that act on their own (October 16, 2026), in three phases: a world that moves (their feelings, wars, and alliances), drawn in (envoys to you, taking sides, mediation, the alliance pact), and war comes to you (ultimatums, wars declared on you, great hosts on the capital). See DESIGN.md and BALANCE.md.
 - Checked October 16, 2026: nothing takes people out of the capital while a decision is waiting. Founding, governors, expeditions, armies, and the voyage are refused until it is made, and moving out passes over anyone it is about; a test keeps it so.
 - Moving out of the capital (October 16, 2026): people move from the capital into the nation's settlements, up to 10 a season to each, as far as their homes have room; a steward's standing order keeps the capital at a chosen size. With the capital kept near 120, simulated nations end at year 45 with a capital of 120 instead of 210 and settlements of about 55 people instead of 34, and the voyage comes as before.
 
 ### Next
 
-- [ ] Great nations that act on their own (DESIGN.md), in three phases. Phase 1, a world that moves, and phase 2, drawn in, are built (October 16, 2026); next, war comes to you.
 - [ ] The Age of Discovery: voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies. Decide its shape with Christopher first, as the Nation era was decided from a brief.
 - [ ] Balance: with settlers invited and spread to the settlements, coin (about 140 by year 45) and goods (about 980) no longer pile up, but food still rots (about 2,300 over a campaign), and the Skarn still grow to about 90 warriors. The Age of Discovery should give the nation's people and goods somewhere to go (colonies, ships). The Skarn also keep growing late (about 75 warriors and 40 hill clansmen by year 45), so the valley stays dangerous unless they are made vassals.
 - [ ] Nation era, deeper (ideas): the great nations acting on their own (wars and alliances among themselves, envoys who come to you), marriages that bring heirs and claims, and the Velari and Tellani fighting beside you in your wars.

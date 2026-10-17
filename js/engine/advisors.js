@@ -36,6 +36,7 @@ import {
   inviteBlocker, inviteRoom, inviteCost,
 } from './invite.js';
 import { voyageMissing, VOYAGE } from './voyage.js';
+import { townRoom, moveBlocker } from './resettle.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -294,7 +295,9 @@ export function getAdvice(state) {
   // Steward: a crowded village.
   const crowded = crowdingSettle(state);
   if (crowded > 0) {
-    add('steward', 'note', `With ${people.length} people, the village is crowded, and spirits settle ${crowded} lower than they would. A meeting hall, a shrine, comforts, festivals, and the right laws all help.`);
+    const open = state.orders.spreadAbove == null ? (state.settlements || []).filter((t) => !moveBlocker(state, t)) : [];
+    const room = open.reduce((sum, t) => sum + townRoom(state, t), 0);
+    add('steward', 'note', `With ${people.length} people, the village is crowded, and spirits settle ${crowded} lower than they would. A meeting hall, a shrine, comforts, festivals, and the right laws all help.${room ? ` Some could move out to the settlements, which have room for ${room} more: from a settlement's screen, or under a standing order.` : ''}`);
   }
 
   // Steward: what is holding families back.

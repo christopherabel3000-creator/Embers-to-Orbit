@@ -4,6 +4,7 @@ import { getAdvice, ADVISOR_ROLES, advisorPerson } from '../../engine/advisors.j
 import { comfortsCost } from '../../engine/goods.js';
 import { inVillage, eraAtLeast, hasKnowledge } from '../../engine/state.js';
 import { INVITE_RESERVES, inviteCost } from '../../engine/invite.js';
+import { SPREAD_LEVELS, MOVE_MAX } from '../../engine/resettle.js';
 import { state, esc, plural, adviceList } from '../core.js';
 
 export function checkbox(id, checked, label) {
@@ -20,6 +21,16 @@ function inviteOrder(o) {
     <select id="order-invite" data-order="inviteReserve">${options}</select></p>`;
 }
 
+// The steward sends people out to the settlements while the capital is too big.
+function spreadOrder(o) {
+  if (!eraAtLeast(state, 'nation')) return '';
+  const current = o.spreadAbove == null ? 'off' : String(o.spreadAbove);
+  const options = [['off', 'Do not send people out'], ...SPREAD_LEVELS.map((n) => [String(n), `Send people out while the capital has more than ${n}`])]
+    .map(([v, label]) => `<option value="${v}"${v === current ? ' selected' : ''}>${esc(label)}</option>`).join('');
+  return `<p><label for="order-spread">Each season, send people from the capital to the settlements with room in their homes, up to ${MOVE_MAX} to each</label>
+    <select id="order-spread" data-order="spreadAbove">${options}</select></p>`;
+}
+
 function ordersFor(role) {
   const o = state.orders;
   if (role === 'steward' && inVillage(state)) {
@@ -29,7 +40,8 @@ function ordersFor(role) {
       <select id="order-food" data-order="foodReserve">${options}</select></p>
       ${checkbox('harvestFeast', o.harvestFeast, 'Hold a feast once the harvest is in, at the start of winter, if at least 3 seasons of food would be left')}
       ${checkbox('comforts', o.comforts, `Share out goods as comforts each season: 1 goods for every 6 people (${comfortsCost(state)} now). Spirits settle 4 higher. A village of 30 or more that can craft misses them.`)}
-      ${inviteOrder(o)}`;
+      ${inviteOrder(o)}
+      ${spreadOrder(o)}`;
   }
   if (role === 'healer' && inVillage(state)) {
     return checkbox('autoShelter', o.autoShelter, 'Put a hut at the front of the build queue whenever the shelters are nearly full, behind any building already underway');

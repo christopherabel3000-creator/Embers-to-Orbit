@@ -2,6 +2,8 @@
 
 import { state, difficultyChoices } from '../core.js';
 import { INVITE_COIN, INVITE_COIN_OPEN, INVITE_PER } from '../../engine/invite.js';
+import { MOVE_MAX } from '../../engine/resettle.js';
+import { KEEP_AT_HOME } from '../../engine/settlements.js';
 
 export function menuScreen() {
   return `<h1>Menu</h1>
@@ -45,6 +47,7 @@ export function menuScreen() {
     <p>The nations act on their own, too. They have feelings about each other, shown on the Neighbors screen, and they come to you: offering treaties, demanding land they wanted, asking you to take sides in their quarrels or guard their caravans, and, in the Skarn's case, offering bargains at another people's expense.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
     <p>In the Nation era, once you know Coinage, coin pays the passage of settlers from beyond the valley to your capital, at ${INVITE_COIN} coin each, or ${INVITE_COIN_OPEN} with open gates, and 1 coin more for every ${INVITE_PER} people already in the capital. On the Village screen you can invite a party once a season, as many as the homes and stores can take; your steward can do it each season under a standing order, keeping a reserve of coin.</p>
+    <p>People can also move out of the capital in the Nation era. On a settlement's screen, send up to ${MOVE_MAX} a season to settle there, as far as its homes have room; the capital keeps at least ${KEEP_AT_HOME}, and its council, heroes, and masters always stay. Your steward can do it each season under a standing order, keeping the capital at the size you choose. The voyage across the sea needs a large capital, so sending people out early slows it.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }

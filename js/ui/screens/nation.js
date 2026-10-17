@@ -18,6 +18,7 @@ import { living, placeName, year, hasKnowledge } from '../../engine/state.js';
 import {
   state, townId, esc, capitalize, plural,
 } from '../core.js';
+import { moveBlocker, moveRoom, townRoom, MOVE_MAX } from '../../engine/resettle.js';
 
 // What a settlement sends home, or does instead, in a sentence.
 function sendsText(t) {
@@ -82,6 +83,24 @@ function landText(t) {
   return `${placeName(state, t.place)} ${fitWord}${best !== t.role ? `; the land is best for a ${ROLES[best].name.toLowerCase()}` : ''}.`;
 }
 
+// People moving from the capital to this settlement, as far as its homes have room.
+function moveSection(t) {
+  if (!state.settlements || !state.settlements.length) return '';
+  const order = state.orders.spreadAbove;
+  let html = `<h2 id="moveHeading">People from ${esc(state.campName)}</h2>
+    <p>Up to ${MOVE_MAX} people a season can leave ${esc(state.campName)} to settle here, as far as the homes have room: ${plural(townRoom(state, t), 'place', 'places')} now. Healthy adults go, the least skilled first; the council, heroes, and masters stay.</p>
+    <p class="muted">${order == null ? 'Your steward can send people out each season under a standing order on the Advisors screen.' : `Under your standing order, your steward sends people out each season while ${esc(state.campName)} has more than ${order}.`}</p>`;
+  const why = moveBlocker(state, t);
+  if (why) return `${html}<p>${esc(why)}</p>`;
+  const most = moveRoom(state, t);
+  const options = Array.from({ length: most }, (_, i) => i + 1)
+    .map((n) => `<option value="${n}"${n === most ? ' selected' : ''}>${plural(n, 'person', 'people')}</option>`).join('');
+  return `${html}
+    <p><label for="moveCount">How many to send this season</label>
+      <select id="moveCount">${options}</select></p>
+    <div class="actions"><button type="button" data-action="moveSettlers" data-town="${t.id}">Send them to ${esc(t.name)}</button></div>`;
+}
+
 export function settlementScreen() {
   const t = settlementById(state, townId);
   if (!t) return '<h1>Settlement</h1><p>That settlement is gone.</p><p><button type="button" data-nav="nation">Back to the Nation screen</button></p>';
@@ -127,6 +146,7 @@ export function settlementScreen() {
     html += `<div class="actions">${aid.filter(([, why]) => !why).map(([kind]) => `<button type="button" data-action="sendAid" data-town="${t.id}" data-kind="${kind}">Send ${aidCost(t, kind)} ${kind}</button>`).join('')}</div>`;
     for (const [, why] of aid.filter(([, w]) => w)) html += `<p>${esc(why)}</p>`;
   }
+  html += moveSection(t);
   const groupRows = [
     [MAKER_NAMES[t.role], g.makers], ['Guards', g.guards], ['Scholars', g.scholars], ['Healers', g.healers], ['Builders', g.builders], ['Children and elders', g.young],
   ].filter(([, n]) => n > 0);

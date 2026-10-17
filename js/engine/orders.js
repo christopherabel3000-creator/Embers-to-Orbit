@@ -16,6 +16,7 @@ import {
 import { moveOffForeignLand } from './nations.js';
 import { listNames } from './util.js';
 import { inviteByOrder } from './invite.js';
+import { spreadByOrder } from './resettle.js';
 
 function bestTaskFor(person, seasonIdx) {
   const s = person.skills;
@@ -246,6 +247,9 @@ export function applyStandingOrders(state) {
   // Steward: invite settlers for coin, keeping the reserve the player set.
   const invited = inviteByOrder(state);
   if (invited) say('steward', invited);
+  // Steward: send people out to the settlements while the capital is larger than asked.
+  const spread = spreadByOrder(state);
+  if (spread) say('steward', spread);
 
   return { urgent, orders: done };
 }

@@ -282,6 +282,15 @@ function handleAction(action, btn) {
       }
       break;
     }
+    case 'moveSettlers': {
+      const msg = act({ type: 'moveSettlers', settlementId: Number(btn.dataset.town), count: Number(document.getElementById('moveCount').value) });
+      if (msg) {
+        show('settlement', { focus: false });
+        refocus('#moveHeading');
+        announce(msg);
+      }
+      break;
+    }
     case 'appointGovernor': {
       const msg = act({ type: 'appointGovernor', settlementId: Number(btn.dataset.town), personId: Number(document.getElementById('newGovernor').value) });
       if (msg) {

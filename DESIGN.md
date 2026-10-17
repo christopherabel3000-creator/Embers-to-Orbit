@@ -42,6 +42,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **Armies** (the Nation era, phase 4): companies of six kinds raised from the capital and the settlements under named commanders; marches, supply, and standing orders on the regional map; field battles on the ground of each region; wars declared with or without a reason, raids, sieges the player lays, storming with siege engines, and peace on terms; enemy hosts against your settlements; horses; and ten more discoveries.
 - **Toward the sea** (the Nation era, phase 5): the other five great nations (the Keshari, the Dravan, the Ashani, the Haldi, and the Venn) in five new homelands; raids by the Dravan and the Haldi; ships, ports, and a harbor; thirteen more discoveries, including a crown or an assembly; and the voyage across the open sea that ends the era.
 - **Settlers for coin** (the Nation era): with Coinage, coin pays the passage of settlers to the capital, a party a season, and the steward can do it under a standing order.
+- **Moving out of the capital** (the Nation era): people leave the capital to settle in the nation's settlements, as far as their homes have room, by hand or under the steward's standing order.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -687,7 +688,16 @@ Decided with Christopher on October 16, 2026. In the simulator, coin was near ze
 - **Inviting settlers.** In the Nation era, once your people know Coinage, coin pays the passage of settlers from beyond the valley to the capital. One party can come each season, of up to 5, as many as the homes and stores can take: a spare place in the homes, and 2 seasons of food for everyone, newcomers included. Not with the gates closed by law, and not through a siege. Settlers are adults from 16 to 34, each with one strong skill, like the settlers who come on their own. The Village screen has the control.
 - **The price** is 10 coin a settler, or 8 with open gates, and 1 coin more for every 5 people in the capital: about 20 at 50 people and 30 at 100. A growing capital must reach farther for settlers. At a flat 12 coin, the treasury was never the limit, and a capital that grew bigger made more goods to sell for more coin; the rising price makes coin the limit and spends nearly all of it.
 - **The steward's standing order** invites as many settlers as the capital can take each season, keeping a reserve the player chooses (none, 50, 100, 250, or 500 coin). Without the order, the steward points out a treasury of ten settlers' worth or more, and warns when the voyage waits only on the capital.
-- **Still open.** After the voyage, a nation that keeps inviting grows its capital past 200 by year 45, and the Skarn grow with it. The Age of Discovery should give those people somewhere to go (colonies beyond the sea) and give coin its next large uses.
+- **After the voyage**, a nation that keeps inviting grows its capital past 200 by year 45, and the Skarn grow with it. Moving out of the capital (below) spreads those people across the settlements; the Age of Discovery should give them more places to go (colonies beyond the sea) and give coin its next large uses.
+
+### Moving out of the capital (built)
+
+Decided with Christopher on October 16, 2026. Before this, a settlement grew only on its own each spring, and people left the capital only to found a new one. Now the capital's people can move into the settlements the nation already has, in the valley on land it claimed or beyond it.
+
+- **Sending people.** In the Nation era, a settlement's screen sends people from the capital to settle there: up to 10 a season to each settlement, as far as its homes have room. The capital keeps at least 30 (as when founding). Healthy adults from 16 to 54 go, the least skilled first, so the capital keeps its best hands; the council, heroes, masters, and anyone a waiting decision is about always stay. They join the settlement's count and work as its people do. Not through a siege of the capital.
+- **The steward's standing order** sends people each season to the settlements with the most room while the capital has more than a size the player chooses (60, 80, 100, 120, 150, or 200). With inviting settlers, coin brings people to the capital and the order spreads them out. When the capital is crowded and settlements have room, the steward says so.
+- **The choice.** The voyage needs a capital of 100, so sending people out early slows it; growing the settlements raises what they send home and what the nation can field.
+
 
 ### The Nation era's knowledge tree
 

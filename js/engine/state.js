@@ -13,7 +13,7 @@ import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
 import { initialGreat, GREAT_NATIONS } from './greatData.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 34;
+export const SAVE_VERSION = 35;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -39,6 +39,7 @@ export const DEFAULT_ORDERS = {
   armGuards: false, // Spend goods on arms for the guards each season (a village).
   raidPolicy: 'ask', // 'ask', 'fightIfLikely', or 'auto'.
   inviteReserve: null, // Nation era: invite settlers for coin while the treasury keeps this much; null is off.
+  spreadAbove: null, // Nation era: send people to the settlements while the capital has more than this; null is off.
 };
 
 export function makePerson(template, id, task = 'forage') {
@@ -121,6 +122,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     settlersMet: 0,
     lastInvite: null, // The turn settlers were last invited for coin.
     invited: 0, // Settlers invited for coin over the campaign.
+    movedOut: 0, // People who moved from the capital to the settlements.
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
     settlements: [], // Other settlements the village has founded.
     capitalCounted: false, // Past 100 people, the capital counts its ordinary people instead of naming them.
@@ -416,6 +418,12 @@ export function migrate(data) {
     data.lastInvite = null;
     data.invited = 0;
     data.version = 34;
+  }
+  if (data.version === 34) {
+    // People moving out of the capital to the settlements, and the order to send them.
+    data.orders.spreadAbove = null;
+    data.movedOut = 0;
+    data.version = 35;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

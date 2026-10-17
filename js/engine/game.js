@@ -18,6 +18,7 @@ import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
 import { hireMaster, hireSwords } from './goods.js';
 import { inviteSettlers, INVITE_RESERVES } from './invite.js';
+import { moveSettlers, SPREAD_LEVELS } from './resettle.js';
 import { giftClans } from './clans.js';
 import {
   foundSettlement, setPolicy, setTownRole, setTownDemands, setTownPriority, sendAid, appointGovernor,
@@ -202,6 +203,12 @@ const handlers = {
     if (stop) return stop;
     const r = inviteSettlers(state, count);
     return r.error ? r : { message: r.message };
+  },
+
+  moveSettlers(state, { settlementId, count }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return moveSettlers(state, { settlementId, count });
   },
 
   giftClans(state) {
@@ -543,6 +550,13 @@ const handlers = {
         const n = Number(value);
         if (!INVITE_RESERVES.includes(n)) return { error: `Choose a reserve of ${INVITE_RESERVES.join(', ')} coin, or off.` };
         state.orders.inviteReserve = n;
+      }
+    } else if (id === 'spreadAbove') {
+      if (value === null || value === 'off' || value === '') state.orders.spreadAbove = null;
+      else {
+        const n = Number(value);
+        if (!SPREAD_LEVELS.includes(n)) return { error: `Choose a capital of ${SPREAD_LEVELS.join(', ')} people, or off.` };
+        state.orders.spreadAbove = n;
       }
     } else if (id === 'raidPolicy') {
       if (!['ask', 'fightIfLikely', 'auto'].includes(value)) return { error: 'Unknown raid policy.' };

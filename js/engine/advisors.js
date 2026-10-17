@@ -32,6 +32,10 @@ import { REGIONS } from './worldData.js';
 import { armyRation, inSupply } from './armies.js';
 import { STANDING_PAY } from './armyData.js';
 import { listWords, lowerFirst } from './util.js';
+import {
+  inviteBlocker, inviteRoom, inviteCost,
+} from './invite.js';
+import { voyageMissing, VOYAGE } from './voyage.js';
 
 export const ADVISOR_ROLES = {
   steward: { title: 'Steward', skill: 'foraging', domain: 'food and stores' },
@@ -364,6 +368,13 @@ export function getAdvice(state) {
   const standing = (state.armies || []).flatMap((a) => a.companies).filter((c) => c.training === 'standing').length;
   if (standing && (state.resources.coin || 0) < standing * STANDING_PAY * 2) {
     add('steward', 'warning', `The treasury has ${state.resources.coin || 0} coin, and the standing army costs ${standing * STANDING_PAY} a season. Unpaid soldiers go home.`);
+  }
+
+  // Steward: coin to spare could bring settlers to the capital.
+  const coin = state.resources.coin || 0;
+  if (state.orders.inviteReserve == null && coin >= inviteCost(state) * 10 && !inviteBlocker(state)) {
+    const waiting = !state.voyage && voyageMissing(state).length === 1 && people.length < VOYAGE.capital;
+    add('steward', waiting ? 'warning' : 'note', `${waiting ? `The voyage waits only on a capital of ${VOYAGE.capital}. ` : ''}The treasury holds ${coin} coin. Settlers from beyond the valley would come for ${inviteCost(state)} coin each, up to ${inviteRoom(state)} this season: invite them on the Village screen, or give me a standing order to invite them each season.`);
   }
 
   // War chief: raids.

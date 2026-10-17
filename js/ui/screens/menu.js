@@ -1,6 +1,7 @@
 // The Menu screen: saves, difficulty, and starting over.
 
 import { state, difficultyChoices } from '../core.js';
+import { INVITE_COIN, INVITE_COIN_OPEN, INVITE_PER } from '../../engine/invite.js';
 
 export function menuScreen() {
   return `<h1>Menu</h1>
@@ -43,6 +44,7 @@ export function menuScreen() {
     <p>Once the Skarn are a nation, a quarter of their warriors are archers, whose arrows come over walls; archers are weak up close, so charge them. Your own people with hunting 3 or more shoot as archers once you know Bows. Warriors who charge an undermanned stretch of palisade or wall may break through it, and fighters there lose its cover. When the Skarn cannot storm your walls but can hem you in, they lay siege: no one can work outside, and you live on your stores. Wait for their supplies to run out, pay them, or sally out and fight them in the open.</p>
     <p>The nations act on their own, too. They have feelings about each other, shown on the Neighbors screen, and they come to you: offering treaties, demanding land they wanted, asking you to take sides in their quarrels or guard their caravans, and, in the Skarn's case, offering bargains at another people's expense.</p>
     <p>When your village has 40 people and holds land beyond its camp, it can found a second settlement there, which begins the Nation era. Choose where, its name, how many go, its governor, and whether it should grow or supply. It sends home food, wood, or stone each season, depending on its land.</p>
+    <p>In the Nation era, once you know Coinage, coin pays the passage of settlers from beyond the valley to your capital, at ${INVITE_COIN} coin each, or ${INVITE_COIN_OPEN} with open gates, and 1 coin more for every ${INVITE_PER} people already in the capital. On the Village screen you can invite a party once a season, as many as the homes and stores can take; your steward can do it each season under a standing order, keeping a reserve of coin.</p>
     <p>On the Advisors screen you can give standing orders, like resting the badly hurt or keeping enough food stored. Advisors carry them out at the start of each season and report what they did.</p>
     <p>Your advisors read the situation every season. Check the Report or Advisors screen for warnings.</p>`;
 }

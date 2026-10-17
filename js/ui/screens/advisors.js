@@ -2,11 +2,22 @@
 
 import { getAdvice, ADVISOR_ROLES, advisorPerson } from '../../engine/advisors.js';
 import { comfortsCost } from '../../engine/goods.js';
-import { inVillage } from '../../engine/state.js';
+import { inVillage, eraAtLeast, hasKnowledge } from '../../engine/state.js';
+import { INVITE_RESERVES, inviteCost } from '../../engine/invite.js';
 import { state, esc, plural, adviceList } from '../core.js';
 
 export function checkbox(id, checked, label) {
   return `<label class="choice"><input type="checkbox" data-order="${id}"${checked ? ' checked' : ''}> ${esc(label)}</label>`;
+}
+
+// The steward invites settlers for coin each season, keeping a reserve.
+function inviteOrder(o) {
+  if (!eraAtLeast(state, 'nation') || !hasKnowledge(state, 'coinage')) return '';
+  const current = o.inviteReserve == null ? 'off' : String(o.inviteReserve);
+  const options = [['off', 'Do not invite settlers'], ...INVITE_RESERVES.map((n) => [String(n), n ? `Invite them, keeping ${n} coin` : 'Invite them, spending all the coin it takes'])]
+    .map(([v, label]) => `<option value="${v}"${v === current ? ' selected' : ''}>${esc(label)}</option>`).join('');
+  return `<p><label for="order-invite">Each season, invite as many settlers as the capital can take, at ${inviteCost(state)} coin each</label>
+    <select id="order-invite" data-order="inviteReserve">${options}</select></p>`;
 }
 
 function ordersFor(role) {
@@ -17,7 +28,8 @@ function ordersFor(role) {
       <p><label for="order-food">Make sure our food will last at least</label>
       <select id="order-food" data-order="foodReserve">${options}</select></p>
       ${checkbox('harvestFeast', o.harvestFeast, 'Hold a feast once the harvest is in, at the start of winter, if at least 3 seasons of food would be left')}
-      ${checkbox('comforts', o.comforts, `Share out goods as comforts each season: 1 goods for every 6 people (${comfortsCost(state)} now). Spirits settle 4 higher. A village of 30 or more that can craft misses them.`)}`;
+      ${checkbox('comforts', o.comforts, `Share out goods as comforts each season: 1 goods for every 6 people (${comfortsCost(state)} now). Spirits settle 4 higher. A village of 30 or more that can craft misses them.`)}
+      ${inviteOrder(o)}`;
   }
   if (role === 'healer' && inVillage(state)) {
     return checkbox('autoShelter', o.autoShelter, 'Put a hut at the front of the build queue whenever the shelters are nearly full, behind any building already underway');

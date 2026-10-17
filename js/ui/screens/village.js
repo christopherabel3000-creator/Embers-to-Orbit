@@ -7,9 +7,12 @@ import {
 import {
   hireBlocker, swordsBlocker, swordsActive, HIRE_MASTER_COST, SWORDS_COST, SWORDS_COUNT, HIRE_MASTER_COIN, SWORDS_COIN,
 } from '../../engine/goods.js';
+import {
+  inviteBlocker, inviteAffordable, inviteCost, INVITE_FOOD_SEASONS, INVITE_PER,
+} from '../../engine/invite.js';
 import { lawsAvailable, lawAvailable, seasonsUntilChange } from '../../engine/laws.js';
 import {
-  living, shelterCapacity, foodNeeded, hasKnowledge, lifeStage, taskAvailable, foodStoreTarget, foodStocked,
+  living, shelterCapacity, foodNeeded, hasKnowledge, eraAtLeast, lifeStage, taskAvailable, foodStoreTarget, foodStocked,
 } from '../../engine/state.js';
 import { groups, notablePeople, GROUP_NAMES } from '../../engine/village.js';
 import {
@@ -90,6 +93,26 @@ function hireSection() {
     ${swordsActive(state) ? `<p>${esc(swordsBlocker(state))}</p>` : buttons('hireSwords', swordsBlocker, 'Hire the sell-swords', SWORDS_COST, SWORDS_COIN)}`;
 }
 
+// In the Nation era, with Coinage: coin pays settlers' passage to the capital.
+function inviteSection() {
+  if (!eraAtLeast(state, 'nation') || !hasKnowledge(state, 'coinage')) return '';
+  const cost = inviteCost(state);
+  const order = state.orders.inviteReserve;
+  const intro = `<h2 id="inviteHeading">Invite settlers</h2>
+    <p>Settlers from beyond the valley will come to ${esc(state.campName)} for ${cost} coin each. The price rises by 1 coin for every ${INVITE_PER} people in the capital. One party can come each season, as many as the homes and stores can take: a spare place in the homes, and ${INVITE_FOOD_SEASONS} seasons of food for everyone. You have ${state.resources.coin || 0} coin.</p>
+    <p class="muted">${order == null ? 'Your steward can invite them each season under a standing order on the Advisors screen.' : `Under your standing order, your steward invites them each season, keeping ${order} coin in the treasury.`}</p>`;
+  const why = inviteBlocker(state);
+  if (why) return `${intro}<p>${esc(why)}</p>`;
+  const most = inviteAffordable(state);
+  if (most < 1) return `${intro}<p>Each settler's passage costs ${cost} coin.</p>`;
+  const options = Array.from({ length: most }, (_, i) => i + 1)
+    .map((n) => `<option value="${n}"${n === most ? ' selected' : ''}>${plural(n, 'settler', 'settlers')}, ${n * cost} coin</option>`).join('');
+  return `${intro}
+    <p><label for="inviteCount">How many to invite this season</label>
+      <select id="inviteCount">${options}</select></p>
+    <div class="actions"><button type="button" data-action="inviteSettlers">Invite them</button></div>`;
+}
+
 function lawsSection() {
   if (!lawsAvailable(state)) {
     return '<h2>Laws</h2><p>Once your people learn Oral law, the village can make laws here.</p>';
@@ -137,6 +160,7 @@ export function villageScreen() {
     <p class="muted">Otherwise the council reassigns everyone at the start of each season.</p>
     ${lawsSection()}
     ${hireSection()}
+    ${inviteSection()}
     ${settlementLines()}
     <h2>Groups (${g.length})</h2>
     <ul>${g.map((x) => `<li>${esc(groupLine(x))}</li>`).join('')}</ul>

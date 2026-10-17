@@ -17,6 +17,7 @@ import { DIFFICULTIES, raidScale } from './difficulty.js';
 import { setLaw } from './laws.js';
 import { sallyOut, payBesiegers } from './siege.js';
 import { hireMaster, hireSwords } from './goods.js';
+import { inviteSettlers, INVITE_RESERVES } from './invite.js';
 import { giftClans } from './clans.js';
 import {
   foundSettlement, setPolicy, setTownRole, setTownDemands, setTownPriority, sendAid, appointGovernor,
@@ -194,6 +195,13 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return hireMaster(state, skill, pay);
+  },
+
+  inviteSettlers(state, { count }) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    const r = inviteSettlers(state, count);
+    return r.error ? r : { message: r.message };
   },
 
   giftClans(state) {
@@ -529,6 +537,13 @@ const handlers = {
       const n = Number(value);
       if (!Number.isInteger(n) || n < 0 || n > 4) return { error: 'Choose between 0 and 4 seasons.' };
       state.orders.foodReserve = n;
+    } else if (id === 'inviteReserve') {
+      if (value === null || value === 'off' || value === '') state.orders.inviteReserve = null;
+      else {
+        const n = Number(value);
+        if (!INVITE_RESERVES.includes(n)) return { error: `Choose a reserve of ${INVITE_RESERVES.join(', ')} coin, or off.` };
+        state.orders.inviteReserve = n;
+      }
     } else if (id === 'raidPolicy') {
       if (!['ask', 'fightIfLikely', 'auto'].includes(value)) return { error: 'Unknown raid policy.' };
       state.orders.raidPolicy = value;

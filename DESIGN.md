@@ -1,6 +1,6 @@
 # Embers to Orbit — Design Document
 
-Last updated Oct 14, 2026 · Christopher Abel
+Last updated Oct 16, 2026 · Christopher Abel
 
 ## Vision and pillars
 
@@ -41,6 +41,7 @@ Phase 1, the Survival era, and Phase 2, the Settlement era, are playable on GitH
 - **The first great nations** (the Nation era, phase 3): the Ostrani and the Orhai, met in their homelands at the edge of the map; envoys, trade for coin, embassies, treaties, marriages, and trade routes; Orhai raids and demands; coin, governors' wages, and taxes; laws on inheritance and worship; the Velari and Tellani joining the nation, and the Skarn as vassals; and nine more discoveries.
 - **Armies** (the Nation era, phase 4): companies of six kinds raised from the capital and the settlements under named commanders; marches, supply, and standing orders on the regional map; field battles on the ground of each region; wars declared with or without a reason, raids, sieges the player lays, storming with siege engines, and peace on terms; enemy hosts against your settlements; horses; and ten more discoveries.
 - **Toward the sea** (the Nation era, phase 5): the other five great nations (the Keshari, the Dravan, the Ashani, the Haldi, and the Venn) in five new homelands; raids by the Dravan and the Haldi; ships, ports, and a harbor; thirteen more discoveries, including a crown or an assembly; and the voyage across the open sea that ends the era.
+- **Settlers for coin** (the Nation era): with Coinage, coin pays the passage of settlers to the capital, a party a season, and the steward can do it under a standing order.
 
 The rest of this document mixes what is built with what is planned. Sections marked "built" describe the game as it plays now; the rest is design for later phases. [BACKLOG.md](BACKLOG.md) lists the next tasks, and [BALANCE.md](BALANCE.md) records how each system plays out in simulated campaigns.
 
@@ -679,6 +680,15 @@ They make peace on even terms at a war score of -40 or more (the Keshari and the
 
 **The voyage** that ends the era: see The end of the era, below.
 
+### Settlers for coin (built)
+
+Decided with Christopher on October 16, 2026. In the simulator, coin was near zero until about year 28, then piled up to about 3,200 by year 45, while the capital of 100 was the one thing the voyage still waited on, from about year 34 to year 42. The capital was not short of food, homes, or spirits; it was short of people: births are slow, settlers come at most once a season, and founding settlements takes people from it. So coin now buys people.
+
+- **Inviting settlers.** In the Nation era, once your people know Coinage, coin pays the passage of settlers from beyond the valley to the capital. One party can come each season, of up to 5, as many as the homes and stores can take: a spare place in the homes, and 2 seasons of food for everyone, newcomers included. Not with the gates closed by law, and not through a siege. Settlers are adults from 16 to 34, each with one strong skill, like the settlers who come on their own. The Village screen has the control.
+- **The price** is 10 coin a settler, or 8 with open gates, and 1 coin more for every 5 people in the capital: about 20 at 50 people and 30 at 100. A growing capital must reach farther for settlers. At a flat 12 coin, the treasury was never the limit, and a capital that grew bigger made more goods to sell for more coin; the rising price makes coin the limit and spends nearly all of it.
+- **The steward's standing order** invites as many settlers as the capital can take each season, keeping a reserve the player chooses (none, 50, 100, 250, or 500 coin). Without the order, the steward points out a treasury of ten settlers' worth or more, and warns when the voyage waits only on the capital.
+- **Still open.** After the voyage, a nation that keeps inviting grows its capital past 200 by year 45, and the Skarn grow with it. The Age of Discovery should give those people somewhere to go (colonies beyond the sea) and give coin its next large uses.
+
 ### The Nation era's knowledge tree
 
 36 discoveries in seven branches, plus three either-or choices, taking the tree from 19 discoveries to about 55. Writing is the gate to most of them. Each costs about 60 to 160 study points; scholars in every settlement add to one shared study queue, and ruins can give study points or reveal a discovery. Each phase adds the ones its systems need; phase 1's are marked, and phases 2 to 4 list theirs in their own sections. All of it is built: phases 2 to 5 list their discoveries in their own sections.
@@ -702,7 +712,7 @@ As with becoming a village, the step is the player's to take once the nation is 
 
 Fitting out the ship takes 120 wood, 60 goods, 30 iron, and 150 food, and a crew of 12, the best scouts the capital can spare (never the council), who sail away with it. The voyage begins the Age of Discovery, which is still to be built: until it is, the game goes on as in the Nation era.
 
-The capital was first set at 150 people. In the simulator, a nation that founds four or five settlements has everything else in place by about year 34, but its capital reaches 150 only rarely by year 45; at 100, it sends the voyage in about year 40, the aim (see BALANCE.md).
+The capital was first set at 150 people. In the simulator, a nation that founds four or five settlements has everything else in place by about year 34, but its capital reaches 150 only rarely by year 45; at 100, it sends the voyage in about year 40, the aim (see BALANCE.md). Since October 16, 2026, a nation that spends its coin inviting settlers sends it in about year 38 or 39.
 
 ## Population and resources
 

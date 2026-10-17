@@ -387,6 +387,11 @@ function play(seed, strategy) {
           }
         }
       }
+      // Once it knows Coinage, the steward invites settlers each season,
+      // keeping 100 coin. NOINVITE=1 never does; INVITERESERVE=250 keeps more.
+      if (!process.env.NOINVITE && state.orders.inviteReserve == null && hasKnowledge(state, 'coinage')) {
+        state = act(state, { type: 'setOrder', id: 'inviteReserve', value: Number(process.env.INVITERESERVE || 100) });
+      }
       if (process.env.TAXES && state.laws.taxes !== process.env.TAXES) {
         const r = applyAction(state, { type: 'setLaw', law: 'taxes', option: process.env.TAXES });
         if (!r.error) state = r.state;
@@ -543,7 +548,7 @@ for (const strategy of STRATEGIES) {
   let nationPop = 0; let townCount = 0; let townPop = 0; let loyaltySum = 0; let roads = 0; let counted = 0; let capitalPop = 0; let nationGames = 0;
   let regionsExplored = 0; let placesFound = 0; let farTowns = 0; let ironSum = 0; let saltSum = 0;
   const voyageYears = []; const readyYears = []; let navigators = 0; let ports = 0; let metThree = 0; let metSum = 0;
-  let coinSum = 0; let metOstrani = 0; let metOrhai = 0; let embassies = 0; let routes = 0; let joinedPeoples = 0; let vassals = 0; let peaceOrhai = 0;
+  let coinSum = 0; let invitedSum = 0; let metOstrani = 0; let metOrhai = 0; let embassies = 0; let routes = 0; let joinedPeoples = 0; let vassals = 0; let peaceOrhai = 0;
   const roleCount = {};
   const built = {};
   tally = { lastWar: null, armies: 0, companies: 0, disbanded: 0, wars: 0, storms: 0, peaceTerms: {}, fieldWon: 0, fieldLost: 0, roadBattles: 0, soldiersKilled: 0, stormed: 0, starved: 0, armyHungry: 0, envoys: 0, orhaiRaids: 0, orhaiRepelled: 0, expeditions: 0, travelDeaths: 0, towns: 0, aid: 0, defiance: 0, governorsDied: 0, peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, swords: 0, caravans: 0, masters: 0, lostFights: 0, fightsWon: 0, ambushes: 0, scattered: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
@@ -586,6 +591,7 @@ for (const strategy of STRATEGIES) {
       ironSum += end.resources.iron || 0;
       saltSum += end.resources.salt || 0;
       coinSum += end.resources.coin || 0;
+      invitedSum += end.invited || 0;
       if (end.great.ostrani.met) metOstrani++;
       if (end.great.orhai.met) metOrhai++;
       embassies += GREAT_ORDER.filter((id) => end.great[id].embassy).length;
@@ -610,7 +616,7 @@ for (const strategy of STRATEGIES) {
     console.log(`world (${ng} games): expeditions ${(tally.expeditions / ng).toFixed(1)}, deaths on the road ${(tally.travelDeaths / ng).toFixed(2)} | regions explored ${(regionsExplored / ng).toFixed(1)} of ${REGION_ORDER.length - 1}, places found ${(placesFound / ng).toFixed(1)} of ${WORLD_PLACE_ORDER.length} | settlements beyond the valley ${(farTowns / ng).toFixed(1)} | iron ${(ironSum / ng).toFixed(0)}, salt ${(saltSum / ng).toFixed(0)}`);
     console.log(`armies (${ng} games): raised ${(tally.armies / ng).toFixed(1)}, companies ${(tally.companies / ng).toFixed(1)}, disbanded ${(tally.disbanded / ng).toFixed(1)} | wars on the Skarn ${(tally.wars / ng).toFixed(2)}, stormed ${(tally.stormed / ng).toFixed(2)}, starved out ${(tally.starved / ng).toFixed(2)} | peace ${Object.entries(tally.peaceTerms).map(([k, n]) => `${k} ${(n / ng).toFixed(2)}`).join(', ') || 'none'} | field battles won ${(tally.fieldWon / ng).toFixed(1)}, lost ${(tally.fieldLost / ng).toFixed(1)}, on the road ${(tally.roadBattles / ng).toFixed(1)} | soldiers killed ${(tally.soldiersKilled / ng).toFixed(1)} | armies hungry ${(tally.armyHungry / ng).toFixed(2)}`);
     const avg = (a) => (a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : '-');
-    console.log(`the sea (${ng} games): voyage sent ${voyageYears.length} (avg year ${avg(voyageYears)}) | ready but for the capital ${readyYears.length} (avg year ${avg(readyYears)}) | Navigation ${navigators}, ports ${ports}, met three great nations ${metThree}, great nations met ${(metSum / ng).toFixed(1)} | Dravan and Haldi raids ${((tally.newRaids || 0) / ng).toFixed(1)} (driven off ${((tally.newRepelled || 0) / ng).toFixed(1)})`);
+    console.log(`the sea (${ng} games): voyage sent ${voyageYears.length} (avg year ${avg(voyageYears)}) | ready but for the capital ${readyYears.length} (avg year ${avg(readyYears)}) | Navigation ${navigators}, ports ${ports}, met three great nations ${metThree}, great nations met ${(metSum / ng).toFixed(1)} | Dravan and Haldi raids ${((tally.newRaids || 0) / ng).toFixed(1)} (driven off ${((tally.newRepelled || 0) / ng).toFixed(1)}) | settlers invited for coin ${(invitedSum / ng).toFixed(1)}`);
     console.log(`great nations (${ng} games): met the Ostrani ${metOstrani}, the Orhai ${metOrhai} | embassies ${(embassies / ng).toFixed(1)}, routes ${(routes / ng).toFixed(1)}, Orhai peace ${peaceOrhai} | envoys ${(tally.envoys / ng).toFixed(1)} | Orhai raids ${(tally.orhaiRaids / ng).toFixed(1)} (driven off ${(tally.orhaiRepelled / ng).toFixed(1)}) | coin ${(coinSum / ng).toFixed(0)} | valley peoples joined ${joinedPeoples}, Skarn vassals ${vassals}`);
   }
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';

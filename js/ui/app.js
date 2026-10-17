@@ -170,6 +170,15 @@ function handleAction(action, btn) {
       }
       break;
     }
+    case 'inviteSettlers': {
+      const msg = act({ type: 'inviteSettlers', count: Number(document.getElementById('inviteCount').value) });
+      if (msg) {
+        show('people', { focus: false });
+        refocus('#inviteHeading');
+        announce(msg);
+      }
+      break;
+    }
     case 'claimPlace': {
       const msg = act({ type: 'claimPlace', placeId: btn.dataset.place });
       if (msg) {

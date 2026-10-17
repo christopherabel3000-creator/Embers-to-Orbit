@@ -15,6 +15,7 @@ import {
 } from './stores.js';
 import { moveOffForeignLand } from './nations.js';
 import { listNames } from './util.js';
+import { inviteByOrder } from './invite.js';
 
 function bestTaskFor(person, seasonIdx) {
   const s = person.skills;
@@ -241,6 +242,10 @@ export function applyStandingOrders(state) {
       }
     }
   }
+
+  // Steward: invite settlers for coin, keeping the reserve the player set.
+  const invited = inviteByOrder(state);
+  if (invited) say('steward', invited);
 
   return { urgent, orders: done };
 }

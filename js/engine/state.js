@@ -13,7 +13,7 @@ import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
 import { initialGreat, GREAT_NATIONS } from './greatData.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 33;
+export const SAVE_VERSION = 34;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -38,6 +38,7 @@ export const DEFAULT_ORDERS = {
   comforts: false, // Share out goods as comforts each season (a village).
   armGuards: false, // Spend goods on arms for the guards each season (a village).
   raidPolicy: 'ask', // 'ask', 'fightIfLikely', or 'auto'.
+  inviteReserve: null, // Nation era: invite settlers for coin while the treasury keeps this much; null is off.
 };
 
 export function makePerson(template, id, task = 'forage') {
@@ -118,6 +119,8 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     priorities: { ...DEFAULT_PRIORITIES }, // What the village council pushes for.
     foodStores: DEFAULT_FOOD_STORES, // Seasons of food the council keeps before it stops growing more, or 'full'.
     settlersMet: 0,
+    lastInvite: null, // The turn settlers were last invited for coin.
+    invited: 0, // Settlers invited for coin over the campaign.
     skarnHost: null, // The turn a gathered Skarn host will march, if any.
     settlements: [], // Other settlements the village has founded.
     capitalCounted: false, // Past 100 people, the capital counts its ordinary people instead of naming them.
@@ -406,6 +409,13 @@ export function migrate(data) {
     data.voyage = null;
     data.voyageNoticed = false;
     data.version = 33;
+  }
+  if (data.version === 33) {
+    // Settlers invited for coin, and the steward's order to invite them.
+    data.orders.inviteReserve = null;
+    data.lastInvite = null;
+    data.invited = 0;
+    data.version = 34;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

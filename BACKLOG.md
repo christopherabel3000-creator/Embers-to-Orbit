@@ -78,9 +78,13 @@ The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The 
 
 - Phase 5, toward the sea: the other five great nations (the Keshari, the Dravan, the Ashani, the Haldi, and the Venn) in five new homelands, with their own trade, signatures, and, for the Dravan and the Haldi, raids; ships along the coast, the outer isles reached by sea, ports and harbors; Crop rotation, the plough, Mills, Fishing boats, Bridges, Wells and cisterns, Shipbuilding, Harbors, Navigation, Temples, Medicine, and a crown or an assembly; and the voyage across the open sea that ends the era (a capital of 100, four settlements, Navigation and a harbor, three great nations met). A fix for a capital that ran out of baby names, which froze the game.
 
+### Done after the five phases
+
+- Settlers for coin (October 16, 2026): with Coinage, coin pays the passage of settlers to the capital, a party of up to 5 each season, at a price that rises with the capital; a steward's standing order does it each season, keeping a reserve. Simulated nations send the voyage in about year 38 or 39 instead of 42, and finish with about 280 coin instead of 3,200.
+
 ### Next
 
 - [ ] The Age of Discovery: voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies. Decide its shape with Christopher first, as the Nation era was decided from a brief.
-- [ ] Balance: coin piles up over a long campaign (about 3,200 by year 45). The Keshari's learning and a standing army use some of it; the Age of Discovery (ships, colonies) should bring large uses. The Skarn also keep growing late (about 75 warriors and 40 hill clansmen by year 45), so the valley stays dangerous unless they are made vassals.
+- [ ] Balance: coin no longer piles up when the steward invites settlers (about 280 by year 45), but goods still do (about 2,000), and a capital that keeps inviting after the voyage passes 200 by year 45, with Skarn of about 140 warriors. The Age of Discovery should give those people and goods somewhere to go (colonies, ships). The Skarn also keep growing late (about 75 warriors and 40 hill clansmen by year 45), so the valley stays dangerous unless they are made vassals.
 - [ ] Nation era, deeper (ideas): the great nations acting on their own (wars and alliances among themselves, envoys who come to you), marriages that bring heirs and claims, and the Velari and Tellani fighting beside you in your wars.
 - [ ] Armies, deeper (ideas): merging understrength companies, armies of the great nations that march on your capital, the Velari and Tellani sending warriors to your wars as allies, and naval warfare once there are ships.

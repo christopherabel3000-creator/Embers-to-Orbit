@@ -287,6 +287,22 @@ export function greatWorldSeason(state) {
   return lines;
 }
 
+// Help from you turns their war their way.
+export function shiftWar(state, id, n) {
+  const war = warOf(state, id);
+  if (!war) return;
+  const sign = war.sideA.includes(id) ? 1 : -1;
+  war.score = Math.max(-100, Math.min(100, war.score + sign * n));
+}
+
+// Your envoys bring them to peace: the war ends, and neither side won.
+export function mediateWar(state, war) {
+  war.score = 0;
+  const lines = [];
+  endWar(state, war, lines);
+  return lines;
+}
+
 // How a great nation stands among the others, in one line for the
 // Neighbors screen, or null if nothing stands out.
 export function standingLine(state, id) {

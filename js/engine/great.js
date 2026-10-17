@@ -19,7 +19,9 @@ import { atWar, armyHolding, homeBesieged } from './warStatus.js';
 import { applyStudy } from './study.js';
 import { chance, randomInt, randomBetween } from './rng.js';
 import { clamp, capital, listWords } from './util.js';
-import { warTradeFactor, warRouteFactor } from './greatWorld.js';
+import {
+  warTradeFactor, warRouteFactor, warOf, enemiesOf, shiftWar, mediateWar,
+} from './greatWorld.js';
 
 export { initialGreat };
 
@@ -95,6 +97,7 @@ export function greatRegard(state, id) {
   add('your embassy', g.embassy ? 10 : 0);
   add('the trade pact', g.treaties.trade ? 5 : 0);
   add('the peace pact', g.treaties.peace ? 5 : 0);
+  add('your alliance', g.treaties.alliance ? 10 : 0);
   add('the marriage between your ruling families', g.married ? 10 : 0);
   add('the trade route', g.route ? 5 : 0);
   add('your welcome to all gods', lawIs(state, 'worship', 'manyGods') ? 5 : 0);
@@ -158,9 +161,12 @@ export function tradeFactor(state, id) {
 }
 
 // What a trade would give or cost, now: { give, giveAmount, get, getAmount }.
+export const WAR_GOODS = ['iron', 'horses', 'food'];
+export const WAR_GOODS_FACTOR = 1.25;
+
 export function tradeTerms(state, id, lotId) {
   const lot = TRADE_LOTS[lotId];
-  const f = tradeFactor(state, id);
+  const f = tradeFactor(state, id) * (lot.give && WAR_GOODS.includes(lot.give) && warOf(state, id) ? WAR_GOODS_FACTOR : 1);
   if (lot.give) {
     const fine = lotId === 'sellFine';
     return { give: lot.give, giveAmount: lot.amount, get: 'coin', getAmount: Math.max(1, Math.round(lot.coin * f)), fine };
@@ -191,8 +197,18 @@ function costWords(cost) {
 }
 
 // What an envoy to them could do now: [{ act, label, why }] with why null when possible.
+export const WAR_AID = { coin: 30, goods: 30, iron: 15 };
+
+// The chance mediation ends their war: better the more both trust you.
+export function mediationChance(state, id) {
+  const other = enemiesOf(state, id)[0];
+  if (!other) return 0;
+  return Math.min(0.85, 0.15 + 0.6 * Math.min(great(state, id).trust, great(state, other).trust) / 100);
+}
+
 export function greatActs(state, id) {
   const g = great(state, id);
+  const def = GREAT_NATIONS[id];
   if (!g || !g.met || atWar(state, id)) return [];
   const acts = [];
   for (const lotId of tradesWith(state, id)) {
@@ -215,6 +231,26 @@ export function greatActs(state, id) {
     acts.push({ act: `treaty:${key}`, label: `Propose ${t.phrase}`, why });
   }
   if (!g.married) acts.push({ act: 'marry', label: 'Propose a marriage between your ruling families', why: !g.embassy ? 'That needs an embassy.' : g.relation < 40 ? 'Relations must be at least 40.' : null });
+  // Their war with another great nation: help them, or try to make peace.
+  const war = warOf(state, id);
+  if (war) {
+    const enemies = enemiesOf(state, id);
+    const names = listWords(enemies.map((x) => (great(state, x).met || great(state, x).heard ? GREAT_NATIONS[x].name : 'a people you have not met')));
+    const wait = (g.lastWarAid ?? -99) + 4 - state.turn;
+    for (const [res, n] of Object.entries(WAR_AID)) {
+      acts.push({ act: `aid:${res}`, label: `Help them against ${names}: send ${n} ${res}`, why: wait > 0 ? `You helped them this past year; again in ${wait === 1 ? '1 season' : `${wait} seasons`}.` : (state.resources[res] || 0) < n ? `You have ${state.resources[res] || 0} ${res}.` : null });
+    }
+    const other = enemies[0];
+    const og = great(state, other);
+    const tried = (war.lastMediation ?? -99) + 4 - state.turn;
+    acts.push({
+      act: 'mediate',
+      label: `Try to make peace between them and ${names}`,
+      why: !hasKnowledge(state, 'diplomacy') ? 'Your people must learn Diplomacy first.'
+        : !g.embassy || !og || !og.embassy ? `That needs an embassy with both ${def.name} and ${GREAT_NATIONS[other].name}.`
+          : tried > 0 ? `Your envoys tried this past year; again in ${tried === 1 ? '1 season' : `${tried} seasons`}.` : null,
+    });
+  }
   if (!g.route) {
     acts.push({ act: 'route', label: `Set up a trade route to them, for ${costWords(ROUTE_COST)}`, why: !hasKnowledge(state, 'tradeRoutes') ? 'Your people must learn Trade routes first.' : GREAT_NATIONS[id].needsPeace && !g.treaties.peace ? `${capital(GREAT_NATIONS[id].name)} will only trade under a peace pact.` : g.relation < 10 ? 'Relations must be at least 10.' : short(state, ROUTE_COST).length ? `You are short of ${listWords(short(state, ROUTE_COST))}.` : null });
   }
@@ -241,6 +277,10 @@ export function greatDiplomacy(state, id, act) {
     state.resources[t.give] -= t.giveAmount;
     recordDeed(state, 'trades');
     changeGreat(state, id, 1);
+    // Selling the stuff of war to a people at war: their enemies trust you a little less.
+    if (WAR_GOODS.includes(t.give) && warOf(state, id)) {
+      for (const x of enemiesOf(state, id)) if (great(state, x).met) great(state, x).trust = clamp(great(state, x).trust - 2);
+    }
     if (t.get === 'study') {
       // Their scholars teach yours: points toward the current discovery.
       const studied = applyStudy(state, t.getAmount);
@@ -248,6 +288,38 @@ export function greatDiplomacy(state, id, act) {
     }
     state.resources[t.get] = (state.resources[t.get] || 0) + t.getAmount;
     return { message: `${who} took ${t.giveAmount} ${t.give}${t.fine ? ' of fine work' : ''} and gave ${t.getAmount} ${t.get}.` };
+  }
+  if (act.startsWith('aid:')) {
+    const res = act.slice(4);
+    const n = WAR_AID[res];
+    state.resources[res] -= n;
+    g.lastWarAid = state.turn;
+    changeGreat(state, id, 8);
+    g.trust = clamp(g.trust + 3);
+    shiftWar(state, id, 12);
+    const enemies = enemiesOf(state, id);
+    for (const x of enemies) if (great(state, x).met) changeGreat(state, x, -6);
+    greatRemember(state, id, `helped them in their war in Year ${year(state)}`, 0);
+    recordDeed(state, 'gifts');
+    return { message: `${who} took your ${n} ${res} for their war, and think better of you. Their enemies have heard of it.` };
+  }
+  if (act === 'mediate') {
+    const war = warOf(state, id);
+    const other = enemiesOf(state, id)[0];
+    const p = mediationChance(state, id);
+    war.lastMediation = state.turn;
+    if (chance(state, p)) {
+      mediateWar(state, war);
+      for (const x of metGreat(state)) changeGreat(state, x, 5);
+      changeGreat(state, id, 5);
+      changeGreat(state, other, 5);
+      greatRemember(state, id, `made peace between them and ${GREAT_NATIONS[other].name} in Year ${year(state)}`, 5);
+      greatRemember(state, other, `made peace between them and ${def.name} in Year ${year(state)}`, 5);
+      return { message: `Your envoys brought ${def.name} and ${GREAT_NATIONS[other].name} to make peace. Every great nation thinks better of you for it.` };
+    }
+    changeGreat(state, id, -3);
+    changeGreat(state, other, -3);
+    return { message: `Your envoys could not bring ${def.name} and ${GREAT_NATIONS[other].name} to make peace, and both thought you meddling.` };
   }
   if (act === 'gift') {
     state.resources.goods -= GIFT_GOODS;
@@ -381,10 +453,12 @@ export function raidChance(state, id) {
   const g = great(state, id);
   const def = GREAT_NATIONS[id];
   if (!g || !def.raids || g.treaties.peace || g.pulledBack || atWar(state, id) || homeBesieged(state, id)) return 0;
+  if (g.paidUntil > state.turn) return 0; // Tribute keeps them home for a year.
   if (!g.met && (state.turn - (state.nationFounded ?? state.turn)) < def.raids.after) return 0;
   let p = 0.05;
   if (g.relation < -20) p *= 1.5;
   if (g.relation >= 20) p *= 0.5;
+  if (g.angryUntil > state.turn) p *= 1.5; // A refused demand.
   return p;
 }
 

@@ -38,6 +38,7 @@ import {
 import { voyageMissing, VOYAGE } from './voyage.js';
 import { townRoom, moveBlocker } from './resettle.js';
 import { warOf, enemiesOf } from './greatWorld.js';
+import { envoyAdvice } from './greatEnvoys.js';
 import { GREAT_NATIONS, GREAT_ORDER } from './greatData.js';
 
 export const ADVISOR_ROLES = {
@@ -358,6 +359,7 @@ export function getAdvice(state) {
     const foes = enemiesOf(state, id).map((x) => (state.great[x].heard || state.great[x].met ? GREAT_NATIONS[x].name : 'a people we have not met'));
     add('speaker', 'note', `${capital(GREAT_NATIONS[id].name)} are at war with ${listWords(foes)}. Our trade route to them brings half as much while it lasts.`);
   }
+  for (const text of envoyAdvice(state)) add('speaker', 'note', text);
   const unroaded = nextUnroaded(state);
   if (unroaded && hasKnowledge(state, 'roads') && !state.buildQueue.some((item) => item.id === 'road')) {
     add('steward', 'note', `A road to ${unroaded.name} would ${far(unroaded) ? 'bring home all it sends, and ' : ''}make its people feel closer to us, and keep skirmishers off it. Add one on the Build screen.`);

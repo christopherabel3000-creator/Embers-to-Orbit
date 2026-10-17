@@ -8,7 +8,8 @@ import {
   KILLED_SHARE, FOE_KINDS, COMPANY_SIZE, HOSTS,
 } from './armyData.js';
 import { REGIONS } from './worldData.js';
-import { GREAT_TREATIES } from './greatData.js';
+import { GREAT_TREATIES, GREAT_NATIONS, GREAT_ORDER } from './greatData.js';
+import { enemiesOf, alliesOf } from './greatWorld.js';
 import {
   createField, autoField, estimateField, soldiersIn, fighting, SOLDIER,
 } from './field.js';
@@ -113,6 +114,11 @@ export function foeLosses(state, foe, fallen) {
 
 // Their part in it: a reason for war, if they have given you one recently.
 export function warReason(state, foe) {
+  // A great nation allied to you is at war with them.
+  if (foe !== 'skarn' && state.great) {
+    const ally = GREAT_ORDER.find((id) => id !== foe && state.great[id].treaties.alliance && enemiesOf(state, id).includes(foe));
+    if (ally) return `your alliance with ${GREAT_NATIONS[ally].name}`;
+  }
   const harm = (state.lastHarm || {})[foe] ?? -99;
   if (state.turn - harm <= 8) return foe === 'orhai' ? 'their riders\' raids on your settlements' : 'their raids on your people';
   if (foe === 'orhai') {
@@ -827,11 +833,41 @@ export function warSeason(state) {
     }
   }
   for (const foe of Object.keys(HOSTS)) if (atWar(state, foe)) out.urgent.push(...hostSeason(state, foe));
+  out.urgent.push(...alliesInYourWars(state));
   if (seasonIndex(state) === 0 && warYears(state) >= 2) {
     const tired = warWeariness(state);
     out.events.push(`The war is in its ${ORDINALS[warYears(state)] || `${warYears(state) + 1}th`} year. Your people tire of it: the settlements are ${tired.loyalty} less loyal, and spirits in ${state.campName} settle ${tired.spirits} lower.`);
   }
   return out;
+}
+
+// Great nations allied to you may fight beside you against a great nation:
+// each decides once, when your war begins (7 in 10 come), and each season
+// after wears the enemy down and turns the war your way. An ally of your
+// enemy's never comes. Returns report lines.
+export const ALLY_JOINS = 0.7;
+export const ALLY_WEAR = 0.03;
+export const ALLY_SCORE = 3;
+function alliesInYourWars(state) {
+  const lines = [];
+  if (!state.great) return lines;
+  for (const foe of Object.keys(state.wars || {}).filter((f) => GREAT_NATIONS[f])) {
+    const war = state.wars[foe];
+    if (!war.allyAnswers) war.allyAnswers = {};
+    for (const id of GREAT_ORDER.filter((x) => x !== foe && state.great[x].treaties.alliance && !atWar(state, x) && !alliesOf(state, x).includes(foe))) {
+      if (!(id in war.allyAnswers)) {
+        war.allyAnswers[id] = chance(state, ALLY_JOINS);
+        lines.push(war.allyAnswers[id]
+          ? `${capital(GREAT_NATIONS[id].name)}, your allies, have joined your war on ${foeName(foe)}.`
+          : `${capital(GREAT_NATIONS[id].name)}, your allies, will not join your war on ${foeName(foe)}.`);
+      }
+      if (!war.allyAnswers[id]) continue;
+      const g = great(state, foe);
+      g.strength = Math.max(5, Math.round((g.strength || 0) * (1 - ALLY_WEAR)));
+      addScore(state, foe, ALLY_SCORE);
+    }
+  }
+  return lines;
 }
 
 // The commander's honest odds for the battle waiting, as a chance.

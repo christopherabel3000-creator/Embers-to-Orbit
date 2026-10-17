@@ -191,6 +191,10 @@ export const GREAT_TREATIES = {
     name: 'Peace pact', phrase: 'a peace pact', with: ['orhai', 'dravan', 'haldi'], relation: 10, trust: 40,
     effect: 'Their raiders leave your settlements alone, and they will trade with you.',
   },
+  alliance: {
+    name: 'Alliance pact', phrase: 'an alliance', with: ['ostrani', 'orhai', 'keshari', 'dravan', 'ashani', 'haldi', 'venn'], relation: 60, trust: 60,
+    effect: 'They count you a friend, and may fight beside you in your wars. When they are at war, they may call on you; refusing costs much of their trust.',
+  },
 };
 
 // What a new game knows of them: nothing yet.

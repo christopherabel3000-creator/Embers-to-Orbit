@@ -86,7 +86,7 @@ The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The 
 
 ### Next
 
-- [ ] Great nations that act on their own (DESIGN.md), in three phases. Phase 1, a world that moves, is built (October 16, 2026); next, drawn in, then war comes to you.
+- [ ] Great nations that act on their own (DESIGN.md), in three phases. Phase 1, a world that moves, and phase 2, drawn in, are built (October 16, 2026); next, war comes to you.
 - [ ] The Age of Discovery: voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies. Decide its shape with Christopher first, as the Nation era was decided from a brief.
 - [ ] Balance: with settlers invited and spread to the settlements, coin (about 140 by year 45) and goods (about 980) no longer pile up, but food still rots (about 2,300 over a campaign), and the Skarn still grow to about 90 warriors. The Age of Discovery should give the nation's people and goods somewhere to go (colonies, ships). The Skarn also keep growing late (about 75 warriors and 40 hill clansmen by year 45), so the valley stays dangerous unless they are made vassals.
 - [ ] Nation era, deeper (ideas): the great nations acting on their own (wars and alliances among themselves, envoys who come to you), marriages that bring heirs and claims, and the Velari and Tellani fighting beside you in your wars.

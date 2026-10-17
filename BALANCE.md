@@ -63,6 +63,19 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
 
+### Great nations: envoys and taking sides (October 16, 2026)
+
+Forty-five-year campaigns on Normal with the village strategy, which now also takes the first answer to each envoy (accepting offers, sending aid, paying tribute or a claim when it can, refusing to stop trading), proposes an alliance pact once its other treaties are in place, and mediates wars among the great nations whenever it can. 200 campaigns:
+
+| | Envoys to you | Your alliances at year 45 | Peace pact with the Orhai | Trade routes | Dravan and Haldi raids | Voyage sent by the end | Whole nation | Coin |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Before (phase 1 only) | none | none | 129 of 194 | 4.2 | 6.6 | 172 of 194, about year 38.9 | 446 | 137 |
+| After | 17.3 | 2.9 | 173 of 194 | 6.0 | 3.6 | 173 of 194, about year 38.9 | 480 | 190 |
+
+- **Pace.** With an envoy every 3 to 5 seasons there were about 14.5 a campaign; every 2 to 4 gives about 17, roughly one every 16 months once the great nations are met. Seasons in which no nation has a reason to send one account for the rest.
+- **Easier for a diplomat.** Offers of treaties bring peace pacts and routes sooner, and tribute keeps the raiders home: Dravan and Haldi raids fall by about half. The danger that answers this comes in phase 3, when a nation you neglect can go to war with you.
+- **Simulator fixes.** Its village strategy could try to found a settlement from a source with no one fit to govern; it now chooses only sources that have a governor.
+
 ### Great nations among themselves (October 16, 2026)
 
 Forty-five-year campaigns on Normal with the village strategy (inviting settlers and keeping the capital near 120), after the great nations began to feel, fight, and ally among themselves. 200 campaigns:

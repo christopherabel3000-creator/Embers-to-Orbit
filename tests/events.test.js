@@ -40,7 +40,8 @@ test('every choice event offers options and resolves each one', () => {
   // they have their own tests. Village events have their own tests, with a village.
   // A settlement's defiance comes with the Nation era, and has its own tests too.
   // Expeditions' choices come with them, and have their own tests too.
-  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && key !== 'skarnChief' && key !== 'defiance' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS) && !(key in EXPEDITION_EVENTS) && !(key in GREAT_EVENTS))) {
+  // Great nations' envoys come on their own schedule, with their own tests.
+  for (const [id, ev] of Object.entries(EVENTS).filter(([key, e]) => e.choice && key !== 'allyCall' && key !== 'skarnChief' && key !== 'defiance' && !(key in VILLAGE_EVENTS) && !(key in NATION_EVENTS) && !(key in EXPEDITION_EVENTS) && !(key in GREAT_EVENTS) && key !== 'greatEnvoy')) {
     const base = richState();
     if (id === 'firstContact') base.neighbors.skarn.contactPending = true;
     else assert.ok(ev.weight(base) > 0, `${id} should be possible`);

@@ -63,6 +63,19 @@ Twenty-year village campaigns, 200 of them (`node tools/simulate.mjs 200 20 vill
 
 Newest first within each system. Numbers are averages over 200 simulated campaigns unless stated.
 
+### The Age of Discovery, phase 1: the sea (October 17, 2026)
+
+The village strategy now plays the sea once its voyage lands: it builds ships at its port up to four (when it has 100 wood), keeps one fleet that carries food (beyond 400 in store) and settlers (while the capital has more than 100) to the foothold until it holds 24 people and 120 food, then charts every waters and coast it has heard of, and sends the foothold's scouts to the nearest region not yet explored. It greets the far shore's peoples with gifts when it has the goods. `NOSEA=1` does none of this.
+
+| | Campaigns landed | Ships at the end (built, lost) | Places found, of 22 | Regions explored, of 6 | Far peoples met, of 3 | Foothold | Whole nation | Goods | Food |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 45 years, 200 campaigns | 163 of 194 | 1.6 (0.7, 0.1) | 15.9 | 5.0 | 2.5 | 15 people, never lost | 422 | 780 | 1,400 |
+| 55 years, 100 campaigns | 92 of 98 | 2.0 (1.2, 0.2) | 19.4 | 6.0 | 3.0 | 16 people, never lost | 1,033 | 3,900 | 1,900 |
+
+- **Discovery is quick.** Within about 15 years of the landing the simulated nation has explored the whole far shore and charted three of the four waters (the western isles are charted only when all three of their places are found). That leaves the rest of the era for colonies, which is where phase 2 puts its weight.
+- **The sea costs little yet.** Two ships cost about 2 coin a season, and the foothold takes about 15 people. By year 55 the nation passes 1,000 people, with settlements of about 140, and goods and food pile up more than ever. Colonies and their trade should be the answer.
+- **Year 45 barely moves:** the whole nation is about 422 instead of 438 (some settlers sail to the foothold, and chance shifts), and the voyage comes in 164 campaigns of 194, about year 39.1, as before.
+
 ### Great nations: war comes to you (October 16, 2026)
 
 Forty-five-year campaigns with the village strategy: one that keeps up its diplomacy (as above, meeting any ultimatum with the first terms it can), and one that ignores the great nations (`NOGREAT=1`: no envoys, no trade, every ultimatum refused). It makes peace in a war they declared after a year, on the best terms they will take. 200 of each on Normal, 60 on Easy and Hard:

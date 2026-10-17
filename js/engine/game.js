@@ -28,6 +28,9 @@ import { sendExpedition, recallExpedition } from './world.js';
 import { greatDiplomacy } from './great.js';
 import { sendVoyage } from './voyage.js';
 import {
+  buildShip, formFleet, setCourse, loadFleet, disbandFleet, sendScouts,
+} from './farShore.js';
+import {
   raiseArmy, raiseCompany, disbandCompany, disbandArmy, appointCommander, setArmyOrder, setStance,
 } from './armies.js';
 import {
@@ -209,6 +212,43 @@ const handlers = {
     const stop = blocked(state);
     if (stop) return stop;
     return moveSettlers(state, { settlementId, count });
+  },
+
+  buildShip(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return buildShip(state, action);
+  },
+
+  formFleet(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return formFleet(state, action);
+  },
+
+  setCourse(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return setCourse(state, action);
+  },
+
+  loadFleet(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    if (state.pendingEvent) return { error: 'Deal with what is happening first.' };
+    return loadFleet(state, action);
+  },
+
+  disbandFleet(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return disbandFleet(state, action);
+  },
+
+  sendScouts(state, action) {
+    const stop = blocked(state);
+    if (stop) return stop;
+    return sendScouts(state, action);
   },
 
   giftClans(state) {

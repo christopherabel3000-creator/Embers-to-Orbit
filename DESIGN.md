@@ -739,6 +739,33 @@ Fitting out the ship takes 120 wood, 60 goods, 30 iron, and 150 food, and a crew
 
 The capital was first set at 150 people. In the simulator, a nation that founds four or five settlements has everything else in place by about year 34, but its capital reaches 150 only rarely by year 45; at 100, it sends the voyage in about year 40, the aim (see BALANCE.md). Since October 16, 2026, a nation that spends its coin inviting settlers sends it in about year 38 or 39.
 
+## The Age of Discovery
+
+Planned with Christopher on October 17, 2026, from a brief of nine decisions; he took every recommendation. The voyage that ends the Nation era opens a second world: the far shore, across the open sea. The era gives the nation somewhere to grow, and the late game its large uses for people, coin, goods, and food.
+
+### The decisions
+
+1. **The far shore** is hand-crafted, like the valley and the wider world: about 6 regions and 20 places across the open sea, with islands on the way. The voyage's 12 sailors land first, and their landing place becomes the nation's first foothold there.
+2. **Its peoples:** three peoples live there, each a nation with its own nature, land, feelings toward you, and choices. Settling their land goes through trade and treaties; settling without their consent is possible, but brings war, a lasting grudge, and a worse name with every nation. They know the land, and have crops and medicines only they can teach.
+3. **Ships and fleets:** ports build ships, counted rather than named: merchant ships first, warships with gunpowder. Ships sail in fleets under a named captain, along sea lanes between ports and coasts, a season or more for each crossing; storms delay them and can sink them. Voyages of discovery are expeditions by sea.
+4. **Colonies** (phase 2): settlers come by ship, from the capital or invited for coin; supply is slow and depends on ships; new goods (furs, spices, sugar, dyes, fine timber, gold in a few places) sell to the great nations; distance weakens loyalty, and a neglected or overtaxed colony can break away. An either-or choice: Crown colonies (more loyal, slower) or Charter companies (paid for with coin, faster and richer, less yours).
+5. **New knowledge** (phase 3): a Science branch and about 20 to 25 discoveries in all: printing, gunpowder, early science, banking (loans to the great nations, investment in colonies), with one or two either-or choices.
+6. **Gunpowder and war at sea** (phase 4): muskets and cannon join the companies, and old walls fall faster; naval battles are fought in the field battle's shape (a center and two flanks, simultaneous orders), adapted for ships.
+7. **The great nations cross too** (phase 4): the Ostrani and the Haldi first, then the Ashani, found colonies and compete for the best places, and their wars spread to the far shore; the Keshari race you in science; the Orhai and Dravan stay landbound but grow stronger.
+8. **The end of the era:** the first steam engine, a step the player takes once Engineering is known, coal and iron are mined, an academy works, and the nation has colonies across the sea. It begins the Modern era.
+9. **How you hear of it:** an "Across the sea" heading on the World screen, the sea and the far shore described by their lanes as connected nodes; a Fleets screen like the Armies screen; colonies under their own heading on the Nation screen; news when a ship arrives, sinks, or finds something.
+
+### The five phases
+
+1. **The sea (built):** the far shore's geography, ships, fleets, sea lanes, storms, voyages of discovery, the crew's foothold, and first contact with the far shore's peoples.
+    - *As built (October 17, 2026):* four waters (your home waters, the open sea, the western isles, the far waters) joined by lanes of a season each, and six far shore regions (the landfall coast, the great river, the southern bays, and the northern fjords on the coast; the tall forest and the high plateau inland) with 22 places in all, three of them the homes of the Tavari (river farmers, welcoming), the Ossiren (forest hunters, wary), and the Ondari (smiths of the high plateau, proud). The voyage lands two seasons after it sails: its crew holds a foothold at Landfall cove with the voyage's 150 food, and its ship comes home two seasons later. A port with its harbor builds a merchant ship in 2 seasons for 40 wood, 10 iron, and 15 coin; every ship costs 1 coin a season (unpaid, a ship in harbor is sold). Fleets form in your home waters under a captain from the capital, sail only through waters and coasts you know, take on food (60 a ship) and settlers (6 a ship) at home, and land them at the foothold; settlers landed on a coast with no foothold make a new one if they are 4 or more. Storms find a fleet at sea with a chance set by the waters (15 percent on the open sea, 8 in the far waters, 4 in the isles), twice that in winter, a point less for each level of the captain's scouting; a quarter of storms sink a ship, and a fleet that loses its last is lost with all aboard. A fleet at anchor charts one place of its waters or coast a season; the foothold's scouts (3, for 2 seasons) explore a region next to it or to one explored, finding all its places, at some risk. The foothold's people gather 2 food each plus their best of hunting and foraging (half in winter), and friendly neighbors trade them 8 a season; they eat as at home, hunger hurts them, and they age. Meeting a far shore people (when a fleet or scouts reach their land, or the Tavari find the foothold) is a decision: gifts of 20 goods, an offer of trade, or keeping your distance.
+2. **Colonies and the far shore's peoples:** settling, supply by ship, new goods, treaties, and loyalty across the sea.
+3. **New knowledge:** printing, early science, banking, and the Science branch.
+4. **Gunpowder and war at sea,** and the great nations' race across the sea.
+5. **The steam engine and the end of the era.**
+
+Targets: the era lasts about 25 to 30 years of play; coin, goods, and food stop piling up; the nation's extra people find a home.
+
 ## Population and resources
 
 People start as individuals and become groups as the settlement grows, so management scales with the nation.

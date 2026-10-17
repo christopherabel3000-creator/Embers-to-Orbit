@@ -8,6 +8,10 @@ import {
   leaderChoices, leaderName, travelRation, PARTY_SIZE, EXPLORE_SEASONS, KEEP_HOME,
 } from '../../engine/world.js';
 import { ROLES, bestRole, landFit } from '../../engine/realm.js';
+import {
+  WATERS, WATER_ORDER, SHORE_REGIONS, SHORE_ORDER, SHORE_PLACES, SHORE_PEOPLES, SHORE_PEOPLE_ORDER,
+} from '../../engine/farShoreData.js';
+import { placesIn, seaNeighbors, nodeName } from '../../engine/farShore.js';
 import { living, hasKnowledge } from '../../engine/state.js';
 import {
   state, regionId, esc, plural, listWords, lowerFirst,
@@ -69,6 +73,50 @@ export function worldScreen() {
     return `<li class="card"><p><button type="button" data-action="openRegion" data-region="${id}">${esc(regionName(id))}</button> ${esc(text)}</p></li>`;
   }).join('')}
   </ul>`;
+  return html + acrossTheSea();
+}
+
+function relationWord(n) {
+  return n >= 40 ? 'friendly' : n >= 15 ? 'welcoming' : n >= -10 ? 'wary' : n >= -40 ? 'unfriendly' : 'hostile';
+}
+
+// The sea and the far shore: the waters by their lanes, the far shore's
+// regions by their borders, and the places found in each.
+function acrossTheSea() {
+  const fs = state.farShore;
+  if (!fs) return '';
+  let html = '<h2 id="acrossHeading">Across the sea</h2>';
+  if (!fs.landed) return `${html}<p>Your first ship is on the open sea. If the weather holds, it will sight land in ${plural(Math.max(0, fs.arrives - state.turn), 'season', 'seasons')}.</p>`;
+  const knownNode = (id) => (WATERS[id] ? fs.waters[id] !== 'unknown' : fs.regions[id] !== 'unknown');
+  const linksText = (ids, verb) => {
+    const k = ids.filter(knownNode).map((id) => lowerFirst(nodeName(id)));
+    const u = ids.length - k.length;
+    if (u) k.push(u === 1 ? 'somewhere not yet heard of' : `${u} places not yet heard of`);
+    return k.length ? `${verb} ${listWords(k)}.` : '';
+  };
+  const found = (id) => placesIn(id).filter((p) => fs.places[p]).map((p) => `${SHORE_PLACES[p].name}: ${SHORE_PLACES[p].description}`);
+  const waters = WATER_ORDER.filter(knownNode);
+  html += `<p>Fleets sail from your home waters along the sea lanes, a season for each; the Fleets screen sends them.</p>
+    <h3>The waters</h3><ul class="plain">${waters.map((id) => {
+    const status = fs.waters[id] === 'charted' ? 'Charted' : 'Heard of, not yet charted';
+    const text = fs.waters[id] === 'heard' && WATERS[id].heard ? WATERS[id].heard : WATERS[id].description;
+    const places = found(id);
+    return `<li class="card"><p><strong>${esc(WATERS[id].name)}.</strong> ${esc(status)}. ${esc(text)} ${esc(linksText(seaNeighbors(id), 'Lanes and coasts:'))}</p>${places.length ? `<ul>${places.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}</li>`;
+  }).join('')}</ul>`;
+  const regions = SHORE_ORDER.filter(knownNode);
+  html += `<h3>The far shore</h3><ul class="plain">${regions.map((id) => {
+    const r = SHORE_REGIONS[id];
+    const status = fs.regions[id] === 'explored' ? 'Explored' : 'Heard of, not yet explored';
+    const text = fs.regions[id] === 'heard' && r.heard ? r.heard : r.description;
+    const places = found(id);
+    const here = fs.foothold && fs.foothold.region === id ? ` Your foothold is here, at ${SHORE_PLACES[fs.foothold.place].name}.` : '';
+    return `<li class="card"><p><strong>${esc(r.name)}.</strong> ${esc(status)}${r.coastal ? ', on the coast' : ', inland'}. ${esc(text)}${esc(here)} ${esc(linksText(r.neighbors, 'Borders'))}</p>${places.length ? `<ul>${places.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}</li>`;
+  }).join('')}</ul>`;
+  const met = SHORE_PEOPLE_ORDER.filter((id) => fs.peoples[id].met);
+  if (met.length) {
+    html += `<h3>The far shore's peoples</h3><ul>${met.map((id) => `<li>${esc(SHORE_PEOPLES[id].title)}: ${esc(SHORE_PEOPLES[id].nature)}, of ${esc(lowerFirst(SHORE_REGIONS[SHORE_PEOPLES[id].homeland].name))}. ${esc(relationWord(fs.peoples[id].relation))} toward you (relations ${fs.peoples[id].relation}). ${esc(SHORE_PEOPLES[id].values)}</li>`).join('')}</ul>`;
+  }
+  html += '<div class="actions"><button type="button" data-nav="fleets">Fleets</button></div>';
   return html;
 }
 

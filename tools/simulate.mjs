@@ -34,6 +34,10 @@ import {
 } from '../js/engine/war.js';
 import { skarnAtPeace } from '../js/engine/neighbors.js';
 import { voyageBlocker, voyageMissing, VOYAGE } from '../js/engine/voyage.js';
+import {
+  shipyards, buildShipBlocker, captainChoices, formFleetBlocker, fleetTargets, placesIn, scoutTargets, scoutBlocker,
+} from '../js/engine/farShore.js';
+import { WATERS, SHORE_REGIONS, SHIP } from '../js/engine/farShoreData.js';
 
 // VOYAGECAP=100 tries another size of capital for the voyage.
 if (process.env.VOYAGECAP) VOYAGE.capital = Number(process.env.VOYAGECAP);
@@ -267,6 +271,47 @@ function actCounting(state, action) {
   countFights(next.report.urgent.slice(before));
   return next;
 }
+
+// The sea, in the Age of Discovery: build ships up to four, keep one fleet
+// that carries food and settlers to the foothold while it is small and then
+// charts what it has heard of, and send the foothold's scouts inland.
+// NOSEA=1 does none of it.
+function seaStrategy(state) {
+  const fs = state.farShore;
+  if (!fs || !fs.landed || state.pendingEvent) return state;
+  const tryAct = (a) => { const r = applyAction(state, a); if (!r.error) { state = r.state; return true; } return false; };
+  const afloat = () => state.farShore.ships + state.farShore.fleets.reduce((sum, f) => sum + f.ships, 0);
+  for (const t of shipyards(state)) {
+    if (afloat() + Object.keys(state.farShore.yards).length >= 4) break;
+    if (state.resources.wood >= 100 && !buildShipBlocker(state, t)) tryAct({ type: 'buildShip', settlementId: t.id });
+  }
+  if (!state.farShore.fleets.length && state.farShore.ships >= 2 && !formFleetBlocker(state)) {
+    tryAct({ type: 'formFleet', captainId: captainChoices(state)[0].id, ships: state.farShore.ships });
+  }
+  const fleet = state.farShore.fleets[0];
+  if (fleet && !fleet.route.length) {
+    const f = state.farShore.foothold;
+    const unfound = (id) => placesIn(id).some((p) => !state.farShore.places[p]);
+    const explorable = fleetTargets(state, fleet).filter((id) => (WATERS[id] ? state.farShore.waters[id] !== 'charted' && unfound(id) || state.farShore.waters[id] === 'heard' : unfound(id)));
+    if (fleet.location === 'homeWaters') {
+      const needy = !f || f.food < 120 || f.people.length < 24;
+      if (needy) {
+        const food = Math.min(fleet.ships * SHIP.food, Math.max(0, state.resources.food - 400));
+        const people = living(state).length > 100 || !f ? Math.min(fleet.ships * SHIP.people, Math.max(0, living(state).length - 60)) : 0;
+        if (food || people) tryAct({ type: 'loadFleet', fleetId: fleet.id, food: Math.floor(food / 20) * 20, people });
+        tryAct({ type: 'setCourse', fleetId: fleet.id, to: f ? f.region : 'landfall' });
+      } else if (explorable.length) {
+        tryAct({ type: 'setCourse', fleetId: fleet.id, to: explorable[0] });
+      }
+    } else if (!unfound(fleet.location) || (SHORE_REGIONS[fleet.location] && !SHORE_REGIONS[fleet.location].coastal)) {
+      if (explorable.length && (!f || f.food >= 60)) tryAct({ type: 'setCourse', fleetId: fleet.id, to: explorable[0] });
+      else tryAct({ type: 'setCourse', fleetId: fleet.id, to: 'homeWaters' });
+    }
+  }
+  if (!scoutBlocker(state)) tryAct({ type: 'sendScouts', region: scoutTargets(state)[0] });
+  return state;
+}
+
 function play(seed, strategy) {
   let state = newGame({ seed, difficulty: process.env.DIFFICULTY });
   tally.lastWar = null; // The turn this game last went to war.
@@ -432,6 +477,7 @@ function play(seed, strategy) {
       }
     }
     if (!process.env.NOARMY && strategy === 'village' && ['nation', 'discovery'].includes(state.era) && !state.pendingEvent) state = armyStrategy(state);
+    if (!process.env.NOSEA && strategy === 'village' && state.era === 'discovery') state = seaStrategy(state);
     if (process.env.CLANGIFT && strategy === 'village') {
       const r = applyAction(state, { type: 'giftClans' });
       if (!r.error) { state = r.state; tally.clanGifts++; }
@@ -570,7 +616,7 @@ for (const strategy of STRATEGIES) {
   let nationPop = 0; let townCount = 0; let townPop = 0; let loyaltySum = 0; let roads = 0; let counted = 0; let capitalPop = 0; let nationGames = 0;
   let regionsExplored = 0; let placesFound = 0; let farTowns = 0; let ironSum = 0; let saltSum = 0;
   const voyageYears = []; const readyYears = []; let navigators = 0; let ports = 0; let metThree = 0; let metSum = 0;
-  let coinSum = 0; let invitedSum = 0; let movedSum = 0; let gwWars = 0; let gwAlliances = 0; let gwActive = 0; let gwEnvoys = 0; let gwAllied = 0; let gwUlt = 0; let gwDeclared = 0; let gwHosts = 0; let gwHostGames = 0; let metOstrani = 0; let metOrhai = 0; let embassies = 0; let routes = 0; let joinedPeoples = 0; let vassals = 0; let peaceOrhai = 0;
+  let coinSum = 0; let invitedSum = 0; let movedSum = 0; let seaGames = 0; let seaShips = 0; let seaBuilt = 0; let seaLost = 0; let seaPlaces = 0; let seaRegions = 0; let seaWaters = 0; let seaMet = 0; let seaFoot = 0; let seaNoFoot = 0; let seaRel = 0; let gwWars = 0; let gwAlliances = 0; let gwActive = 0; let gwEnvoys = 0; let gwAllied = 0; let gwUlt = 0; let gwDeclared = 0; let gwHosts = 0; let gwHostGames = 0; let metOstrani = 0; let metOrhai = 0; let embassies = 0; let routes = 0; let joinedPeoples = 0; let vassals = 0; let peaceOrhai = 0;
   const roleCount = {};
   const built = {};
   tally = { lastWar: null, armies: 0, companies: 0, disbanded: 0, wars: 0, storms: 0, peaceTerms: {}, fieldWon: 0, fieldLost: 0, roadBattles: 0, soldiersKilled: 0, stormed: 0, starved: 0, armyHungry: 0, envoys: 0, orhaiRaids: 0, orhaiRepelled: 0, expeditions: 0, travelDeaths: 0, towns: 0, aid: 0, defiance: 0, governorsDied: 0, peacesMade: 0, honors: 0, peaceSeasons: 0, hungry: 0, rotted: 0, lean: 0, raids: 0, deaths: 0, oldAge: 0, killed: 0, lost: 0, cold: 0, settlers: 0, harried: 0, repelled: 0, hosts: 0, sieges: 0, siegeSeasons: 0, sallies: 0, clanGifts: 0, swords: 0, caravans: 0, masters: 0, lostFights: 0, fightsWon: 0, ambushes: 0, scattered: 0, hid: 0, hidHost: 0, hostsFought: 0, villageEvents: 0, morale: 0, high: 0, turns: 0 };
@@ -615,6 +661,7 @@ for (const strategy of STRATEGIES) {
       coinSum += end.resources.coin || 0;
       invitedSum += end.invited || 0;
       movedSum += end.movedOut || 0;
+      if (end.farShore && end.farShore.landed) { seaGames += 1; const fsx = end.farShore; seaShips += fsx.ships + fsx.fleets.reduce((a, f) => a + f.ships, 0); seaBuilt += fsx.shipsBuilt; seaLost += fsx.shipsLost; seaPlaces += Object.values(fsx.places).filter(Boolean).length; seaRegions += Object.values(fsx.regions).filter((x) => x === 'explored').length; seaWaters += Object.values(fsx.waters).filter((x) => x === 'charted').length; seaMet += Object.values(fsx.peoples).filter((x) => x.met).length; seaFoot += fsx.foothold ? fsx.foothold.people.length : 0; if (!fsx.foothold) seaNoFoot += 1; seaRel += Object.values(fsx.peoples).filter((x) => x.met).reduce((a, x) => a + x.relation, 0); }
       if (end.greatWorld) { gwWars += end.greatWorld.warsBegun; gwAlliances += end.greatWorld.alliancesMade; gwActive += end.greatWorld.wars.length; gwEnvoys += end.greatWorld.envoys || 0; gwUlt += end.greatWorld.ultimatums || 0; gwDeclared += end.greatWorld.declaredOnYou || 0; gwHosts += end.greatWorld.hostsArrived || 0; if (end.greatWorld.hostsArrived) gwHostGames += 1; gwAllied += Object.values(end.great).filter((g) => g.treaties.alliance).length; }
       if (end.great.ostrani.met) metOstrani++;
       if (end.great.orhai.met) metOrhai++;
@@ -641,6 +688,7 @@ for (const strategy of STRATEGIES) {
     console.log(`armies (${ng} games): raised ${(tally.armies / ng).toFixed(1)}, companies ${(tally.companies / ng).toFixed(1)}, disbanded ${(tally.disbanded / ng).toFixed(1)} | wars on the Skarn ${(tally.wars / ng).toFixed(2)}, stormed ${(tally.stormed / ng).toFixed(2)}, starved out ${(tally.starved / ng).toFixed(2)} | peace ${Object.entries(tally.peaceTerms).map(([k, n]) => `${k} ${(n / ng).toFixed(2)}`).join(', ') || 'none'} | field battles won ${(tally.fieldWon / ng).toFixed(1)}, lost ${(tally.fieldLost / ng).toFixed(1)}, on the road ${(tally.roadBattles / ng).toFixed(1)} | soldiers killed ${(tally.soldiersKilled / ng).toFixed(1)} | armies hungry ${(tally.armyHungry / ng).toFixed(2)}`);
     const avg = (a) => (a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(1) : '-');
     console.log(`the sea (${ng} games): voyage sent ${voyageYears.length} (avg year ${avg(voyageYears)}) | ready but for the capital ${readyYears.length} (avg year ${avg(readyYears)}) | Navigation ${navigators}, ports ${ports}, met three great nations ${metThree}, great nations met ${(metSum / ng).toFixed(1)} | Dravan and Haldi raids ${((tally.newRaids || 0) / ng).toFixed(1)} (driven off ${((tally.newRepelled || 0) / ng).toFixed(1)}) | settlers invited for coin ${(invitedSum / ng).toFixed(1)} | moved out of the capital ${(movedSum / ng).toFixed(1)}`);
+    if (seaGames) console.log(`across the sea (${seaGames} games landed): ships ${(seaShips / seaGames).toFixed(1)} (built ${(seaBuilt / seaGames).toFixed(1)}, lost ${(seaLost / seaGames).toFixed(1)}) | places found ${(seaPlaces / seaGames).toFixed(1)} of 22, regions explored ${(seaRegions / seaGames).toFixed(1)} of 6, waters charted ${(seaWaters / seaGames).toFixed(1)} of 4 | far peoples met ${(seaMet / seaGames).toFixed(1)} of 3 (relations ${seaMet ? (seaRel / seaMet).toFixed(0) : '-'}) | foothold ${(seaFoot / seaGames).toFixed(1)} people, lost in ${seaNoFoot}`);
     console.log(`great nations (${ng} games): met the Ostrani ${metOstrani}, the Orhai ${metOrhai} | embassies ${(embassies / ng).toFixed(1)}, routes ${(routes / ng).toFixed(1)}, Orhai peace ${peaceOrhai} | envoys ${(tally.envoys / ng).toFixed(1)} | Orhai raids ${(tally.orhaiRaids / ng).toFixed(1)} (driven off ${(tally.orhaiRepelled / ng).toFixed(1)}) | coin ${(coinSum / ng).toFixed(0)} | wars among them ${(gwWars / ng).toFixed(1)} (at war at the end ${(gwActive / ng).toFixed(1)}), alliances made ${(gwAlliances / ng).toFixed(1)} | envoys to you ${(gwEnvoys / ng).toFixed(1)}, your alliances at the end ${(gwAllied / ng).toFixed(1)} | ultimatums ${(gwUlt / ng).toFixed(2)}, wars declared on you ${(gwDeclared / ng).toFixed(2)}, great hosts at the capital ${(gwHosts / ng).toFixed(2)} (in ${gwHostGames} campaigns) | valley peoples joined ${joinedPeoples}, Skarn vassals ${vassals}`);
   }
   const avgWipe = firstWipeYear.length ? (firstWipeYear.reduce((a, b) => a + b, 0) / firstWipeYear.length).toFixed(1) : '-';

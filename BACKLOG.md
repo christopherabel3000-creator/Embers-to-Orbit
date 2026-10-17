@@ -87,7 +87,8 @@ The Nation era was planned with Christopher on October 14, 2026 (DESIGN.md, The 
 
 ### Next
 
-- [ ] The Age of Discovery: voyages, the lands beyond the sea, printing, gunpowder, early science, and colonies. Decide its shape with Christopher first, as the Nation era was decided from a brief.
+- [ ] The Age of Discovery, planned October 17, 2026 (DESIGN.md), in five phases. Phase 1, the sea, is built (October 17, 2026). Next: colonies and the far shore's peoples; then new knowledge; gunpowder, war at sea, and the great nations' race; the steam engine.
+- [ ] Balance: by year 55, goods (about 3,900) and food (about 1,900) pile up even more, and settlements average about 140 people. Colonies, new goods, and the ships to carry them (phase 2) should be their large use.
 - [ ] Balance: with settlers invited and spread to the settlements, coin (about 140 by year 45) and goods (about 980) no longer pile up, but food still rots (about 2,300 over a campaign), and the Skarn still grow to about 90 warriors. The Age of Discovery should give the nation's people and goods somewhere to go (colonies, ships). The Skarn also keep growing late (about 75 warriors and 40 hill clansmen by year 45), so the valley stays dangerous unless they are made vassals.
 - [ ] Nation era, deeper (ideas): the great nations acting on their own (wars and alliances among themselves, envoys who come to you), marriages that bring heirs and claims, and the Velari and Tellani fighting beside you in your wars.
 - [ ] Armies, deeper (ideas): merging understrength companies, armies of the great nations that march on your capital, the Velari and Tellani sending warriors to your wars as allies, and naval warfare once there are ships.

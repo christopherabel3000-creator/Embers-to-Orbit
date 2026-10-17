@@ -12,9 +12,10 @@ import { emptyDeeds } from './legacy.js';
 import { WORLD_PLACES, REGIONS, initialWorld } from './worldData.js';
 import { initialGreat, GREAT_NATIONS } from './greatData.js';
 import { initialGreatWorld } from './greatWorld.js';
+import { initialFarShore } from './farShore.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY } from './difficulty.js';
 
-export const SAVE_VERSION = 36;
+export const SAVE_VERSION = 37;
 
 export const DEFAULT_PRIORITIES = {
   building: 'normal', learning: 'normal', defense: 'normal', exploration: 'normal', crafts: 'normal',
@@ -130,6 +131,7 @@ export function newGame({ seed = Date.now(), campName = 'Emberhold', difficulty 
     world: initialWorld(), // The regions beyond the valley, and expeditions to them.
     great: initialGreat(), // The great nations beyond the valley.
     greatWorld: initialGreatWorld(), // Their feelings for each other, their wars, and their alliances.
+    farShore: null, // The sea and the far shore, from the voyage on: see farShore.js.
     nationFounded: null, // The turn the Nation era began.
     armies: [], // Armies in the field: see armies.js.
     nextArmyId: 1,
@@ -431,6 +433,14 @@ export function migrate(data) {
     // The great nations' feelings for each other, their wars, and their alliances.
     data.greatWorld = initialGreatWorld();
     data.version = 36;
+  }
+  if (data.version === 36) {
+    // The sea: a voyage already sent lands on the far shore next season.
+    if (data.era === 'discovery' && !data.farShore) {
+      data.farShore = initialFarShore(data);
+      data.farShore.arrives = (data.turn || 0) + 1;
+    }
+    data.version = 37;
   }
   return data.version === SAVE_VERSION ? data : null;
 }

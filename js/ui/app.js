@@ -12,6 +12,7 @@ import {
   $main, $nav, state, refocus, announce, act, show, render, setState, registerScreens, setTown, setRegion, setArmy,
 } from './core.js';
 import { armiesScreen, armyScreen } from './screens/armies.js';
+import { fleetsScreen } from './screens/fleets.js';
 import { fieldScreen, fieldSummary, readFieldPlan } from './screens/field.js';
 import { advisorsScreen } from './screens/advisors.js';
 import { raidScreen, positionSummary, readPositions } from './screens/battle.js';
@@ -43,6 +44,7 @@ registerScreens({
   region: regionScreen,
   expedition: expeditionScreen,
   armies: armiesScreen,
+  fleets: fleetsScreen,
   army: armyScreen,
   field: fieldScreen,
   map: mapScreen,
@@ -278,6 +280,33 @@ function handleAction(action, btn) {
       if (msg) {
         show('settlement', { focus: false });
         refocus('#loyaltyHeading');
+        announce(msg);
+      }
+      break;
+    }
+    case 'buildShip':
+    case 'formFleet':
+    case 'setCourse':
+    case 'loadFleet':
+    case 'disbandFleet':
+    case 'sendScouts': {
+      const val = (id) => document.getElementById(id).value;
+      const fleetId = Number(btn.dataset.fleet);
+      const actions = {
+        buildShip: () => ({ type: 'buildShip', settlementId: Number(btn.dataset.town) }),
+        formFleet: () => ({ type: 'formFleet', captainId: Number(val('fleetCaptain')), ships: Number(val('fleetShips')) }),
+        setCourse: () => ({ type: 'setCourse', fleetId, to: val(`course-${fleetId}`) }),
+        loadFleet: () => ({ type: 'loadFleet', fleetId, food: Number(val(`loadFood-${fleetId}`)), people: Number(val(`loadPeople-${fleetId}`)) }),
+        disbandFleet: () => ({ type: 'disbandFleet', fleetId }),
+        sendScouts: () => ({ type: 'sendScouts', region: val('scoutRegion') }),
+      };
+      const msg = act(actions[action]());
+      if (msg) {
+        show('fleets', { focus: false });
+        const back = {
+          buildShip: '#yardsHeading', formFleet: '#fleetsHeading', setCourse: `#fleet-${fleetId}`, loadFleet: `#fleet-${fleetId}`, disbandFleet: '#harborHeading', sendScouts: '#footholdHeading',
+        }[action];
+        refocus(back, '#fleetsHeading');
         announce(msg);
       }
       break;

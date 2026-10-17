@@ -56,6 +56,7 @@ const SCREENS = [
   ['map', 'Map'],
   ['world', 'World'],
   ['armies', 'Armies'],
+  ['fleets', 'Fleets'],
   ['build', 'Build'],
   ['knowledge', 'Knowledge'],
   ['neighbors', 'Neighbors'],
@@ -139,6 +140,7 @@ function renderNav() {
   const items = SCREENS
     .filter(([id]) => !state.gameOver || ['report', 'chronicle', 'menu'].includes(id))
     .filter(([id]) => !['nation', 'world', 'armies'].includes(id) || eraAtLeast(state, 'nation'))
+    .filter(([id]) => id !== 'fleets' || Boolean(state.farShore))
     .map(([id, label]) => [id, id === 'people' && inVillage(state) ? 'Village' : label])
     .map(([id, label]) => `<li><button type="button" data-nav="${id}"${screen === id || (id === 'nation' && screen === 'settlement') || (id === 'world' && ['region', 'expedition'].includes(screen)) || (id === 'armies' && screen === 'army') ? ' aria-current="page"' : ''}>${label}</button></li>`);
   if (!state.gameOver) items.push('<li><button type="button" class="primary" data-action="endTurn">End season</button></li>');

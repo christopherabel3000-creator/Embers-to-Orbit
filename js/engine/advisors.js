@@ -39,6 +39,7 @@ import { voyageMissing, VOYAGE } from './voyage.js';
 import { townRoom, moveBlocker } from './resettle.js';
 import { warOf, enemiesOf } from './greatWorld.js';
 import { envoyAdvice } from './greatEnvoys.js';
+import { farShoreAdvice } from './farShore.js';
 import { declareThreshold } from './war.js';
 import { HOSTS } from './armyData.js';
 import { GREAT_NATIONS, GREAT_ORDER } from './greatData.js';
@@ -362,6 +363,7 @@ export function getAdvice(state) {
     add('speaker', 'note', `${capital(GREAT_NATIONS[id].name)} are at war with ${listWords(foes)}. Our trade route to them brings half as much while it lasts.`);
   }
   for (const text of envoyAdvice(state)) add('speaker', 'note', text);
+  for (const [role, level, text] of farShoreAdvice(state)) add(role, level, text);
   // Speaker: a great nation sliding toward an ultimatum.
   for (const id of GREAT_ORDER.filter((x) => state.great && state.great[x].met && !(state.wars || {})[x])) {
     const g = state.great[id];

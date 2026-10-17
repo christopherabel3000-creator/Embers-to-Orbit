@@ -9,6 +9,7 @@ import { refreshAdvisors } from './advisors.js';
 import { isNotable } from './village.js';
 import { recordDeed } from './legacy.js';
 import { listWords, plural } from './util.js';
+import { startFarShore, VOYAGE_CROSSING } from './farShore.js';
 
 export const VOYAGE = {
   capital: 100, // People in the capital.
@@ -82,9 +83,10 @@ export function sendVoyage(state) {
     sent: state.turn, captain: captain ? captain.name : null, crew: crew.map((p) => ({ ...p, task: 'voyage' })),
   };
   state.era = 'discovery';
+  startFarShore(state);
   recordDeed(state, 'wonders');
   const named = crew.filter((p) => isNotable(state, p)).map((p) => p.name);
   return {
-    message: `The first ship of ${state.campName} has sailed from the harbor, out of sight of land, across the open sea${captain ? `, with ${captain.name} at the helm` : ''} and ${plural(crew.length - 1, 'more of the crew', 'more of the crew')}${named.length > 1 ? `, among them ${listWords(named.slice(1))}` : ''}. The Age of Discovery has begun. It is still being built: for now, the game goes on as in the Nation era.`,
+    message: `The first ship of ${state.campName} has sailed from the harbor, out of sight of land, across the open sea${captain ? `, with ${captain.name} at the helm` : ''} and ${plural(crew.length - 1, 'more of the crew', 'more of the crew')}${named.length > 1 ? `, among them ${listWords(named.slice(1))}` : ''}. The Age of Discovery has begun. If the sea is kind, they will sight land in ${plural(VOYAGE_CROSSING, 'season', 'seasons')}.`,
   };
 }

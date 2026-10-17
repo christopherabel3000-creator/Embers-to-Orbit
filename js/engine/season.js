@@ -60,6 +60,7 @@ import {
   shuffle, listNames, clamp, plural,
 } from './util.js';
 import { greatWorldSeason } from './greatWorld.js';
+import { farShoreSeason } from './farShore.js';
 
 function hurt(person, amount) {
   person.health = clamp(person.health - amount);
@@ -333,6 +334,10 @@ export function resolveSeason(state) {
   urgent.push(...war.urgent);
   events.push(...war.events);
   routine.push(...war.routine);
+  const sea = farShoreSeason(state); // The far shore: the foothold, ships, and fleets.
+  urgent.push(...sea.urgent);
+  events.push(...sea.events);
+  routine.push(...sea.routine);
 
   // Hunting and foraging use up a place; every place slowly recovers.
   const huntSite = siteFor(state, 'hunt');

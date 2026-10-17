@@ -12,7 +12,7 @@ https://christopherabel3000-creator.github.io/Embers-to-Orbit/
 
 ## Current state
 
-The Survival era and the Settlement era: twelve named survivors in a forest valley. Assign tasks each season, build shelter and defenses, scout the land, survive winters and raids, and listen to your advisors. Grow strong enough and your camp can become a village run by its council, deal with the rising nations of the valley, and found a second settlement to begin the Nation era, where you rule a growing nation of settlements through their roles, demands, and governors, send expeditions into the wider world, meet the seven great nations beyond it, raise armies to make war and peace, and at last send a ship across the open sea. The Age of Discovery comes next. See [DESIGN.md](DESIGN.md) for the full design.
+The Survival era and the Settlement era: twelve named survivors in a forest valley. Assign tasks each season, build shelter and defenses, scout the land, survive winters and raids, and listen to your advisors. Grow strong enough and your camp can become a village run by its council, deal with the rising nations of the valley, and found a second settlement to begin the Nation era, where you rule a growing nation of settlements through their roles, demands, and governors, send expeditions into the wider world, meet the seven great nations beyond it, raise armies to make war and peace, and at last send a ship across the open sea, which begins the Age of Discovery: a foothold on the far shore, ships and fleets that chart the sea, and the far shore's own peoples. Colonies come next. See [DESIGN.md](DESIGN.md) for the full design.
 
 ## Development
 

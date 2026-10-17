@@ -140,3 +140,29 @@ test('no one a waiting decision is about leaves the capital', () => {
   s.pendingEvent = null;
   assert.equal(movers(s)[0].id, first.id);
 });
+
+test('while a decision about someone waits, nothing takes people out of the capital', () => {
+  let s = moveGame();
+  s.settlements[0].buildings.homes = 10;
+  s.knowledge.learned.push('writing', 'mapmaking');
+  const person = movers(s)[0];
+  s.pendingEvent = { type: 'story', id: 'lostWorker', person: person.id, task: 'hunt' };
+  const refused = [
+    { type: 'foundSettlement', placeId: 'meadow', name: 'Elsewhere', settlers: 10, governorId: person.id },
+    { type: 'appointGovernor', settlementId: s.settlements[0].id, personId: person.id },
+    { type: 'sendExpedition', region: 'lakes', leaderId: person.id, size: 5, seasons: 3 },
+    { type: 'raiseArmy', commanderId: person.id, kind: 'spearmen' },
+    { type: 'sendVoyage' },
+  ];
+  for (const action of refused) {
+    const r = applyAction(s, action);
+    assert.ok(r.error, `${action.type} should wait for the decision`);
+    assert.match(r.error, /Deal with what is happening first|A decision is waiting/, `${action.type}: ${r.error}`);
+  }
+  // Moving out by hand or by order passes over the person the decision is about.
+  s = act(s, { type: 'moveSettlers', settlementId: s.settlements[0].id, count: 3 });
+  s.turn += 1;
+  s = act(s, { type: 'setOrder', id: 'spreadAbove', value: 60 });
+  applyStandingOrders(s);
+  assert.ok(s.people.some((p) => p.id === person.id && p.alive));
+});
